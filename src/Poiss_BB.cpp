@@ -78,11 +78,62 @@ List buffet_poiss_BB(double alpha,double theta,int n,double lambda) {
 }
 
 
+// [[Rcpp::export]]
+std::vector<double> mean_kmn_all_poiss_BB(double alpha,double theta,int m, int n,double lambda){
+  
+  std::vector<double> means;
+  means.reserve(m);
+  
+  // useful quantities repeatedly used
+  double l_g_theta = lgamma(theta);
+  double l_g_theta_alpha = lgamma(alpha+theta);
+  double l_g_theta_n = lgamma(theta+n);
+  double l_g_theta_alpha_n = lgamma(alpha+theta+n);
+  
+  double par_0 = lambda*exp(l_g_theta - l_g_theta_alpha);
+  double par_1 = exp(l_g_theta_alpha_n - l_g_theta_n);
+  
+  // To track the updates in the parameters
+  double l_g_theta_n_i = l_g_theta_n;
+  double l_g_theta_alpha_n_i = l_g_theta_alpha_n;
+  
+  for (int i=1; i<m+1; i++){
+    l_g_theta_alpha_n_i += log(theta+alpha+n+i-1);
+    l_g_theta_n_i += log(theta+n+i-1);
+    
+    means.push_back(par_0 *(par_1 - exp(l_g_theta_alpha_n_i - l_g_theta_n_i)));
+  }
+  
+  return means;
+}
+
+
+// [[Rcpp::export]]
+double mean_kmn_poiss_BB(double alpha,double theta,int m, int n,double lambda){
+  
+  // useful quantities repeatedly used
+  double l_g_theta = lgamma(theta);
+  double l_g_theta_alpha = lgamma(alpha+theta);
+  double l_g_theta_n = lgamma(theta+n);
+  double l_g_theta_alpha_n = lgamma(alpha+theta+n);
+  double l_g_theta_n_m = lgamma(theta+n+m);
+  double l_g_theta_alpha_n_m = lgamma(alpha+theta+n+m); 
+  
+  double par_0 = lambda*exp(l_g_theta - l_g_theta_alpha);
+  double par_1 = exp(l_g_theta_alpha_n - l_g_theta_n);
+  double par_2 = exp(l_g_theta_alpha_n_m - l_g_theta_n_m);
+  
+  return par_0*(par_1 - par_2);
+}
+
+
+
 /*** R
 alpha=-1
 theta=2
 n=5
-lambda=10
+m=3
+lambda=100
 
-feat = buffet_poiss_BB(alpha,theta,n,lambda)
+feat = mean_kmn_all_poiss_BB(alpha,theta,m,n,lambda)
 */
