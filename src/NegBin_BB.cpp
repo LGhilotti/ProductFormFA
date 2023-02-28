@@ -6,18 +6,18 @@ using namespace Rcpp;
 
 // [[Rcpp::plugins(cpp11)]]
 // [[Rcpp::export]]
-List buffet_poiss_BB(double alpha,double theta,int n,double lambda) {
+List buffet_negbin_BB(double alpha,double theta,int n,int nstar, double p) {
   
   // n_dishes: it stores the current total number of selected dishes
-  int n_dishes = R::rpois( -lambda*alpha/theta );
-
+  int n_dishes = R::rnbinom(nstar, 1+alpha*(1-p)/(p*theta -alpha*(1-p)) );
+  
   // dishes_first: it stores the dishes selected by the first customer
   std::vector<int> dishes_first(n_dishes);
   std::iota(dishes_first.begin(), dishes_first.end(),1);
   
   // counts: vector of counts of the served dishes
   std::vector<int> counts(n_dishes,1);
-
+  
   // build List (Rcpp) with each element a customer, associated to a vector of dishes
   List dishes(n);
   dishes[0] = dishes_first;
@@ -32,11 +32,14 @@ List buffet_poiss_BB(double alpha,double theta,int n,double lambda) {
   for (int i=2; i<n+1; i++){
     l_g_theta_i += log(theta+i-1);
     l_g_theta_alpha_i_m1 += log(theta+alpha+i-2);
-    double l_par = l_g_theta + l_g_theta_alpha_i_m1 - l_g_alpha_theta - l_g_theta_i;
     
-    // n_new_dishes: it stores the number of new dishes selected by the i-th customer
-    int n_new_dishes = R::rpois(-lambda*alpha*exp(l_par));
+    double par_0 = exp(l_g_alpha_theta + l_g_theta_i);
+    double par_1 = exp(l_g_theta_alpha_i_m1 + l_g_theta);
+    double pbar = 1 + alpha*(1-p)*par_1/(par_0 - (1-p)*(theta+alpha+i-1)*par_1);
 
+    // n_new_dishes: it stores the number of new dishes selected by the i-th customer
+    int n_new_dishes = R::rnbinom(nstar+n_dishes, pbar);
+    
     // prob_old_i: it stores the probs that the old dishes are served to the i-th customer
     std::vector<double> prob_old_i(n_dishes);
     std::transform(counts.cbegin(), counts.cend(), prob_old_i.begin(), [i,alpha,theta](int c){return (c - alpha)/(theta+i-1);});
@@ -48,7 +51,7 @@ List buffet_poiss_BB(double alpha,double theta,int n,double lambda) {
     
     // dishes_i: it stores the dishes served to the i-th customer #(n_old_observed_i + n_new_dishes)
     std::vector<int> dishes_i(n_old_observed_i + n_new_dishes);
-
+    
     std::vector<int>::iterator it = old_observed_i.begin();
     int j=0;
     while ((it = std::find_if(it, old_observed_i.end(), [](int x){return x == 1; })) != old_observed_i.end())
@@ -58,7 +61,7 @@ List buffet_poiss_BB(double alpha,double theta,int n,double lambda) {
       j++;
     }
     std::iota(dishes_i.begin()+n_old_observed_i, dishes_i.end(),n_dishes+1);
-
+    
     // Update total number of served dishes after i-th customer
     n_dishes += n_new_dishes;
     // Update counts of served dishes after i-th customer
@@ -67,18 +70,18 @@ List buffet_poiss_BB(double alpha,double theta,int n,double lambda) {
     counts.insert(counts.end(), n_new_dishes, 1);
     // Update the list of customers with i-th customer and his dishes
     dishes[i-1] = dishes_i;
-
+    
   }
-
+  
   return dishes;
 }
 
 
 // [[Rcpp::export]]
-std::vector<double> mean_kmn_all_poiss_BB(double alpha,double theta,int m, int n,double lambda){
+std::vector<double> p_kmn_all_negbin_BB(double alpha,double theta,int m, int n,double p){
   
-  std::vector<double> means;
-  means.reserve(m);
+  std::vector<double> pbar;
+  pbar.reserve(m);
   
   // useful quantities repeatedly used
   double l_g_theta = lgamma(theta);
@@ -86,7 +89,7 @@ std::vector<double> mean_kmn_all_poiss_BB(double alpha,double theta,int m, int n
   double l_g_theta_n = lgamma(theta+n);
   double l_g_theta_alpha_n = lgamma(alpha+theta+n);
   
-  double par_0 = lambda*exp(l_g_theta - l_g_theta_alpha);
+  double par_0 = (1-p)*exp(l_g_theta - l_g_theta_alpha);
   double par_1 = exp(l_g_theta_alpha_n - l_g_theta_n);
   
   // To track the updates in the parameters
@@ -96,16 +99,17 @@ std::vector<double> mean_kmn_all_poiss_BB(double alpha,double theta,int m, int n
   for (int i=1; i<m+1; i++){
     l_g_theta_alpha_n_i += log(theta+alpha+n+i-1);
     l_g_theta_n_i += log(theta+n+i-1);
+    double par_2 = exp(l_g_theta_alpha_n_i - l_g_theta_n_i);
     
-    means.push_back(par_0 *(par_1 - exp(l_g_theta_alpha_n_i - l_g_theta_n_i)));
+    pbar.push_back(1- par_0 *(par_1 - par_2)/(1-par_0*par_2));
   }
   
-  return means;
+  return pbar;
 }
 
 
 // [[Rcpp::export]]
-double mean_kmn_poiss_BB(double alpha,double theta,int m, int n,double lambda){
+double p_kmn_negbin_BB(double alpha,double theta,int m, int n,double p){
   
   // useful quantities repeatedly used
   double l_g_theta = lgamma(theta);
@@ -115,11 +119,11 @@ double mean_kmn_poiss_BB(double alpha,double theta,int m, int n,double lambda){
   double l_g_theta_n_m = lgamma(theta+n+m);
   double l_g_theta_alpha_n_m = lgamma(alpha+theta+n+m); 
   
-  double par_0 = lambda*exp(l_g_theta - l_g_theta_alpha);
+  double par_0 = (1-p)*exp(l_g_theta - l_g_theta_alpha);
   double par_1 = exp(l_g_theta_alpha_n - l_g_theta_n);
   double par_2 = exp(l_g_theta_alpha_n_m - l_g_theta_n_m);
   
-  return par_0*(par_1 - par_2);
+  return 1- par_0 *(par_1 - par_2)/(1-par_0*par_2);
 }
 
 
@@ -129,7 +133,9 @@ alpha=-1
 theta=2
 n=5
 m=3
-lambda=100
+nstar = 10
+p=0.5
 
-feat = mean_kmn_all_poiss_BB(alpha,theta,m,n,lambda)
+pbars = p_kmn_all_negbin_BB(alpha,theta,m,n,p)
+feat = buffet_negbin_BB(alpha, theta, n, nstar, p)
 */
