@@ -6,7 +6,7 @@ using namespace Rcpp;
 
 // [[Rcpp::plugins(cpp11)]]
 // [[Rcpp::export]]
-List buffet_gamma_IBP(double alpha,double theta,int n,double a, double b) {
+List buffet_gamma_IBP(double alpha, double theta, int n, double a, double b) {
   
   // n_dishes: it stores the current total number of selected dishes
   int n_dishes = R::rnbinom(a, b/(b+1) );

@@ -15,7 +15,7 @@ lev <- 0.95
 n <- 10
 m <- 10
 
-plot_Kmn_poiss_BB(alpha, theta, m, n, lambda, lev)
+plot_Kmn_poiss_BB(alpha = - 1, theta = 10, m = 300000, n = 100, lambda = 10000, lev)
 
 buff_poiss_bb <- buffet_poiss_BB(alpha, theta, n, lambda)
 

@@ -16,12 +16,9 @@ plot_Kmn_poiss_BB <- function(alpha, theta, m, n, lambda, lev) {
   )
 
   ggplot(bands, aes(x, means)) + # ggplot2 plot with confidence intervals
-    geom_point() +
-    geom_errorbar(aes(ymin = lb, ymax = ub)) +
-    labs(
-      title = paste0("CI of Kmn for BB with Poisson(", lambda, "), with n=", n),
-      x = "m", y = "Kmn"
-    ) +
+    geom_line(col = "darkblue") +
+    geom_ribbon(aes(ymin = lb, ymax = ub), alpha = 0.1, fill = "darkblue") +
+    xlab("m") + ylab(expression(K[m]^n)) + theme_bw() + 
     theme(plot.title = element_text(hjust = 0.5)) +
     scale_y_continuous(breaks = pretty_breaks()) +
     scale_x_continuous(breaks = pretty_breaks())
