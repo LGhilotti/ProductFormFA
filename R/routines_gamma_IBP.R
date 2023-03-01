@@ -1,26 +1,25 @@
-library(Rcpp)
-library(ggplot2)
-library(scales)
-
-sourceCpp("src/Gamma_IBP.cpp")
-
-
-plot_Kmn_gamma_IBP <- function(alpha, theta, m, n, Kn, a, b, lev) {
+#' Credible intervals of Kmn for the IBP with Gamma mixture
+#'
+#' This function computes the means and the credible intervals of Kmn for the IBP with Gamma mixture
+#'
+#' @param alpha [numeric] value of alpha in product-form feature allocation
+#' @param theta [numeric] value of theta in product-form feature allocation
+#' @param m [numeric] dimension of the new sample to be observed
+#' @param n [numeric] dimension of the already observed sample
+#' @param Kn [numeric] number of features in the already observed sample
+#' @param a [numeric] Gamma hyperparameter (shape)
+#' @param b [numeric] Gamma hyperparameter (rate)
+#' @param lev [numeric] level of the credible intervals
+#'
+#' @export
+#'
+CI_Kmn_gamma_IBP <- function(alpha, theta, m, n, Kn, a, b, lev) {
+  
   pbars <- p_kmn_all_gamma_IBP(alpha, theta, m, n, b)
   means <- (a + Kn) * (1 - pbars) / pbars
   ub <- qnbinom(lev + (1 - lev) / 2, a + Kn, pbars)
   lb <- qnbinom((1 - lev) / 2, a + Kn, pbars)
-  bands <- data.frame(
-    x = 1:m,
-    means = means,
-    lb = lb,
-    ub = ub
-  )
-  ggplot(bands, aes(x, means)) + # ggplot2 plot with confidence intervals
-    geom_line(col = "darkblue") +
-    geom_ribbon(aes(ymin = lb, ymax = ub), alpha = 0.1, fill = "darkblue") +
-    xlab("m") + ylab(expression(K[m]^n)) + theme_bw() + 
-    theme(plot.title = element_text(hjust = 0.5)) +
-    scale_y_continuous(breaks = pretty_breaks()) +
-    scale_x_continuous(breaks = pretty_breaks())
+  
+  return(list(means,ub,lb))
+  
 }
