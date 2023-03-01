@@ -15,11 +15,11 @@ lev <- 0.95
 n <- 10
 m <- 10
 
-plot_Kmn_poiss_BB(alpha,theta,m,n,lambda, lev)
+plot_Kmn_poiss_BB(alpha, theta, m, n, lambda, lev)
 
-buff_poiss_bb <- buffet_poiss_BB(alpha,theta,n,lambda)
+buff_poiss_bb <- buffet_poiss_BB(alpha, theta, n, lambda)
 
-## BB with Negative-Binomial(n*,p) 
+## BB with Negative-Binomial(n*,p)
 set.seed(1234)
 alpha <- -1
 theta <- 15
@@ -30,9 +30,9 @@ n <- 10
 Kn <- 5
 m <- 10
 
-plot_Kmn_negbin_BB(alpha,theta,m,n,Kn,nstar, p, lev)
+plot_Kmn_negbin_BB(alpha, theta, m, n, Kn, nstar, p, lev)
 
-buff_negbin_bb <- buffet_negbin_BB(alpha,theta,n,nstar,p)
+buff_negbin_bb <- buffet_negbin_BB(alpha, theta, n, nstar, p)
 
 ## IBP with Gamma(a,b)
 set.seed(1234)
@@ -45,6 +45,6 @@ n <- 10
 Kn <- 3
 m <- 10
 
-plot_Kmn_gamma_IBP(alpha,theta,m,n,Kn,a, b, lev)
+plot_Kmn_gamma_IBP(alpha, theta, m, n, Kn, a, b, lev)
 
-buff_gamma_ibp <- buffet_gamma_IBP(alpha,theta,n,a,b)
+buff_gamma_ibp <- buffet_gamma_IBP(alpha, theta, n, a, b)
