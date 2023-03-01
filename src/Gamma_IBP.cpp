@@ -155,16 +155,3 @@ double p_kmn_gamma_IBP(double alpha,double theta,int m, int n,double b){
   return (gamma_a_t_n + b)/(gamma_a_t_n+b+par_0*sum_m);
 }
 
-
-
-/*** R
-alpha= 0.2
-theta=2
-n=5
-m=3
-a=30
-b= 9
-
-pbars = p_kmn_all_gamma_IBP(alpha,theta,m,n,b)
-feat = buffet_gamma_IBP(alpha, theta, n, a, b)
-*/

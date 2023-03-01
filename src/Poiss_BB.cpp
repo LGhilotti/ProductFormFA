@@ -123,13 +123,3 @@ double mean_kmn_poiss_BB(double alpha,double theta,int m, int n,double lambda){
 }
 
 
-
-/*** R
-alpha=-1
-theta=2
-n=5
-m=3
-lambda=100
-
-feat = mean_kmn_all_poiss_BB(alpha,theta,m,n,lambda)
-*/

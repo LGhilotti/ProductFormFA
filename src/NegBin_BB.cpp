@@ -126,16 +126,3 @@ double p_kmn_negbin_BB(double alpha,double theta,int m, int n,double p){
   return 1- par_0 *(par_1 - par_2)/(1-par_0*par_2);
 }
 
-
-
-/*** R
-alpha=-1
-theta=2
-n=5
-m=3
-nstar = 10
-p=0.5
-
-pbars = p_kmn_all_negbin_BB(alpha,theta,m,n,p)
-feat = buffet_negbin_BB(alpha, theta, n, nstar, p)
-*/
