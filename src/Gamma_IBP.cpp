@@ -4,7 +4,10 @@
 using namespace Rcpp;
 
 
-// [[Rcpp::plugins(cpp11)]]
+//' Buffet procedure for IBP with Gamma mixture
+//' 
+//'
+//' @export
 // [[Rcpp::export]]
 List buffet_gamma_IBP(double alpha, double theta, int n, double a, double b) {
   
@@ -76,7 +79,7 @@ List buffet_gamma_IBP(double alpha, double theta, int n, double a, double b) {
     
   }
   
-  return dishes;
+  return List::create(Named("features") = dishes, Named("num_feat") = n_dishes);
 }
 
 
