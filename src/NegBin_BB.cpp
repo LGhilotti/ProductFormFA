@@ -3,8 +3,10 @@
 #include "cpp_probability_generators.hpp"
 using namespace Rcpp;
 
-
-// [[Rcpp::plugins(cpp11)]]
+//' Buffet procedure for BB with Negative-Binomial mixture
+//' 
+//'
+//' @export
 // [[Rcpp::export]]
 List buffet_negbin_BB(double alpha,double theta,int n,int nstar, double p) {
   
@@ -73,7 +75,7 @@ List buffet_negbin_BB(double alpha,double theta,int n,int nstar, double p) {
     
   }
   
-  return dishes;
+  return List::create(Named("features") = dishes, Named("num_feat") = n_dishes);
 }
 
 

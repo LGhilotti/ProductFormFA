@@ -5,7 +5,8 @@
 #' @param ci [list] it contains means, upper-bounds and lower-bounds of the credible intervals
 #'
 #' @export
-#' @import ggplot2, scales
+#' @import ggplot2
+#' @import scales
 #'
 plot_Kmn <- function(ci){
   
