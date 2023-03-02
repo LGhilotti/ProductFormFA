@@ -22,6 +22,7 @@ buffet_poiss_BB_initial_sample(alpha, theta, m, n, counts, lambda)
 \value{
 list: $features contains the simulated features for each customer,
 $num_new contains the number of new features selected for each customer
+$counts contains the counts for the observed features
 }
 \description{
 Buffet procedure for BB with Poisson mixture given initial sample

@@ -12,7 +12,8 @@ using namespace Rcpp;
 //' @param p Negative-Binomial hyperparameter (success probability)
 //' 
 //' @return list: $features contains the simulated features for each customer,
-//' $num_new contains the number of new features selected for each customer
+//' $num_new contains the number of new features selected for each customer,
+//' $counts contains the counts for the observed features
 //' 
 //' @export
 // [[Rcpp::export]]
@@ -65,31 +66,37 @@ List buffet_negbin_BB(double alpha,double theta,int n,int nstar, double p) {
     // n_old_observed_i: it stores the number of old dishes also tried by i-th customer
     int n_old_observed_i = std::accumulate(old_observed_i.begin(), old_observed_i.end(), 0);
     
-    // dishes_i: it stores the dishes served to the i-th customer #(n_old_observed_i + n_new_dishes)
-    std::vector<int> dishes_i(n_old_observed_i + n_new_dishes);
-    
-    std::vector<int>::iterator it = old_observed_i.begin();
-    int j=0;
-    while ((it = std::find_if(it, old_observed_i.end(), [](int x){return x == 1; })) != old_observed_i.end())
-    {
-      dishes_i[j] = std::distance(old_observed_i.begin(), it)+1;
-      it++;
-      j++;
+    if (n_old_observed_i + n_new_dishes > 0){
+        
+      // dishes_i: it stores the dishes served to the i-th customer #(n_old_observed_i + n_new_dishes)
+      std::vector<int> dishes_i(n_old_observed_i + n_new_dishes);
+      
+      if (n_old_observed_i >0){
+        std::vector<int>::iterator it = old_observed_i.begin();
+        int j=0;
+        while ((it = std::find_if(it, old_observed_i.end(), [](int x){return x == 1; })) != old_observed_i.end())
+        {
+          dishes_i[j] = std::distance(old_observed_i.begin(), it)+1;
+          it++;
+          j++;
+        }
+      }
+      std::iota(dishes_i.begin()+n_old_observed_i, dishes_i.end(),n_dishes+1);
+      
+      // Update total number of served dishes after i-th customer
+      n_dishes += n_new_dishes;
+      // Update counts of served dishes after i-th customer
+      std::transform (counts.begin(), counts.end(), old_observed_i.begin(), counts.begin(), std::plus<int>());
+      counts.reserve(n_dishes);
+      counts.insert(counts.end(), n_new_dishes, 1);
+      // Update the list of customers with i-th customer and his dishes
+      dishes[i-1] = dishes_i;
     }
-    std::iota(dishes_i.begin()+n_old_observed_i, dishes_i.end(),n_dishes+1);
-    
-    // Update total number of served dishes after i-th customer
-    n_dishes += n_new_dishes;
-    // Update counts of served dishes after i-th customer
-    std::transform (counts.begin(), counts.end(), old_observed_i.begin(), counts.begin(), std::plus<int>());
-    counts.reserve(n_dishes);
-    counts.insert(counts.end(), n_new_dishes, 1);
-    // Update the list of customers with i-th customer and his dishes
-    dishes[i-1] = dishes_i;
     
   }
   
-  return List::create(Named("features") = dishes, Named("num_new") = vec_n_new_dishes);
+  return List::create(Named("features") = dishes, Named("num_new") = vec_n_new_dishes,
+                      Named("counts") = counts);
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -106,11 +113,11 @@ List buffet_negbin_BB(double alpha,double theta,int n,int nstar, double p) {
 //' 
 //' @return list: $features contains the simulated features for each customer,
 //' $num_new contains the number of new features selected for each customer
+//' $counts contains the counts for the observed features
 //' 
 //' @export
 // [[Rcpp::export]]
-List buffet_negbin_BB_initial_sample(double alpha,double theta,int m, int n,
-                                    std::vector<int> counts, int nstar, double p) {
+List buffet_negbin_BB_initial_sample(double alpha,double theta,int m, int n, std::vector<int> counts, int nstar, double p) {
   
   // vector containing the number of new dishes for each customer
   std::vector<int> vec_n_new_dishes;
@@ -150,31 +157,35 @@ List buffet_negbin_BB_initial_sample(double alpha,double theta,int m, int n,
     // n_old_observed_i: it stores the number of old dishes also tried by i-th customer
     int n_old_observed_i = std::accumulate(old_observed_i.begin(), old_observed_i.end(), 0);
     
-    // dishes_i: it stores the dishes served to the i-th customer #(n_old_observed_i + n_new_dishes)
-    std::vector<int> dishes_i(n_old_observed_i + n_new_dishes);
-    
-    std::vector<int>::iterator it = old_observed_i.begin();
-    int j=0;
-    while ((it = std::find_if(it, old_observed_i.end(), [](int x){return x == 1; })) != old_observed_i.end())
-    {
-      dishes_i[j] = std::distance(old_observed_i.begin(), it)+1;
-      it++;
-      j++;
+    if (n_old_observed_i + n_new_dishes > 0){
+      // dishes_i: it stores the dishes served to the i-th customer #(n_old_observed_i + n_new_dishes)
+      std::vector<int> dishes_i(n_old_observed_i + n_new_dishes);
+      
+      if (n_old_observed_i >0){
+        std::vector<int>::iterator it = old_observed_i.begin();
+        int j=0;
+        while ((it = std::find_if(it, old_observed_i.end(), [](int x){return x == 1; })) != old_observed_i.end())
+        {
+          dishes_i[j] = std::distance(old_observed_i.begin(), it)+1;
+          it++;
+          j++;
+        }
+      }
+      std::iota(dishes_i.begin()+n_old_observed_i, dishes_i.end(),n_dishes+1);
+      
+      // Update total number of served dishes after i-th customer
+      n_dishes += n_new_dishes;
+      // Update counts of served dishes after i-th customer
+      std::transform (counts.begin(), counts.end(), old_observed_i.begin(), counts.begin(), std::plus<int>());
+      counts.reserve(n_dishes);
+      counts.insert(counts.end(), n_new_dishes, 1);
+      // Update the list of customers with i-th customer and his dishes
+      dishes[i-1] = dishes_i;
     }
-    std::iota(dishes_i.begin()+n_old_observed_i, dishes_i.end(),n_dishes+1);
-    
-    // Update total number of served dishes after i-th customer
-    n_dishes += n_new_dishes;
-    // Update counts of served dishes after i-th customer
-    std::transform (counts.begin(), counts.end(), old_observed_i.begin(), counts.begin(), std::plus<int>());
-    counts.reserve(n_dishes);
-    counts.insert(counts.end(), n_new_dishes, 1);
-    // Update the list of customers with i-th customer and his dishes
-    dishes[i-1] = dishes_i;
-    
   }
   
-  return List::create(Named("features") = dishes, Named("num_new") = vec_n_new_dishes);
+  return List::create(Named("features") = dishes, Named("num_new") = vec_n_new_dishes,
+                      Named("counts") = counts) ;
 }
 
 //////////////////////////////////////////////////////////////////////

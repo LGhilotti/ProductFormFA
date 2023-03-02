@@ -4,8 +4,8 @@
 #' observed features in order-of-appearance, with 1 if present, 0 if not
 #'
 #' @param feat_list [list] feat_list$features contains the observed features, 
-#' feat_list$num_new contains the number of new features for each customer
-#' 
+#' feat_list$num_new contains the number of new features for each customer,
+#' feat_list$counts contains the counts for the observed features
 #'
 #' @export
 #'

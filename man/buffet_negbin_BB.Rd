@@ -19,7 +19,8 @@ buffet_negbin_BB(alpha, theta, n, nstar, p)
 }
 \value{
 list: $features contains the simulated features for each customer,
-$num_new contains the number of new features selected for each customer
+$num_new contains the number of new features selected for each customer,
+$counts contains the counts for the observed features
 }
 \description{
 Buffet procedure for BB with Negative-Binomial mixture from beginning

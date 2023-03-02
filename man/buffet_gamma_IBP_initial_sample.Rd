@@ -24,6 +24,7 @@ buffet_gamma_IBP_initial_sample(alpha, theta, m, n, counts, a, b)
 \value{
 list: $features contains the simulated features for each customer,
 $num_new contains the number of new features selected for each customer
+$counts contains the counts for the observed features
 }
 \description{
 Buffet procedure for IBP with Gamma mixture given initial sample

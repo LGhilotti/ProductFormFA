@@ -18,6 +18,7 @@ buffet_poiss_BB(alpha, theta, n, lambda)
 \value{
 list: $features contains the simulated features for each customer,
 $num_new contains the number of new features selected for each customer
+$counts contains the counts for the observed features
 }
 \description{
 Buffet procedure for BB with Poisson mixture from beginning

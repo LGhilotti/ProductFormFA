@@ -11,6 +11,7 @@
 #' 
 #' @return list: $features contains the simulated features for each customer,
 #' $num_new contains the number of new features selected for each customer
+#' $counts contains the counts for the observed features
 #' 
 #' @export
 buffet_gamma_IBP <- function(alpha, theta, n, a, b) {
@@ -29,6 +30,7 @@ buffet_gamma_IBP <- function(alpha, theta, n, a, b) {
 #' 
 #' @return list: $features contains the simulated features for each customer,
 #' $num_new contains the number of new features selected for each customer
+#' $counts contains the counts for the observed features
 #' 
 #' @export
 buffet_gamma_IBP_initial_sample <- function(alpha, theta, m, n, counts, a, b) {
@@ -52,7 +54,8 @@ p_kmn_gamma_IBP <- function(alpha, theta, m, n, b) {
 #' @param p Negative-Binomial hyperparameter (success probability)
 #' 
 #' @return list: $features contains the simulated features for each customer,
-#' $num_new contains the number of new features selected for each customer
+#' $num_new contains the number of new features selected for each customer,
+#' $counts contains the counts for the observed features
 #' 
 #' @export
 buffet_negbin_BB <- function(alpha, theta, n, nstar, p) {
@@ -71,6 +74,7 @@ buffet_negbin_BB <- function(alpha, theta, n, nstar, p) {
 #' 
 #' @return list: $features contains the simulated features for each customer,
 #' $num_new contains the number of new features selected for each customer
+#' $counts contains the counts for the observed features
 #' 
 #' @export
 buffet_negbin_BB_initial_sample <- function(alpha, theta, m, n, counts, nstar, p) {
@@ -94,6 +98,7 @@ p_kmn_negbin_BB <- function(alpha, theta, m, n, p) {
 #' 
 #' @return list: $features contains the simulated features for each customer,
 #' $num_new contains the number of new features selected for each customer
+#' $counts contains the counts for the observed features
 #' 
 #' @export
 buffet_poiss_BB <- function(alpha, theta, n, lambda) {
@@ -111,6 +116,7 @@ buffet_poiss_BB <- function(alpha, theta, n, lambda) {
 #' 
 #' @return list: $features contains the simulated features for each customer,
 #' $num_new contains the number of new features selected for each customer
+#' $counts contains the counts for the observed features
 #' 
 #' @export
 buffet_poiss_BB_initial_sample <- function(alpha, theta, m, n, counts, lambda) {
