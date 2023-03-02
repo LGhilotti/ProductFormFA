@@ -20,6 +20,6 @@ CI_Kmn_gamma_IBP <- function(alpha, theta, m, n, Kn, a, b, lev) {
   ub <- qnbinom(lev + (1 - lev) / 2, a + Kn, pbars)
   lb <- qnbinom((1 - lev) / 2, a + Kn, pbars)
   
-  return(list(means,ub,lb))
+  return(list("means" = means,"ubs" = ub,"lbs" = lb))
   
 }

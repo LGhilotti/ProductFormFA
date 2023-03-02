@@ -8,7 +8,7 @@ create_features_matrix(feat_list)
 }
 \arguments{
 \item{feat_list}{\link{list} feat_list$features contains the observed features,
-feat_list$num_feat contains the total number of features}
+feat_list$num_new contains the number of new features for each customer}
 }
 \description{
 This function allows to create the matrix of the

@@ -25,6 +25,23 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// buffet_gamma_IBP_initial_sample
+List buffet_gamma_IBP_initial_sample(double alpha, double theta, int m, int n, std::vector<int> counts, double a, double b);
+RcppExport SEXP _ProductFormFA_buffet_gamma_IBP_initial_sample(SEXP alphaSEXP, SEXP thetaSEXP, SEXP mSEXP, SEXP nSEXP, SEXP countsSEXP, SEXP aSEXP, SEXP bSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< double >::type alpha(alphaSEXP);
+    Rcpp::traits::input_parameter< double >::type theta(thetaSEXP);
+    Rcpp::traits::input_parameter< int >::type m(mSEXP);
+    Rcpp::traits::input_parameter< int >::type n(nSEXP);
+    Rcpp::traits::input_parameter< std::vector<int> >::type counts(countsSEXP);
+    Rcpp::traits::input_parameter< double >::type a(aSEXP);
+    Rcpp::traits::input_parameter< double >::type b(bSEXP);
+    rcpp_result_gen = Rcpp::wrap(buffet_gamma_IBP_initial_sample(alpha, theta, m, n, counts, a, b));
+    return rcpp_result_gen;
+END_RCPP
+}
 // p_kmn_all_gamma_IBP
 std::vector<double> p_kmn_all_gamma_IBP(double alpha, double theta, int m, int n, double b);
 RcppExport SEXP _ProductFormFA_p_kmn_all_gamma_IBP(SEXP alphaSEXP, SEXP thetaSEXP, SEXP mSEXP, SEXP nSEXP, SEXP bSEXP) {
@@ -67,6 +84,23 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< int >::type nstar(nstarSEXP);
     Rcpp::traits::input_parameter< double >::type p(pSEXP);
     rcpp_result_gen = Rcpp::wrap(buffet_negbin_BB(alpha, theta, n, nstar, p));
+    return rcpp_result_gen;
+END_RCPP
+}
+// buffet_negbin_BB_initial_sample
+List buffet_negbin_BB_initial_sample(double alpha, double theta, int m, int n, std::vector<int> counts, int nstar, double p);
+RcppExport SEXP _ProductFormFA_buffet_negbin_BB_initial_sample(SEXP alphaSEXP, SEXP thetaSEXP, SEXP mSEXP, SEXP nSEXP, SEXP countsSEXP, SEXP nstarSEXP, SEXP pSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< double >::type alpha(alphaSEXP);
+    Rcpp::traits::input_parameter< double >::type theta(thetaSEXP);
+    Rcpp::traits::input_parameter< int >::type m(mSEXP);
+    Rcpp::traits::input_parameter< int >::type n(nSEXP);
+    Rcpp::traits::input_parameter< std::vector<int> >::type counts(countsSEXP);
+    Rcpp::traits::input_parameter< int >::type nstar(nstarSEXP);
+    Rcpp::traits::input_parameter< double >::type p(pSEXP);
+    rcpp_result_gen = Rcpp::wrap(buffet_negbin_BB_initial_sample(alpha, theta, m, n, counts, nstar, p));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -175,9 +209,11 @@ END_RCPP
 
 static const R_CallMethodDef CallEntries[] = {
     {"_ProductFormFA_buffet_gamma_IBP", (DL_FUNC) &_ProductFormFA_buffet_gamma_IBP, 5},
+    {"_ProductFormFA_buffet_gamma_IBP_initial_sample", (DL_FUNC) &_ProductFormFA_buffet_gamma_IBP_initial_sample, 7},
     {"_ProductFormFA_p_kmn_all_gamma_IBP", (DL_FUNC) &_ProductFormFA_p_kmn_all_gamma_IBP, 5},
     {"_ProductFormFA_p_kmn_gamma_IBP", (DL_FUNC) &_ProductFormFA_p_kmn_gamma_IBP, 5},
     {"_ProductFormFA_buffet_negbin_BB", (DL_FUNC) &_ProductFormFA_buffet_negbin_BB, 5},
+    {"_ProductFormFA_buffet_negbin_BB_initial_sample", (DL_FUNC) &_ProductFormFA_buffet_negbin_BB_initial_sample, 7},
     {"_ProductFormFA_p_kmn_all_negbin_BB", (DL_FUNC) &_ProductFormFA_p_kmn_all_negbin_BB, 5},
     {"_ProductFormFA_p_kmn_negbin_BB", (DL_FUNC) &_ProductFormFA_p_kmn_negbin_BB, 5},
     {"_ProductFormFA_buffet_poiss_BB", (DL_FUNC) &_ProductFormFA_buffet_poiss_BB, 4},

@@ -23,6 +23,6 @@ CI_Kmn_negbin_BB <- function(alpha, theta, m, n, Kn, nstar, p, lev) {
 
   lb <- qnbinom((1 - lev) / 2, nstar + Kn, pbars)
 
-  return(list(means,ub,lb))
+  return(list("means" = means,"ubs" = ub,"lbs" = lb))
   
 }

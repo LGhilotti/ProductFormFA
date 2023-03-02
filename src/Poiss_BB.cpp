@@ -3,16 +3,28 @@
 #include "cpp_probability_generators.hpp"
 using namespace Rcpp;
 
-//' Buffet procedure for BB with Poisson mixture
+//' Buffet procedure for BB with Poisson mixture from beginning
 //' 
-//'
+//' @param alpha value of alpha in product-form feature allocation
+//' @param theta value of theta in product-form feature allocation
+//' @param n dimension of the sample to simulate
+//' @param lambda Poisson hyperparameter 
+//' 
+//' @return list: $features contains the simulated features for each customer,
+//' $num_new contains the number of new features selected for each customer
+//' 
 //' @export
 // [[Rcpp::export]]
 List buffet_poiss_BB(double alpha,double theta,int n,double lambda) {
   
+  // vector containing the number of new dishes for each customer
+  std::vector<int> vec_n_new_dishes;
+  vec_n_new_dishes.reserve(n);
+  
   // n_dishes: it stores the current total number of selected dishes
   int n_dishes = R::rpois( -lambda*alpha/theta );
-
+  vec_n_new_dishes.push_back(n_dishes);
+  
   // dishes_first: it stores the dishes selected by the first customer
   std::vector<int> dishes_first(n_dishes);
   std::iota(dishes_first.begin(), dishes_first.end(),1);
@@ -38,7 +50,8 @@ List buffet_poiss_BB(double alpha,double theta,int n,double lambda) {
     
     // n_new_dishes: it stores the number of new dishes selected by the i-th customer
     int n_new_dishes = R::rpois(-lambda*alpha*exp(l_par));
-
+    vec_n_new_dishes.push_back(n_new_dishes);
+    
     // prob_old_i: it stores the probs that the old dishes are served to the i-th customer
     std::vector<double> prob_old_i(n_dishes);
     std::transform(counts.cbegin(), counts.cend(), prob_old_i.begin(), [i,alpha,theta](int c){return (c - alpha)/(theta+i-1);});
@@ -72,14 +85,31 @@ List buffet_poiss_BB(double alpha,double theta,int n,double lambda) {
 
   }
 
-  return List::create(Named("features") = dishes, Named("num_feat") = n_dishes);
+  return List::create(Named("features") = dishes, Named("num_new") = vec_n_new_dishes);
 }
 
 ///////////////////////////////////////////////////////////////////////
 
+//' Buffet procedure for BB with Poisson mixture given initial sample
+//' 
+//' @param alpha value of alpha in product-form feature allocation
+//' @param theta value of theta in product-form feature allocation
+//' @param m dimension of the new sample to be observed
+//' @param n dimension of the already observed sample
+//' @param counts vector of counts for the already observed features
+//' @param lambda Poisson hyperparameter
+//' 
+//' @return list: $features contains the simulated features for each customer,
+//' $num_new contains the number of new features selected for each customer
+//' 
+//' @export
 // [[Rcpp::export]]
 List buffet_poiss_BB_initial_sample(double alpha,double theta,int m, int n,
                                     std::vector<int> counts, double lambda) {
+  
+  // vector containing the number of new dishes for each customer
+  std::vector<int> vec_n_new_dishes;
+  vec_n_new_dishes.reserve(m);
   
   // n_dishes: it stores the current total number of selected dishes so far
   int n_dishes = counts.size();
@@ -87,26 +117,25 @@ List buffet_poiss_BB_initial_sample(double alpha,double theta,int m, int n,
   // build List (Rcpp) with each element a new customer, associated to a vector of dishes
   List dishes(m);
 
-  // useful quantities repeatedly used PENSO DEVO MODIFICARLE PER PARTIRE 
-  // DALL'INDIVIDUO n+1
-  
+  // useful quantities repeatedly used 
   double l_g_theta = lgamma(theta);
   double l_g_alpha_theta = lgamma(alpha+theta);
-  double l_g_theta_i = lgamma(theta+1);
-  double l_g_theta_alpha_i_m1 = l_g_alpha_theta;
+  double l_g_theta_n_i = lgamma(theta+n); //here i=0 ideally
+  double l_g_theta_alpha_n_i_m1 = lgamma(theta+alpha+n-1); //here i=0 ideally
   
   // for each new customer from the n+1-th to the m-th
   for (int i=1; i<m+1; i++){
-    l_g_theta_i += log(theta+i-1);
-    l_g_theta_alpha_i_m1 += log(theta+alpha+i-2);
-    double l_par = l_g_theta + l_g_theta_alpha_i_m1 - l_g_alpha_theta - l_g_theta_i;
+    l_g_theta_n_i += log(theta+n+i-1);
+    l_g_theta_alpha_n_i_m1 += log(theta+alpha+n+i-2);
+    double l_par = l_g_theta + l_g_theta_alpha_n_i_m1 - l_g_alpha_theta - l_g_theta_n_i;
     
     // n_new_dishes: it stores the number of new dishes selected by the i-th customer
     int n_new_dishes = R::rpois(-lambda*alpha*exp(l_par));
+    vec_n_new_dishes.push_back(n_new_dishes);
     
     // prob_old_i: it stores the probs that the old dishes are served to the i-th customer
     std::vector<double> prob_old_i(n_dishes);
-    std::transform(counts.cbegin(), counts.cend(), prob_old_i.begin(), [i,alpha,theta](int c){return (c - alpha)/(theta+i-1);});
+    std::transform(counts.cbegin(), counts.cend(), prob_old_i.begin(), [i,n,alpha,theta](int c){return (c - alpha)/(theta+n+i-1);});
     // old_observed_i: it stores 0/1 for the old dishes, indicating if i-th tries the old dishes
     std::vector<int> old_observed_i = cpp_rbern(n_dishes, prob_old_i);
     
@@ -137,7 +166,7 @@ List buffet_poiss_BB_initial_sample(double alpha,double theta,int m, int n,
     
   }
   
-  return dishes;
+  return List::create(Named("features") = dishes, Named("num_new") = vec_n_new_dishes);
 }
 
 ///////////////////////////////////////////////////////////////////
