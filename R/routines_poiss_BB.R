@@ -19,3 +19,33 @@ CI_Kmn_poiss_BB <- function(alpha, theta, m, n, lambda, lev) {
 
   return(list("means" = means,"ubs" = ub,"lbs" = lb))
 }
+
+#########################################################################
+
+#' EB based on EFPF-max - BB with Poisson mixture
+#'
+#' This function returns the value of (alpha, theta, lambda) maximizing the 
+#' EFPF for the given sample - BB with Poisson mixture
+#'
+#' @param n [integer] dimension of the observed sample
+#' @param counts [numeric] vector of cardinalities for the observed features
+#' @param pars_0 [numeric] Initialization for (alpha, theta, lambda) to 
+#' be optimized
+#' 
+#' @export
+EB_EFPF_poiss_BB <- function(n, counts, pars_0){
+  
+  # initialize s = theta + alpha
+  pars_0[2] <- pars_0[2] + pars_0[1]
+  
+  # set constraints stricter so that function is limited
+  res <- optim(par = pars_0, fn = neg_log_EFPF_poiss_BB_rep, n = n, counts = counts,
+               method = "L-BFGS-B", lower = c(-Inf,0.1,0.1), upper = c(-0.1, Inf, Inf))
+  
+  sol <- res$par
+  # convert to the theta parameter
+  sol[2] <- sol[2] - sol[1]
+  
+  return (sol)
+  
+}

@@ -285,3 +285,60 @@ double p_kmn_gamma_IBP(double alpha,double theta,int m, int n,double b){
   return (gamma_a_t_n + b)/(gamma_a_t_n+b+par_0*sum_m);
 }
 
+/////////////////////////////////////////////////////////////////////
+
+
+//' Negative Log-EFPF for IBP with Gamma mixture with reparametrization
+//' 
+//' @param n dimension of the observed sample
+//' @param counts vector of cardinalities for the observed features
+//'
+//' @param pars pars[0] = value of alpha in product-form feature allocation,
+//' pars[1] = value of s = theta+alpha in product-form feature allocation,
+//' pars[2] =  value of a - Gamma hyperparameter,
+//' pars[3] =  value of b - Gamma hyperparameter
+//' 
+//' @return value of the negative logarithm of the EFPF for the sample of 
+//' dimensionality n described by counts
+//' 
+// [[Rcpp::export]]
+double neg_log_EFPF_gamma_IBP_rep(int n, std::vector<int> counts,
+                                 std::vector<double> pars){
+  
+  double alpha = pars[0];
+  double s = pars[1]; 
+  double a = pars[2];
+  double b = pars[3];
+  
+  int k = counts.size();
+  
+  double l_g_s = lgamma(s);
+  double l_g_s_malpha_1 = lgamma(s-alpha+1);
+  double par_0 = exp(l_g_s_malpha_1 - l_g_s);
+  
+  // To track the updates in the parameters
+  double l_g_s_malpha_i = l_g_s_malpha_1; //here i=1 ideally
+  double l_g_s_i_m1 = l_g_s; //here i=1 ideally
+  double sum_n = 0;
+  for (int i=1; i<n+1; i++){
+    sum_n += exp(l_g_s_i_m1 - l_g_s_malpha_i);
+    l_g_s_i_m1 += log(s+i-1);
+    l_g_s_malpha_i += log(s-alpha+i);
+  }
+  
+  double gamma_a_s_n = par_0*sum_n;
+  
+  double log_EFPF = a*log(b) - lgamma(k+1) + lgamma(a+k) -lgamma(a) + 
+    k*(l_g_s_malpha_1 - lgamma(s-alpha+n) - log(gamma_a_s_n + b) - 
+    lgamma(1-alpha) - l_g_s) - a*log(gamma_a_s_n + b);
+  
+  for (int l=0; l<k;l++){
+    log_EFPF += lgamma(counts[l]-alpha) + lgamma(s+n-counts[l]);
+  }
+  
+  return - log_EFPF;
+  
+}
+
+
+

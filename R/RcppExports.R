@@ -45,6 +45,23 @@ p_kmn_gamma_IBP <- function(alpha, theta, m, n, b) {
     .Call(`_ProductFormFA_p_kmn_gamma_IBP`, alpha, theta, m, n, b)
 }
 
+#' Negative Log-EFPF for IBP with Gamma mixture with reparametrization
+#' 
+#' @param n dimension of the observed sample
+#' @param counts vector of cardinalities for the observed features
+#'
+#' @param pars pars[0] = value of alpha in product-form feature allocation,
+#' pars[1] = value of s = theta+alpha in product-form feature allocation,
+#' pars[2] =  value of a - Gamma hyperparameter,
+#' pars[3] =  value of b - Gamma hyperparameter
+#' 
+#' @return value of the negative logarithm of the EFPF for the sample of 
+#' dimensionality n described by counts
+#' 
+neg_log_EFPF_gamma_IBP_rep <- function(n, counts, pars) {
+    .Call(`_ProductFormFA_neg_log_EFPF_gamma_IBP_rep`, n, counts, pars)
+}
+
 #' Buffet procedure for BB with Negative-Binomial mixture from beginning
 #' 
 #' @param alpha value of alpha in product-form feature allocation
@@ -89,6 +106,23 @@ p_kmn_negbin_BB <- function(alpha, theta, m, n, p) {
     .Call(`_ProductFormFA_p_kmn_negbin_BB`, alpha, theta, m, n, p)
 }
 
+#' Negative Log-EFPF for BB with Negative-Binomial mixture with reparametrization
+#' 
+#' @param n dimension of the observed sample
+#' @param counts vector of cardinalities for the observed features
+#'
+#' @param pars pars[0] = value of alpha in product-form feature allocation,
+#' pars[1] = value of s = theta+alpha in product-form feature allocation,
+#' pars[2] =  value of nstar - NegBin hyperparameter,
+#' pars[3] = value of p - NegBin hyperparameter
+#' 
+#' @return value of the negative logarithm of the EFPF for the sample of 
+#' dimensionality n described by counts
+#' 
+neg_log_EFPF_negbin_BB_rep <- function(n, counts, pars) {
+    .Call(`_ProductFormFA_neg_log_EFPF_negbin_BB_rep`, n, counts, pars)
+}
+
 #' Buffet procedure for BB with Poisson mixture from beginning
 #' 
 #' @param alpha value of alpha in product-form feature allocation
@@ -129,6 +163,22 @@ mean_kmn_all_poiss_BB <- function(alpha, theta, m, n, lambda) {
 
 mean_kmn_poiss_BB <- function(alpha, theta, m, n, lambda) {
     .Call(`_ProductFormFA_mean_kmn_poiss_BB`, alpha, theta, m, n, lambda)
+}
+
+#' Negative Log-EFPF for BB with Poisson mixture with reparametrization
+#' 
+#' @param n dimension of the observed sample
+#' @param counts vector of cardinalities for the observed features
+#'
+#' @param pars pars[0] = value of alpha in product-form feature allocation,
+#' pars[1] = value of s = theta+alpha in product-form feature allocation,
+#' pars[2] =  value of lambda - Poisson hyperparameter
+#' 
+#' @return value of the negative logarithm of the EFPF for the sample of 
+#' dimensionality n described by counts
+#' 
+neg_log_EFPF_poiss_BB_rep <- function(n, counts, pars) {
+    .Call(`_ProductFormFA_neg_log_EFPF_poiss_BB_rep`, n, counts, pars)
 }
 
 cpp_rbern <- function(n, prob) {

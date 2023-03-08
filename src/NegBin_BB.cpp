@@ -240,3 +240,48 @@ double p_kmn_negbin_BB(double alpha,double theta,int m, int n,double p){
   return 1- par_0 *(par_1 - par_2)/(1-par_0*par_2);
 }
 
+/////////////////////////////////////////////////////////////////////
+
+
+//' Negative Log-EFPF for BB with Negative-Binomial mixture with reparametrization
+//' 
+//' @param n dimension of the observed sample
+//' @param counts vector of cardinalities for the observed features
+//'
+//' @param pars pars[0] = value of alpha in product-form feature allocation,
+//' pars[1] = value of s = theta+alpha in product-form feature allocation,
+//' pars[2] =  value of nstar - NegBin hyperparameter,
+//' pars[3] = value of p - NegBin hyperparameter
+//' 
+//' @return value of the negative logarithm of the EFPF for the sample of 
+//' dimensionality n described by counts
+//' 
+// [[Rcpp::export]]
+double neg_log_EFPF_negbin_BB_rep(int n, std::vector<int> counts,
+                                 std::vector<double> pars){
+  
+  double alpha = pars[0];
+  double s = pars[1]; 
+  double nstar = pars[2];
+  double p = pars[3];
+  
+  int k = counts.size();
+  
+  double l_g_s = lgamma(s);
+  double l_g_s_malpha = lgamma(s-alpha);
+  double l_g_s_malpha_n = lgamma(s-alpha +n);
+  
+  double par_0 = exp(lgamma(s+n) - l_g_s + l_g_s_malpha - l_g_s_malpha_n);
+  
+  double log_EFPF = lgamma(k+nstar) - lgamma(k+1) - lgamma(nstar) + nstar*log(p) + 
+    k*(log(1-p) + log(-alpha) + l_g_s_malpha - l_g_s_malpha_n - lgamma(1-alpha) - 
+    l_g_s - log(1-(1-p)*par_0)) - nstar*log(1-(1-p)*par_0) ;
+  
+  for (int l=0; l<k;l++){
+    log_EFPF += lgamma(counts[l]-alpha) + lgamma(s+n-counts[l]);
+  }
+  
+  return - log_EFPF;
+  
+}
+

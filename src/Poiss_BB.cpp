@@ -231,4 +231,48 @@ double mean_kmn_poiss_BB(double alpha,double theta,int m, int n,double lambda){
   return par_0*(par_1 - par_2);
 }
 
+/////////////////////////////////////////////////////////////////////
+
+
+//' Negative Log-EFPF for BB with Poisson mixture with reparametrization
+//' 
+//' @param n dimension of the observed sample
+//' @param counts vector of cardinalities for the observed features
+//'
+//' @param pars pars[0] = value of alpha in product-form feature allocation,
+//' pars[1] = value of s = theta+alpha in product-form feature allocation,
+//' pars[2] =  value of lambda - Poisson hyperparameter
+//' 
+//' @return value of the negative logarithm of the EFPF for the sample of 
+//' dimensionality n described by counts
+//' 
+// [[Rcpp::export]]
+double neg_log_EFPF_poiss_BB_rep(int n, std::vector<int> counts,
+                                 std::vector<double> pars){
+  
+  double alpha = pars[0];
+  double s = pars[1]; 
+  double lambda = pars[2];
+  
+  int k = counts.size();
+  
+  double l_g_s = lgamma(s);
+  double l_g_s_malpha = lgamma(s-alpha);
+  double l_g_1_malpha = lgamma(1-alpha);
+  double l_g_s_malpha_n = lgamma(s-alpha +n);
+  
+  double par_0 = exp(lgamma(s+n) - l_g_s + l_g_s_malpha - l_g_s_malpha_n);
+  
+  double log_EFPF = - lgamma(k+1) - lambda*(1- par_0 ) + 
+    k*(log(-lambda*alpha) - l_g_s_malpha_n + l_g_s_malpha - l_g_1_malpha - l_g_s);
+  
+  for (int l=0; l<k;l++){
+    log_EFPF += lgamma(counts[l]-alpha) + lgamma(s+n-counts[l]);
+  }
+  
+  return - log_EFPF;
+  
+}
+
+
 
