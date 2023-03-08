@@ -17,10 +17,12 @@ plot_Kmn(ci_kmn_poiss_bb)
 # Generate from buffet procedure from beginning
 # (returns the features, the number of new features for new customers, 
 # counts of observed features)
-buff_poiss_bb <- buffet_poiss_BB(alpha = - 1, theta = 10, n = 1000, lambda = 1000)
+buff_poiss_bb <- buffet_poiss_BB(alpha = - 1, theta = 10, n = 10, lambda = 100)
 
 # Matrix of order-of-appearance features from the buffet
 ooa_mat_poiss_bb <- create_features_matrix(buff_poiss_bb)
+plot_binary_matrix(ooa_mat_poiss_bb)
+plot_binary_matrix(ooa_mat_poiss_bb, max_f = 20)
 
 # Generate from buffet procedure given initial n-dimensional sample
 # (returns the features and the number of new features for new customers)
@@ -52,6 +54,9 @@ buff_negbin_bb <- buffet_negbin_BB(alpha = -5, theta = 10, n = 10000, nstar = 10
 
 # Matrix of order-of-appearance features from the buffet
 ooa_mat_negbin_bb <- create_features_matrix(buff_negbin_bb)
+plot_binary_matrix(ooa_mat_negbin_bb)
+plot_binary_matrix(ooa_mat_negbin_bb, max_f = 20)
+
 
 # Generate from buffet procedure given initial n-dimensional sample
 # (returns the features and the number of new features for new customers)
@@ -83,6 +88,8 @@ buff_gamma_ibp <- buffet_gamma_IBP(alpha = 0.6, theta = 10, n = 1000, a = 10, b 
 
 # Matrix of order-of-appearance features from the buffet
 ooa_mat_gamma_ibp <- create_features_matrix(buff_gamma_ibp)
+plot_binary_matrix(ooa_mat_gamma_ibp)
+plot_binary_matrix(ooa_mat_gamma_ibp, max_f = 20)
 
 # Generate from buffet procedure given initial n-dimensional sample
 # (returns the features and the number of new features for new customers)
@@ -97,3 +104,6 @@ eb_est_gamma_IBP <- EB_EFPF_gamma_IBP(n = length(buff_gamma_ibp$num_new),
                                       counts = buff_gamma_ibp$counts, pars_0 = c(0.5, 50, 10, 10))
 
 eb_est_gamma_IBP
+
+
+
