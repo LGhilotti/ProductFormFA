@@ -189,8 +189,8 @@ List buffet_negbin_BB_initial_sample(double alpha,double theta,int m, int n, std
 }
 
 //////////////////////////////////////////////////////////////////////
-
-// [[Rcpp::export]]
+  
+  // [[Rcpp::export]]
 std::vector<double> p_kmn_all_negbin_BB(double alpha,double theta,int m, int n,double p){
   
   std::vector<double> pbar;
@@ -221,8 +221,8 @@ std::vector<double> p_kmn_all_negbin_BB(double alpha,double theta,int m, int n,d
 }
 
 //////////////////////////////////////////////////////////////
-
-// [[Rcpp::export]]
+  
+  // [[Rcpp::export]]
 double p_kmn_negbin_BB(double alpha,double theta,int m, int n,double p){
   
   // useful quantities repeatedly used
@@ -241,28 +241,171 @@ double p_kmn_negbin_BB(double alpha,double theta,int m, int n,double p){
 }
 
 /////////////////////////////////////////////////////////////////////
-
-
-//' Negative Log-EFPF for BB with Negative-Binomial mixture with reparametrization
+  
+  
+  //' Negative Log-EFPF for BB with Negative-Binomial mixture NO reparametrization
 //' 
+//' @param pars vector of parameters to optimize
 //' @param n dimension of the observed sample
 //' @param counts vector of cardinalities for the observed features
-//'
-//' @param pars pars[0] = value of alpha in product-form feature allocation,
-//' pars[1] = value of s = theta+alpha in product-form feature allocation,
-//' pars[2] =  value of nstar - NegBin hyperparameter,
-//' pars[3] = value of p - NegBin hyperparameter
+//' @param nopt_par vector of parameters not to optimize
+//' @param opt boolean vector indicating if the variable is optimized
 //' 
 //' @return value of the negative logarithm of the EFPF for the sample of 
 //' dimensionality n described by counts
 //' 
+//' @export 
 // [[Rcpp::export]]
-double neg_log_EFPF_negbin_BB_rep(int n, std::vector<int> counts,
-                                 std::vector<double> pars){
+double neg_log_EFPF_negbin_BB(std::vector<double> pars,
+                              int n, std::vector<int> counts, 
+                              std::vector<double> nopt_par,
+                              std::vector<bool> opt){
+  
+  double alpha; double theta; double nstar; double p;
+  
+  int i_T=0; int i_F=0;
+  // Assign alpha
+  if (opt[0]==TRUE){
+    alpha = pars[0];
+    i_T ++;
+  }
+  else {
+    alpha = nopt_par[0]; 
+    i_F ++;
+  }
+  // Assign theta
+  if (opt[1]==TRUE){
+    theta = pars[i_T];
+    i_T ++;
+  }
+  else{
+    theta = nopt_par[i_F];
+    i_F ++;
+  }
+  // Assign nstar
+  if (opt[2]==TRUE){
+    nstar = pars[i_T];
+    i_T ++;
+  }
+  else {
+    nstar = nopt_par[i_F]; 
+    i_F ++;
+  }
+  // Assign p
+  if (opt[3]==TRUE){
+    p = pars[i_T];
+  }
+  else{
+    p = nopt_par[i_F];
+  }
+  
+  
+  int k = counts.size();
+  
+  double l_g_alpha_theta = lgamma(alpha+theta);
+  double l_g_theta = lgamma(theta);
+  double l_g_theta_n = lgamma(theta +n);
+  
+  double par_0 = exp(lgamma(alpha+theta+n) - l_g_alpha_theta + l_g_theta - l_g_theta_n);
+  
+  double log_EFPF = lgamma(k+nstar) - lgamma(k+1) - lgamma(nstar) + nstar*log(p) + 
+    k*(log(1-p) + log(-alpha) + l_g_theta - l_g_theta_n - lgamma(1-alpha) - 
+         l_g_alpha_theta - log(1-(1-p)*par_0)) - nstar*log(1-(1-p)*par_0) ;
+  
+  for (int l=0; l<k;l++){
+    log_EFPF += lgamma(counts[l]-alpha) + lgamma(alpha+theta+n-counts[l]);
+  }
+  
+  return - log_EFPF;
+  
+}
+
+
+/////////////////////////////////////////////////////////////////////
+  
+  
+  //' Negative Log-EFPF for BB with Negative-Binomial mixture with reparametrization
+//' 
+//' @param pars vector of parameters to optimize
+//' @param n dimension of the observed sample
+//' @param counts vector of cardinalities for the observed features
+//' @param nopt_par vector of parameters not to optimize
+//' @param opt boolean vector indicating if the variable is optimized
+//' 
+//' @return value of the negative logarithm of the EFPF for the sample of 
+//' dimensionality n described by counts
+//' 
+//' @export 
+// [[Rcpp::export]]
+double neg_log_EFPF_negbin_BB_rep(std::vector<double> pars,
+                                  int n, std::vector<int> counts, 
+                                  std::vector<double> nopt_par,
+                                  std::vector<bool> opt){
   
   double alpha = pars[0];
-  double s = pars[1]; 
-  double nstar = pars[2];
+  double s = pars[1];
+  double nstar; double p;
+  
+  int i_T=0; int i_F=0;
+  // Assign nstar
+  if (opt[2]==TRUE){
+    nstar = pars[2];
+    i_T ++;
+  }
+  else {
+    nstar = nopt_par[0]; 
+    i_F ++;
+  }
+  // Assign p
+  if (opt[3]==TRUE){
+    p = pars[i_T+2];
+  }
+  else{
+    p = nopt_par[i_F];
+  }
+  
+  int k = counts.size();
+  
+  double l_g_s = lgamma(s);
+  double l_g_s_malpha = lgamma(s-alpha);
+  double l_g_s_malpha_n = lgamma(s-alpha +n);
+  
+  double par_0 = exp(lgamma(s+n) - l_g_s + l_g_s_malpha - l_g_s_malpha_n);
+  
+  double log_EFPF = lgamma(k+nstar) - lgamma(k+1) - lgamma(nstar) + nstar*log(p) + 
+    k*(log(1-p) + log(-alpha) + l_g_s_malpha - l_g_s_malpha_n - lgamma(1-alpha) - 
+         l_g_s - log(1-(1-p)*par_0)) - nstar*log(1-(1-p)*par_0) ;
+  
+  for (int l=0; l<k;l++){
+    log_EFPF += lgamma(counts[l]-alpha) + lgamma(s+n-counts[l]);
+  }
+  
+  return - log_EFPF;
+  
+}
+
+
+/////////////////////////////////////////////////////////////////////
+  
+  
+  //' Negative Log-EFPF for BB with Negative-Binomial mixture with reparametrization
+//' (when all the parameters are optimized)
+//' 
+//' @param pars vector of parameters to optimize
+//' @param n dimension of the observed sample
+//' @param counts vector of cardinalities for the observed features
+//' 
+//' @return value of the negative logarithm of the EFPF for the sample of 
+//' dimensionality n described by counts
+//' 
+//' @export 
+// [[Rcpp::export]]
+double neg_log_EFPF_negbin_BB_rep_all(std::vector<double> pars,
+                                  int n, std::vector<int> counts){
+  
+  double alpha = pars[0];
+  double s = pars[1];
+  double nstar = pars[2]; 
   double p = pars[3];
   
   int k = counts.size();
@@ -276,6 +419,223 @@ double neg_log_EFPF_negbin_BB_rep(int n, std::vector<int> counts,
   double log_EFPF = lgamma(k+nstar) - lgamma(k+1) - lgamma(nstar) + nstar*log(p) + 
     k*(log(1-p) + log(-alpha) + l_g_s_malpha - l_g_s_malpha_n - lgamma(1-alpha) - 
     l_g_s - log(1-(1-p)*par_0)) - nstar*log(1-(1-p)*par_0) ;
+  
+  for (int l=0; l<k;l++){
+    log_EFPF += lgamma(counts[l]-alpha) + lgamma(s+n-counts[l]);
+  }
+  
+  return - log_EFPF;
+  
+}
+
+///////////////////////////////////////////////////////////////////////////
+///////// functions with NegBin parametrized via mean and variance ////////
+///////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////
+
+/////////////////////////////////////////////////////////////////////
+
+
+//' Negative Log-EFPF for BB with Negative-Binomial mixture NO reparametrization -
+//' - (mean-variance parametrization)
+//' 
+//' @param pars vector of parameters to optimize
+//' @param n dimension of the observed sample
+//' @param counts vector of cardinalities for the observed features
+//' @param nopt_par vector of parameters not to optimize
+//' @param opt boolean vector indicating if the variable is optimized
+//' 
+//' @return value of the negative logarithm of the EFPF for the sample of 
+//' dimensionality n described by counts
+//' 
+//' @export 
+// [[Rcpp::export]]
+double neg_log_EFPF_negbin_mv_BB(std::vector<double> pars,
+                              int n, std::vector<int> counts, 
+                              std::vector<double> nopt_par,
+                              std::vector<bool> opt){
+  
+  double alpha; double theta; double mu; double sigma2;
+  
+  int i_T=0; int i_F=0;
+  // Assign alpha
+  if (opt[0]==TRUE){
+    alpha = pars[0];
+    i_T ++;
+  }
+  else {
+    alpha = nopt_par[0]; 
+    i_F ++;
+  }
+  // Assign theta
+  if (opt[1]==TRUE){
+    theta = pars[i_T];
+    i_T ++;
+  }
+  else{
+    theta = nopt_par[i_F];
+    i_F ++;
+  }
+  // Assign the mu 
+  if (opt[2]==TRUE){
+    mu = pars[i_T];
+    i_T ++;
+  }
+  else {
+    mu = nopt_par[i_F]; 
+    i_F ++;
+  }
+  // Assign sigma2
+  if (opt[3]==TRUE){
+    sigma2 = pars[i_T];
+  }
+  else{
+    sigma2 = nopt_par[i_F];
+  }
+  
+  
+  int k = counts.size();
+  
+  double l_g_alpha_theta = lgamma(alpha+theta);
+  double l_g_theta = lgamma(theta);
+  double l_g_theta_n = lgamma(theta +n);
+  
+  double par_0 = exp(lgamma(alpha+theta+n) - l_g_alpha_theta + l_g_theta - l_g_theta_n);
+  
+  double log_EFPF = lgamma(k+(pow(mu,2))/(sigma2-mu)) - lgamma(k+1) - 
+    lgamma((pow(mu,2))/(sigma2-mu)) + (pow(mu,2))/(sigma2-mu)*(log(mu) - log(sigma2)) + 
+    k*(log(sigma2-mu) - log(sigma2) + log(-alpha) + l_g_theta - 
+    l_g_theta_n - lgamma(1-alpha) - l_g_alpha_theta - 
+    log(1-(sigma2 -mu)/sigma2*par_0)) - 
+    (pow(mu,2))/(sigma2-mu)*log(1-(sigma2 -mu)/sigma2*par_0) ;
+  
+  for (int l=0; l<k;l++){
+    log_EFPF += lgamma(counts[l]-alpha) + lgamma(alpha+theta+n-counts[l]);
+  }
+  
+  return - log_EFPF;
+  
+}
+
+
+//' Negative Log-EFPF for BB with Negative-Binomial mixture with reparametrization
+//' (and mean-variance parametrization)
+//' 
+//' @param pars vector of parameters to optimize
+//' @param n dimension of the observed sample
+//' @param counts vector of cardinalities for the observed features
+//' @param nopt_par vector of parameters not to optimize
+//' @param opt boolean vector indicating if the variable is optimized
+//' 
+//' @return value of the negative logarithm of the EFPF for the sample of 
+//' dimensionality n described by counts
+//' 
+//' @export 
+// [[Rcpp::export]]
+double neg_log_EFPF_negbin_mv_BB_rep(std::vector<double> pars,
+                                     int n, std::vector<int> counts, 
+                                     std::vector<double> nopt_par,
+                                     std::vector<bool> opt){
+  
+  double alpha; double s; double mu; double t;
+  
+  int i_T=0; int i_F=0;
+  // Assign alpha
+  if (opt[0]==TRUE){
+    alpha = pars[0];
+    i_T ++;
+  }
+  else {
+    alpha = nopt_par[0]; 
+    i_F ++;
+  }
+  // Assign s
+  if (opt[1]==TRUE){
+    s = pars[i_T];
+    i_T ++;
+  }
+  else{
+    s = nopt_par[i_F];
+    i_F ++;
+  }
+  // Assign mu
+  if (opt[2]==TRUE){
+    mu = pars[2];
+    i_T ++;
+  }
+  else {
+    mu = nopt_par[0]; 
+    i_F ++;
+  }
+  // Assign t
+  if (opt[3]==TRUE){
+    t = pars[i_T+2];
+  }
+  else{
+    t = nopt_par[i_F];
+  }
+  
+  int k = counts.size();
+  
+  double l_g_s = lgamma(s);
+  double l_g_s_malpha = lgamma(s-alpha);
+  double l_g_s_malpha_n = lgamma(s-alpha +n);
+  
+  double par_0 = exp(lgamma(s+n) - l_g_s + l_g_s_malpha - l_g_s_malpha_n);
+  
+  double log_EFPF = lgamma(k+ pow(mu,2)/t) - lgamma(k+1) - 
+    lgamma( pow(mu,2)/ t) + pow(mu,2)/ t *(log(mu) - log(mu + t)) + 
+    k*(log(t) - log(t+mu) + log(-alpha) + l_g_s_malpha - 
+    l_g_s_malpha_n - lgamma(1-alpha) - l_g_s - 
+    log(1- t/(mu+t)*par_0)) - 
+    pow(mu,2)/t*log(1-t/(mu+t)*par_0) ;
+  
+  for (int l=0; l<k;l++){
+    log_EFPF += lgamma(counts[l]-alpha) + lgamma(s+n-counts[l]);
+  }
+  
+  return - log_EFPF;
+  
+}
+
+
+/////////////////////////////////////////////////////////////////////
+  
+  
+  //' Negative Log-EFPF for BB with Negative-Binomial mixture with reparametrization
+//' (when all the parameters are optimized -  mean-variance parametrization)
+//' 
+//' @param pars vector of parameters to optimize
+//' @param n dimension of the observed sample
+//' @param counts vector of cardinalities for the observed features
+//' 
+//' @return value of the negative logarithm of the EFPF for the sample of 
+//' dimensionality n described by counts
+//' 
+//' @export 
+// [[Rcpp::export]]
+double neg_log_EFPF_negbin_mv_BB_rep_all(std::vector<double> pars,
+                                      int n, std::vector<int> counts){
+  
+  double alpha = pars[0];
+  double s = pars[1];
+  double mu = pars[2]; 
+  double t = pars[3];
+  
+  int k = counts.size();
+  
+  double l_g_s = lgamma(s);
+  double l_g_s_malpha = lgamma(s-alpha);
+  double l_g_s_malpha_n = lgamma(s-alpha +n);
+  
+  double par_0 = exp(lgamma(s+n) - l_g_s + l_g_s_malpha - l_g_s_malpha_n);
+  
+  double log_EFPF = lgamma(k+ pow(mu,2)/t) - lgamma(k+1) - 
+    lgamma( pow(mu,2)/ t) + pow(mu,2)/ t *(log(mu) - log(mu + t)) + 
+    k*(log(t) - log(t+mu) + log(-alpha) + l_g_s_malpha - 
+    l_g_s_malpha_n - lgamma(1-alpha) - l_g_s - 
+    log(1- t/(mu+t)*par_0)) - 
+    pow(mu,2)/t*log(1-t/(mu+t)*par_0) ;
   
   for (int l=0; l<k;l++){
     log_EFPF += lgamma(counts[l]-alpha) + lgamma(s+n-counts[l]);

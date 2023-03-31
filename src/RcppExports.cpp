@@ -147,16 +147,89 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
-// neg_log_EFPF_negbin_BB_rep
-double neg_log_EFPF_negbin_BB_rep(int n, std::vector<int> counts, std::vector<double> pars);
-RcppExport SEXP _ProductFormFA_neg_log_EFPF_negbin_BB_rep(SEXP nSEXP, SEXP countsSEXP, SEXP parsSEXP) {
+// neg_log_EFPF_negbin_BB
+double neg_log_EFPF_negbin_BB(std::vector<double> pars, int n, std::vector<int> counts, std::vector<double> nopt_par, std::vector<bool> opt);
+RcppExport SEXP _ProductFormFA_neg_log_EFPF_negbin_BB(SEXP parsSEXP, SEXP nSEXP, SEXP countsSEXP, SEXP nopt_parSEXP, SEXP optSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< std::vector<double> >::type pars(parsSEXP);
     Rcpp::traits::input_parameter< int >::type n(nSEXP);
     Rcpp::traits::input_parameter< std::vector<int> >::type counts(countsSEXP);
+    Rcpp::traits::input_parameter< std::vector<double> >::type nopt_par(nopt_parSEXP);
+    Rcpp::traits::input_parameter< std::vector<bool> >::type opt(optSEXP);
+    rcpp_result_gen = Rcpp::wrap(neg_log_EFPF_negbin_BB(pars, n, counts, nopt_par, opt));
+    return rcpp_result_gen;
+END_RCPP
+}
+// neg_log_EFPF_negbin_BB_rep
+double neg_log_EFPF_negbin_BB_rep(std::vector<double> pars, int n, std::vector<int> counts, std::vector<double> nopt_par, std::vector<bool> opt);
+RcppExport SEXP _ProductFormFA_neg_log_EFPF_negbin_BB_rep(SEXP parsSEXP, SEXP nSEXP, SEXP countsSEXP, SEXP nopt_parSEXP, SEXP optSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< std::vector<double> >::type pars(parsSEXP);
-    rcpp_result_gen = Rcpp::wrap(neg_log_EFPF_negbin_BB_rep(n, counts, pars));
+    Rcpp::traits::input_parameter< int >::type n(nSEXP);
+    Rcpp::traits::input_parameter< std::vector<int> >::type counts(countsSEXP);
+    Rcpp::traits::input_parameter< std::vector<double> >::type nopt_par(nopt_parSEXP);
+    Rcpp::traits::input_parameter< std::vector<bool> >::type opt(optSEXP);
+    rcpp_result_gen = Rcpp::wrap(neg_log_EFPF_negbin_BB_rep(pars, n, counts, nopt_par, opt));
+    return rcpp_result_gen;
+END_RCPP
+}
+// neg_log_EFPF_negbin_BB_rep_all
+double neg_log_EFPF_negbin_BB_rep_all(std::vector<double> pars, int n, std::vector<int> counts);
+RcppExport SEXP _ProductFormFA_neg_log_EFPF_negbin_BB_rep_all(SEXP parsSEXP, SEXP nSEXP, SEXP countsSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< std::vector<double> >::type pars(parsSEXP);
+    Rcpp::traits::input_parameter< int >::type n(nSEXP);
+    Rcpp::traits::input_parameter< std::vector<int> >::type counts(countsSEXP);
+    rcpp_result_gen = Rcpp::wrap(neg_log_EFPF_negbin_BB_rep_all(pars, n, counts));
+    return rcpp_result_gen;
+END_RCPP
+}
+// neg_log_EFPF_negbin_mv_BB
+double neg_log_EFPF_negbin_mv_BB(std::vector<double> pars, int n, std::vector<int> counts, std::vector<double> nopt_par, std::vector<bool> opt);
+RcppExport SEXP _ProductFormFA_neg_log_EFPF_negbin_mv_BB(SEXP parsSEXP, SEXP nSEXP, SEXP countsSEXP, SEXP nopt_parSEXP, SEXP optSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< std::vector<double> >::type pars(parsSEXP);
+    Rcpp::traits::input_parameter< int >::type n(nSEXP);
+    Rcpp::traits::input_parameter< std::vector<int> >::type counts(countsSEXP);
+    Rcpp::traits::input_parameter< std::vector<double> >::type nopt_par(nopt_parSEXP);
+    Rcpp::traits::input_parameter< std::vector<bool> >::type opt(optSEXP);
+    rcpp_result_gen = Rcpp::wrap(neg_log_EFPF_negbin_mv_BB(pars, n, counts, nopt_par, opt));
+    return rcpp_result_gen;
+END_RCPP
+}
+// neg_log_EFPF_negbin_mv_BB_rep
+double neg_log_EFPF_negbin_mv_BB_rep(std::vector<double> pars, int n, std::vector<int> counts, std::vector<double> nopt_par, std::vector<bool> opt);
+RcppExport SEXP _ProductFormFA_neg_log_EFPF_negbin_mv_BB_rep(SEXP parsSEXP, SEXP nSEXP, SEXP countsSEXP, SEXP nopt_parSEXP, SEXP optSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< std::vector<double> >::type pars(parsSEXP);
+    Rcpp::traits::input_parameter< int >::type n(nSEXP);
+    Rcpp::traits::input_parameter< std::vector<int> >::type counts(countsSEXP);
+    Rcpp::traits::input_parameter< std::vector<double> >::type nopt_par(nopt_parSEXP);
+    Rcpp::traits::input_parameter< std::vector<bool> >::type opt(optSEXP);
+    rcpp_result_gen = Rcpp::wrap(neg_log_EFPF_negbin_mv_BB_rep(pars, n, counts, nopt_par, opt));
+    return rcpp_result_gen;
+END_RCPP
+}
+// neg_log_EFPF_negbin_mv_BB_rep_all
+double neg_log_EFPF_negbin_mv_BB_rep_all(std::vector<double> pars, int n, std::vector<int> counts);
+RcppExport SEXP _ProductFormFA_neg_log_EFPF_negbin_mv_BB_rep_all(SEXP parsSEXP, SEXP nSEXP, SEXP countsSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< std::vector<double> >::type pars(parsSEXP);
+    Rcpp::traits::input_parameter< int >::type n(nSEXP);
+    Rcpp::traits::input_parameter< std::vector<int> >::type counts(countsSEXP);
+    rcpp_result_gen = Rcpp::wrap(neg_log_EFPF_negbin_mv_BB_rep_all(pars, n, counts));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -256,7 +329,12 @@ static const R_CallMethodDef CallEntries[] = {
     {"_ProductFormFA_buffet_negbin_BB_initial_sample", (DL_FUNC) &_ProductFormFA_buffet_negbin_BB_initial_sample, 7},
     {"_ProductFormFA_p_kmn_all_negbin_BB", (DL_FUNC) &_ProductFormFA_p_kmn_all_negbin_BB, 5},
     {"_ProductFormFA_p_kmn_negbin_BB", (DL_FUNC) &_ProductFormFA_p_kmn_negbin_BB, 5},
-    {"_ProductFormFA_neg_log_EFPF_negbin_BB_rep", (DL_FUNC) &_ProductFormFA_neg_log_EFPF_negbin_BB_rep, 3},
+    {"_ProductFormFA_neg_log_EFPF_negbin_BB", (DL_FUNC) &_ProductFormFA_neg_log_EFPF_negbin_BB, 5},
+    {"_ProductFormFA_neg_log_EFPF_negbin_BB_rep", (DL_FUNC) &_ProductFormFA_neg_log_EFPF_negbin_BB_rep, 5},
+    {"_ProductFormFA_neg_log_EFPF_negbin_BB_rep_all", (DL_FUNC) &_ProductFormFA_neg_log_EFPF_negbin_BB_rep_all, 3},
+    {"_ProductFormFA_neg_log_EFPF_negbin_mv_BB", (DL_FUNC) &_ProductFormFA_neg_log_EFPF_negbin_mv_BB, 5},
+    {"_ProductFormFA_neg_log_EFPF_negbin_mv_BB_rep", (DL_FUNC) &_ProductFormFA_neg_log_EFPF_negbin_mv_BB_rep, 5},
+    {"_ProductFormFA_neg_log_EFPF_negbin_mv_BB_rep_all", (DL_FUNC) &_ProductFormFA_neg_log_EFPF_negbin_mv_BB_rep_all, 3},
     {"_ProductFormFA_buffet_poiss_BB", (DL_FUNC) &_ProductFormFA_buffet_poiss_BB, 4},
     {"_ProductFormFA_buffet_poiss_BB_initial_sample", (DL_FUNC) &_ProductFormFA_buffet_poiss_BB_initial_sample, 6},
     {"_ProductFormFA_mean_kmn_all_poiss_BB", (DL_FUNC) &_ProductFormFA_mean_kmn_all_poiss_BB, 5},

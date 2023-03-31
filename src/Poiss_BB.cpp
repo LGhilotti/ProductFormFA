@@ -275,4 +275,3 @@ double neg_log_EFPF_poiss_BB_rep(int n, std::vector<int> counts,
 }
 
 
-

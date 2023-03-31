@@ -106,21 +106,96 @@ p_kmn_negbin_BB <- function(alpha, theta, m, n, p) {
     .Call(`_ProductFormFA_p_kmn_negbin_BB`, alpha, theta, m, n, p)
 }
 
-#' Negative Log-EFPF for BB with Negative-Binomial mixture with reparametrization
 #' 
+#' @param pars vector of parameters to optimize
 #' @param n dimension of the observed sample
 #' @param counts vector of cardinalities for the observed features
-#'
-#' @param pars pars[0] = value of alpha in product-form feature allocation,
-#' pars[1] = value of s = theta+alpha in product-form feature allocation,
-#' pars[2] =  value of nstar - NegBin hyperparameter,
-#' pars[3] = value of p - NegBin hyperparameter
+#' @param nopt_par vector of parameters not to optimize
+#' @param opt boolean vector indicating if the variable is optimized
 #' 
 #' @return value of the negative logarithm of the EFPF for the sample of 
 #' dimensionality n described by counts
 #' 
-neg_log_EFPF_negbin_BB_rep <- function(n, counts, pars) {
-    .Call(`_ProductFormFA_neg_log_EFPF_negbin_BB_rep`, n, counts, pars)
+#' @export 
+neg_log_EFPF_negbin_BB <- function(pars, n, counts, nopt_par, opt) {
+    .Call(`_ProductFormFA_neg_log_EFPF_negbin_BB`, pars, n, counts, nopt_par, opt)
+}
+
+#' 
+#' @param pars vector of parameters to optimize
+#' @param n dimension of the observed sample
+#' @param counts vector of cardinalities for the observed features
+#' @param nopt_par vector of parameters not to optimize
+#' @param opt boolean vector indicating if the variable is optimized
+#' 
+#' @return value of the negative logarithm of the EFPF for the sample of 
+#' dimensionality n described by counts
+#' 
+#' @export 
+neg_log_EFPF_negbin_BB_rep <- function(pars, n, counts, nopt_par, opt) {
+    .Call(`_ProductFormFA_neg_log_EFPF_negbin_BB_rep`, pars, n, counts, nopt_par, opt)
+}
+
+#' (when all the parameters are optimized)
+#' 
+#' @param pars vector of parameters to optimize
+#' @param n dimension of the observed sample
+#' @param counts vector of cardinalities for the observed features
+#' 
+#' @return value of the negative logarithm of the EFPF for the sample of 
+#' dimensionality n described by counts
+#' 
+#' @export 
+neg_log_EFPF_negbin_BB_rep_all <- function(pars, n, counts) {
+    .Call(`_ProductFormFA_neg_log_EFPF_negbin_BB_rep_all`, pars, n, counts)
+}
+
+#' Negative Log-EFPF for BB with Negative-Binomial mixture NO reparametrization -
+#' - (mean-variance parametrization)
+#' 
+#' @param pars vector of parameters to optimize
+#' @param n dimension of the observed sample
+#' @param counts vector of cardinalities for the observed features
+#' @param nopt_par vector of parameters not to optimize
+#' @param opt boolean vector indicating if the variable is optimized
+#' 
+#' @return value of the negative logarithm of the EFPF for the sample of 
+#' dimensionality n described by counts
+#' 
+#' @export 
+neg_log_EFPF_negbin_mv_BB <- function(pars, n, counts, nopt_par, opt) {
+    .Call(`_ProductFormFA_neg_log_EFPF_negbin_mv_BB`, pars, n, counts, nopt_par, opt)
+}
+
+#' Negative Log-EFPF for BB with Negative-Binomial mixture with reparametrization
+#' (and mean-variance parametrization)
+#' 
+#' @param pars vector of parameters to optimize
+#' @param n dimension of the observed sample
+#' @param counts vector of cardinalities for the observed features
+#' @param nopt_par vector of parameters not to optimize
+#' @param opt boolean vector indicating if the variable is optimized
+#' 
+#' @return value of the negative logarithm of the EFPF for the sample of 
+#' dimensionality n described by counts
+#' 
+#' @export 
+neg_log_EFPF_negbin_mv_BB_rep <- function(pars, n, counts, nopt_par, opt) {
+    .Call(`_ProductFormFA_neg_log_EFPF_negbin_mv_BB_rep`, pars, n, counts, nopt_par, opt)
+}
+
+#' (when all the parameters are optimized -  mean-variance parametrization)
+#' 
+#' @param pars vector of parameters to optimize
+#' @param n dimension of the observed sample
+#' @param counts vector of cardinalities for the observed features
+#' 
+#' @return value of the negative logarithm of the EFPF for the sample of 
+#' dimensionality n described by counts
+#' 
+#' @export 
+neg_log_EFPF_negbin_mv_BB_rep_all <- function(pars, n, counts) {
+    .Call(`_ProductFormFA_neg_log_EFPF_negbin_mv_BB_rep_all`, pars, n, counts)
 }
 
 #' Buffet procedure for BB with Poisson mixture from beginning

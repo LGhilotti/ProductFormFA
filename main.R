@@ -17,7 +17,7 @@ plot_Kmn(ci_kmn_poiss_bb)
 # Generate from buffet procedure from beginning
 # (returns the features, the number of new features for new customers, 
 # counts of observed features)
-buff_poiss_bb <- buffet_poiss_BB(alpha = - 1, theta = 10, n = 10, lambda = 100)
+buff_poiss_bb <- buffet_poiss_BB(alpha = - 1, theta = 10, n = 100000, lambda = 10000)
 
 # Matrix of order-of-appearance features from the buffet
 ooa_mat_poiss_bb <- create_features_matrix(buff_poiss_bb)
@@ -32,10 +32,64 @@ buff_poiss_bb_initial_sample <- buffet_poiss_BB_initial_sample(alpha = - 1, thet
                                                                counts = buff_poiss_bb$counts, lambda = 1000)
 
 # Empirical Bayes estimate of (alpha, theta, lambda) via EFPF maximization
-eb_est_poiss_BB <- EB_EFPF_poiss_BB(n = length(buff_poiss_bb$num_new), 
+eb_efpf_poiss_BB <- EB_EFPF_poiss_BB(n = length(buff_poiss_bb$num_new), 
                         counts = buff_poiss_bb$counts, pars_0 = c(-100, 150, 1000))
 
-eb_est_poiss_BB
+eb_efpf_poiss_BB
+
+# Empirical Bayes estimate of (alpha, theta, lambda) via MM 
+eb_mm_poiss_BB <- EB_MM_poiss_BB(n = length(buff_poiss_bb$num_new), 
+                                 ntrain = round(length(buff_poiss_bb$num_new)*2/3),
+                                 num_new = buff_poiss_bb$num_new, pars_0 = eb_efpf_poiss_BB)
+
+eb_mm_poiss_BB
+
+n = length(buff_poiss_bb$num_new)
+ntrain = round(length(buff_poiss_bb$num_new)*2/3)
+ntest = n - ntrain
+num_new_m = buff_poiss_bb$num_new[(ntrain+1):n]
+
+alpha = eb_mm_poiss_BB[1]; theta = eb_mm_poiss_BB[2]; lambda = eb_mm_poiss_BB[3];
+s=theta+alpha
+mm_obj_poiss_BB_rep(pars=c(alpha,s,lambda), ntest=ntest,
+                    ntrain = ntrain,
+                    num_new_m = num_new_m)
+
+alpha = eb_efpf_poiss_BB[1]; theta = eb_efpf_poiss_BB[2]; lambda = eb_efpf_poiss_BB[3];
+s=theta+alpha
+mm_obj_poiss_BB_rep(pars=c(alpha,s,lambda), ntest=ntest,
+                    ntrain = ntrain,
+                    num_new_m = num_new_m)
+
+alpha = -100; theta = 150; lambda = 100; s = alpha + theta
+mm_obj_poiss_BB_rep(pars=c(alpha,s,lambda), ntest=ntest,
+                    ntrain = ntrain,
+                    num_new_m = num_new_m)
+
+alpha = -100; theta = 150; lambda = 10000; s = alpha + theta
+mm_obj_poiss_BB_rep(pars=c(alpha,s,lambda), ntest=ntest,
+                    ntrain = ntrain,
+                    num_new_m = num_new_m)
+
+alpha = -10; theta = 100; lambda = 100; s = alpha + theta
+mm_obj_poiss_BB_rep(pars=c(alpha,s,lambda), ntest=ntest,
+                    ntrain = ntrain,
+                    num_new_m = num_new_m)
+
+alpha = -10; theta = 100; lambda = 10000; s = alpha + theta
+mm_obj_poiss_BB_rep(pars=c(alpha,s,lambda), ntest=ntest,
+                    ntrain = ntrain,
+                    num_new_m = num_new_m)
+
+alpha = -1; theta = 10; lambda = 100; s = alpha + theta
+mm_obj_poiss_BB_rep(pars=c(alpha,s,lambda), ntest=ntest,
+                    ntrain = ntrain,
+                    num_new_m = num_new_m)
+
+alpha = -1; theta = 10; lambda = 10000; s = alpha + theta
+mm_obj_poiss_BB_rep(pars=c(alpha,s,lambda), ntest=ntest,
+                    ntrain = ntrain,
+                    num_new_m = num_new_m)
 
 ###############################################################
 ################ BB with Negative-Binomial(n*,p) #############
@@ -44,13 +98,14 @@ set.seed(1234)
 
 # Credible intervals
 ci_kmn_negbin_bb <- CI_Kmn_negbin_BB(alpha = -1, theta = 10, m = 3000, n = 100,
-                                     Kn = 10, nstar = 100, p = 0.5, lev = 0.95)
+                                     Kn = 50, nstar = 1000, p = 0.5, lev = 0.95)
 # Plot Credible intervals
 plot_Kmn(ci_kmn_negbin_bb)
 
 # Generate from buffet procedure from beginning
 # (returns the features and the number of new features for new customers)
-buff_negbin_bb <- buffet_negbin_BB(alpha = -5, theta = 10, n = 10000, nstar = 10000, p = 0.5)
+buff_negbin_bb <- buffet_negbin_BB(alpha = -1, theta = 10, n = 100000, nstar = 1000, p = 0.5)
+n_feat <- length(buff_negbin_bb$counts)
 
 # Matrix of order-of-appearance features from the buffet
 ooa_mat_negbin_bb <- create_features_matrix(buff_negbin_bb)
@@ -66,10 +121,11 @@ buff_negbin_bb_initial_sample <- buffet_negbin_BB_initial_sample(alpha=-1,theta=
 
 
 # Empirical Bayes estimate of (alpha, theta, n*, p) via EFPF maximization
-eb_est_negbin_BB <- EB_EFPF_negbin_BB(n = length(buff_negbin_bb$num_new), 
-                        counts = buff_negbin_bb$counts, pars_0 = c(-100, 150, 100, 0.5))
+eb_efpf_negbin_BB <- EB_EFPF_negbin_BB(n = length(buff_negbin_bb$num_new), 
+                        counts = buff_negbin_bb$counts, pars_0 = c(-10, 150, 100, 0.5))
 
-eb_est_negbin_BB
+eb_efpf_negbin_BB
+
 
 ###############################################################
 ############ IBP with Gamma(a,b) ##############################
@@ -100,10 +156,10 @@ buff_gamma_ibp_initial_sample <- buffet_gamma_IBP_initial_sample(alpha = - 1, th
                                                                  a = 1, b= 1)
 
 # Empirical Bayes estimate of (alpha, theta, a, b) via EFPF maximization
-eb_est_gamma_IBP <- EB_EFPF_gamma_IBP(n = length(buff_gamma_ibp$num_new), 
+eb_efpf_gamma_IBP <- EB_EFPF_gamma_IBP(n = length(buff_gamma_ibp$num_new), 
                                       counts = buff_gamma_ibp$counts, pars_0 = c(0.5, 50, 10, 10))
 
-eb_est_gamma_IBP
+eb_efpf_gamma_IBP
 
 
 
