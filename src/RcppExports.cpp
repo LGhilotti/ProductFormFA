@@ -85,6 +85,21 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// buffet_negbin_BB_wrong
+List buffet_negbin_BB_wrong(double alpha, double theta, int n, int nstar, double p);
+RcppExport SEXP _ProductFormFA_buffet_negbin_BB_wrong(SEXP alphaSEXP, SEXP thetaSEXP, SEXP nSEXP, SEXP nstarSEXP, SEXP pSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< double >::type alpha(alphaSEXP);
+    Rcpp::traits::input_parameter< double >::type theta(thetaSEXP);
+    Rcpp::traits::input_parameter< int >::type n(nSEXP);
+    Rcpp::traits::input_parameter< int >::type nstar(nstarSEXP);
+    Rcpp::traits::input_parameter< double >::type p(pSEXP);
+    rcpp_result_gen = Rcpp::wrap(buffet_negbin_BB_wrong(alpha, theta, n, nstar, p));
+    return rcpp_result_gen;
+END_RCPP
+}
 // buffet_negbin_BB
 List buffet_negbin_BB(double alpha, double theta, int n, int nstar, double p);
 RcppExport SEXP _ProductFormFA_buffet_negbin_BB(SEXP alphaSEXP, SEXP thetaSEXP, SEXP nSEXP, SEXP nstarSEXP, SEXP pSEXP) {
@@ -325,6 +340,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_ProductFormFA_p_kmn_all_gamma_IBP", (DL_FUNC) &_ProductFormFA_p_kmn_all_gamma_IBP, 5},
     {"_ProductFormFA_p_kmn_gamma_IBP", (DL_FUNC) &_ProductFormFA_p_kmn_gamma_IBP, 5},
     {"_ProductFormFA_neg_log_EFPF_gamma_IBP_rep", (DL_FUNC) &_ProductFormFA_neg_log_EFPF_gamma_IBP_rep, 3},
+    {"_ProductFormFA_buffet_negbin_BB_wrong", (DL_FUNC) &_ProductFormFA_buffet_negbin_BB_wrong, 5},
     {"_ProductFormFA_buffet_negbin_BB", (DL_FUNC) &_ProductFormFA_buffet_negbin_BB, 5},
     {"_ProductFormFA_buffet_negbin_BB_initial_sample", (DL_FUNC) &_ProductFormFA_buffet_negbin_BB_initial_sample, 7},
     {"_ProductFormFA_p_kmn_all_negbin_BB", (DL_FUNC) &_ProductFormFA_p_kmn_all_negbin_BB, 5},

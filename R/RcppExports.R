@@ -75,6 +75,23 @@ neg_log_EFPF_gamma_IBP_rep <- function(n, counts, pars) {
 #' $counts contains the counts for the observed features
 #' 
 #' @export
+buffet_negbin_BB_wrong <- function(alpha, theta, n, nstar, p) {
+    .Call(`_ProductFormFA_buffet_negbin_BB_wrong`, alpha, theta, n, nstar, p)
+}
+
+#' Buffet procedure for BB with Negative-Binomial mixture from beginning - correct
+#' 
+#' @param alpha value of alpha in product-form feature allocation
+#' @param theta value of theta in product-form feature allocation
+#' @param n dimension of the sample to simulate
+#' @param nstar Negative-Binomial hyperparameter (number of successes)
+#' @param p Negative-Binomial hyperparameter (success probability)
+#' 
+#' @return list: $features contains the simulated features for each customer,
+#' $num_new contains the number of new features selected for each customer,
+#' $counts contains the counts for the observed features
+#' 
+#' @export
 buffet_negbin_BB <- function(alpha, theta, n, nstar, p) {
     .Call(`_ProductFormFA_buffet_negbin_BB`, alpha, theta, n, nstar, p)
 }

@@ -130,9 +130,9 @@ mm_obj_poiss_BB_rep <- function(pars, ntest, ntrain, val_rep, obs_sample, seed_i
   # features observed in the training set
   feat_train <- unique(unlist( obs_sample$features[1:ntrain] ))
   
-  while (){
+  #while (){
     
-  }
+  #}
   # features observed in the sampled validation of val_rep
   idx_val_rep <- sample((ntrain+1):n, size = val_rep) 
   feat_val <- unique(unlist( obs_sample$features[idx_val_rep] ))

@@ -19,13 +19,13 @@ ci_kmn_negbin_bb$means[100]
 
 # Generate from buffet procedure from beginning
 # (returns the features and the number of new features for new customers)
-buff_negbin_bb <- buffet_negbin_BB(alpha = -1, theta = 10, n = 1000, nstar = 100, p = 0.8)
+buff_negbin_bb <- buffet_negbin_BB(alpha = -1, theta = 10, n = 10000, nstar = 100, p = 0.8)
 n_feat <- length(buff_negbin_bb$counts)
 
 # Empirical Bayes via EFPF maximization (n*,p parametrization)
 eb_est_fixed <- EB_EFPF_fixed_negbin_BB(n = length(buff_negbin_bb$num_new), 
                                         counts = buff_negbin_bb$counts, 
-                                        pars_0 = c(-10, 15, 100, 0.2),
+                                        pars_0 = c(-10, 15, 50, 0.2),
                                         opt = c(T,T,T,T))
 
 # objective function as function of alpha
@@ -41,7 +41,7 @@ plot(alpha_grid, ev_nlEFPF_alpha, pch=16, cex=0.5)
 
 # objective function as function of theta
 theta_grid = seq(from = 2, to = 50, length.out = 1000)
-alpha = -1; nstar= 50; p=0.5; 
+alpha = -1; nstar= 100; p=0.8; 
 
 ev_nlEFPF_theta <- to_vec(for(theta in theta_grid) 
   neg_log_EFPF_negbin_BB_rep_all(pars = c(alpha,alpha+theta,nstar,p),
@@ -52,7 +52,7 @@ plot(theta_grid, ev_nlEFPF_theta, pch=16, cex=0.5)
 
 # objective function as function of nstar
 nstar_grid = seq(from = 10, to = 100, length.out = 1000)
-alpha=-1; theta = 10; p=0.5; 
+alpha=-1; theta = 10; p=0.8; 
 
 ev_nlEFPF_nstar <- to_vec(for(nstar in nstar_grid) 
   neg_log_EFPF_negbin_BB_rep_all(pars = c(alpha,alpha+theta,nstar,p),
@@ -63,7 +63,7 @@ plot(nstar_grid, ev_nlEFPF_nstar, pch=16, cex=0.5)
 
 # objective function as function of p
 p_grid = seq(from = 0.01, to = 0.99, length.out = 1000)
-alpha=-1; theta = 10; nstar=50; 
+alpha=-1; theta = 10; nstar=100; 
 
 ev_nlEFPF_p <- to_vec(for(p in p_grid) 
   neg_log_EFPF_negbin_BB_rep_all(pars = c(alpha,alpha+theta,nstar,p),
@@ -114,12 +114,12 @@ fig
 
 
 ##########################################################
-###### mean-variance NegBin parametrization #############
-########################################################
+###### Mean-Variance Negative-Binomial parametrization ###
+##########################################################
 # Empirical Bayes via EFPF maximization (m-v parametrization)
 eb_est_mv <- EB_EFPF_fixed_negbin_mv_BB(n = length(buff_negbin_bb$num_new), 
                                         counts = buff_negbin_bb$counts, 
-                                        pars_0 = c(-10, 15, 50, 100),
+                                        pars_0 = c(-10, 15, 50, 100), # (alpha,theta,mu,sigma2)
                                         opt = c(T,T,T,T))
 
 eb_est_np <- eb_est_mv
@@ -190,11 +190,12 @@ fig2
 #####################################################################
 ##### try to fix the variance hyperparameter of the NB ###############
 ######################################################################
+true_mean <- nstar*(1-p)/p
 true_var <- nstar*(1-p)/(p**2)
 # Empirical Bayes via EFPF maximization (m-v parametrization)
 eb_est_fixed_mv <- EB_EFPF_fixed_negbin_mv_BB(n = length(buff_negbin_bb$num_new), 
                                               counts = buff_negbin_bb$counts, 
-                                              pars_0 = c(-1, 15, 80, true_var),
+                                              pars_0 = c(-1, 15, 10, true_var),
                                               opt = c(T,T,T,F))
 
 eb_est_fixed_np <- eb_est_fixed_mv
@@ -203,3 +204,65 @@ eb_est_fixed_np[4] <- eb_est_fixed_mv[3]/eb_est_fixed_mv[4]
 eb_est_fixed_np
 # theta alto fa si che le possibili feature N siano tutte usate, cosi N può 
 # essere centrato intorno a k. Oppure anche mettere N
+
+
+#################################################################################
+### CHECK IF THE MMLE RECOVERS WHEN REPLICATES OF THE POPULATION IS AVAILABLE ###
+#################################################################################
+
+set.seed(1234)
+n_replicates <- 10
+l_counts_negbin_bb <- vector("list",n_replicates) # list of counts of features for each replicate
+# alpha = -100; theta = 101; n = 10000; nstar = 100; p = 0.8
+alpha = -100; theta = 101; n = 100000; nstar = 200; p = 0.8
+
+true_mean <- nstar*(1-p)/p
+true_mean
+
+true_var <- nstar*(1-p)/(p**2)
+true_var
+
+# Generate from buffet procedure multiple times and store in list
+for (i in 1:n_replicates){
+  
+  buff_negbin_bb <- buffet_negbin_BB(alpha, theta, n, nstar, p)
+  l_counts_negbin_bb[[i]] <- buff_negbin_bb$counts
+}
+
+
+# -> with replicates
+avg_n_obs_feat <- length(unlist(l_counts_negbin_bb))/n_replicates
+avg_n_obs_feat
+eb_efpf_mv_replicates <- EB_EFPF_fixed_negbin_mv_BB_replicates(n, 
+                                                               counts = l_counts_negbin_bb,
+                                                               pars_0 = c(-1, 5, 10, 20),
+                                                               opt = c(T,T,T,T))
+eb_efpf_mv_replicates
+# -> single realization of the sample
+eb_efpf_mv_single <- EB_EFPF_fixed_negbin_mv_BB(n,
+                                                counts = l_counts_negbin_bb[[1]],
+                                                pars_0 = c(-3, 10, 30, 60),
+                                                opt = c(T,T,T,T))
+eb_efpf_mv_single
+
+
+
+#############################################################
+#### CHECK ON THE BUFFET PROCESS ############################
+##########################################################
+printList <- function(list, max) {
+  
+  for (item in 1:max) {
+    
+    print(list[[item]])
+    
+  }
+}
+
+
+alpha = -100; theta = 101; n = 10000; nstar = 100; p = 0.8
+
+
+set.seed(1234)
+buff_negbin_bb_slow <- buffet_negbin_BB(alpha, theta, n, nstar, p)
+

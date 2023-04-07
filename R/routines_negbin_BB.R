@@ -105,7 +105,7 @@ neg_log_EFPF_negbin_mv_BB_rep_R <- function(pars, n, counts, nopt_par, opt){
   if (opt[1]==TRUE){
     alpha = pars[1];
     i_T = i_T +1;
-    # Assign s
+    # Assign theta
     if (opt[2]==TRUE){
       theta = pars[i_T] - alpha;
       i_T = i_T +1;
@@ -143,7 +143,7 @@ neg_log_EFPF_negbin_mv_BB_rep_R <- function(pars, n, counts, nopt_par, opt){
   else {
     mu = nopt_par[i_F]; 
     i_F = i_F +1;
-    # Assign t
+    # Assign sigma2
     if (opt[4]==TRUE){
       sigma2 = pars[i_T];
     }
@@ -234,6 +234,254 @@ EB_EFPF_fixed_negbin_mv_BB <- function(n, counts, pars_0, opt = c(T,T,T,T)){
       lb[1] <- -pars_0[2]+0.01
     }
     res <- optim(par = pars_0[opt], fn = neg_log_EFPF_negbin_mv_BB_rep_R, n = n, 
+                 counts = counts, nopt_par = pars_0[!opt], opt = opt,
+                 method = "L-BFGS-B", lower = lb[opt], 
+                 upper = ub[opt])
+    
+    sol <- pars_0
+    sol[opt] <- res$par
+    if (opt[1] == T & opt[2] == T){ #alpha or theta are optimized -> use s
+      sol[2] <- sol[2] - sol[1]
+    }
+    if (opt[3] == T & opt[4] == T){ #mu or sigma are optimized -> use t
+      sol[4] <- sol[4] + sol[3]
+    }
+  }
+  
+  
+  return (sol)
+  
+}
+
+
+#############################################################
+#############################################################
+### EB based on EFPF (nstar-p) -> WITH REPLICATES #####################
+#############################################################
+#############################################################
+
+##########################################################
+### EFPF-related functions -> computed using the cpp version 
+
+neg_log_EFPF_negbin_BB_replicates <- function(pars, n, counts, nopt_par, opt){
+  
+  sum_log <- 0
+  
+  for (i in 1:length(counts)) {
+    sum_log <- sum_log + neg_log_EFPF_negbin_BB(pars,n,counts[[i]], nopt_par, opt)
+  }
+  
+  return (sum_log)
+}
+
+
+neg_log_EFPF_negbin_BB_rep_all_replicates <- function(pars, n, counts){
+  
+  sum_log <- 0
+  
+  for (i in 1:length(counts)) {
+    sum_log <- sum_log + neg_log_EFPF_negbin_BB_rep_all(pars,n,counts[[i]])
+  }
+  
+  return (sum_log)
+}
+
+
+neg_log_EFPF_negbin_BB_rep_replicates <- function(pars, n, counts, nopt_par, opt){
+  
+  sum_log <- 0
+  
+  for (i in 1:length(counts)) {
+    sum_log <- sum_log + neg_log_EFPF_negbin_BB_rep(pars,n,counts[[i]], nopt_par, opt)
+  }
+  
+  return (sum_log)
+}
+
+#' EB based on EFPF-max (possibly some parameters are fixed) - 
+#' - BB with Negative-Binomial mixture -> with REPLICATES
+#'
+#' This function returns the value of the parameters maximizing the 
+#' EFPF for the given sample (possibly some parameters are fixed) - 
+#' - BB with Negative-Binomial mixture
+#'
+#' @param n [integer] dimension of the observed sample
+#' @param counts [list] list of vectors of cardinalities for the observed features
+#' in the different replicates
+#' @param pars_0 [numeric] Initialization for (alpha, theta, n*, p) to 
+#' be optimized
+#' @param opt [logical] vector with 1 if value is optimized, 0 if not optimized
+#'  
+#' @export
+EB_EFPF_fixed_negbin_BB_replicates <- function(n, counts, pars_0, opt = c(T,T,T,T)){
+  
+  lb <- c(-Inf,0.01, 0.01, 0.01)
+  ub <- c(-0.01, Inf, Inf, 0.99)
+  
+  # if alpha or theta are fixed -> optimize the others: not need to reparametrize
+  if (opt[1] ==F | opt[2] == F){
+    if (opt[1] == F){
+      lb[2] <- -pars_0[1]
+    }
+    else {
+      lb[1] <- -pars_0[2]
+    }
+    res <- optim(par = pars_0[opt], fn = neg_log_EFPF_negbin_BB_replicates, n = n, 
+                 counts = counts, nopt_par = pars_0[!opt], opt = opt,
+                 method = "L-BFGS-B", lower = lb[opt], 
+                 upper = ub[opt])
+    sol <- pars_0
+    sol[opt] <- res$par
+  }
+  else{
+    pars_0[2] <- pars_0[2] + pars_0[1]
+    # set constraints stricter so that function is limited
+    if (sum(opt)==4){
+      res <- optim(par = pars_0, fn = neg_log_EFPF_negbin_BB_rep_all_replicates, n = n, 
+                   counts = counts,
+                   method = "L-BFGS-B", lower = lb, 
+                   upper = ub)
+    }
+    else{
+      res <- optim(par = pars_0[opt], fn = neg_log_EFPF_negbin_BB_rep_replicates, n = n, 
+                   counts = counts, nopt_par = pars_0[!opt], opt = opt,
+                   method = "L-BFGS-B", lower = lb[opt], 
+                   upper = ub[opt])
+    }
+    
+    
+    sol <- pars_0
+    sol[opt] <- res$par
+    sol[2] <- sol[2] - sol[1]
+    
+  }
+  
+  
+  return (sol)
+  
+}
+
+#############################################################
+#############################################################
+### EB based on EFPF (m-v) -> WITH REPLICATES #####################
+#############################################################
+#############################################################
+
+##########################################################
+### EFPF-related functions -> computed using the cpp version 
+
+neg_log_EFPF_negbin_mv_BB_replicates <- function(pars, n, counts, nopt_par, opt){
+  
+  sum_log <- 0
+  
+  for (i in 1:length(counts)) {
+    sum_log <- sum_log + neg_log_EFPF_negbin_mv_BB(pars,n,counts[[i]], nopt_par, opt)
+  }
+  
+  return (sum_log)
+}
+
+
+neg_log_EFPF_negbin_mv_BB_rep_all_replicates <- function(pars, n, counts){
+  
+  sum_log <- 0
+  
+  for (i in 1:length(counts)) {
+    sum_log <- sum_log + neg_log_EFPF_negbin_mv_BB_rep_all(pars,n,counts[[i]])
+  }
+  
+  return (sum_log)
+}
+
+
+neg_log_EFPF_negbin_mv_BB_rep_R_replicates <- function(pars, n, counts, nopt_par, opt){
+  
+  sum_log <- 0
+  
+  for (i in 1:length(counts)) {
+    sum_log <- sum_log + neg_log_EFPF_negbin_mv_BB_rep_R(pars,n,counts[[i]], nopt_par, opt)
+  }
+  
+  return (sum_log)
+}
+
+#' EB based on EFPF-max (possibly some parameters are fixed) - 
+#' - BB with Negative-Binomial mixture (mean-variance parametrization)
+#' -> with REPLICATES
+#' 
+#' This function returns the value of the parameters maximizing the 
+#' EFPF for the given sample (possibly some parameters are fixed) - 
+#' - BB with Negative-Binomial mixture (mean-variance parametrization)
+#'
+#' @param n [integer] dimension of the observed sample
+#' @param counts [list] list of vectors of cardinalities for the observed features
+#' @param pars_0 [numeric] Initialization for (alpha, theta, mu, sigma2) to 
+#' be optimized
+#' @param opt [logical] vector with 1 if value is optimized, 0 if not optimized
+#'  
+#' @export
+EB_EFPF_fixed_negbin_mv_BB_replicates <- function(n, counts, pars_0, opt = c(T,T,T,T)){
+  
+  lb <- c(-Inf,0.1, 0.1, 0.1)
+  ub <- c(-0.1, Inf, Inf, Inf)
+  
+  # if alpha or theta are fixed AND mu or sigma2 are fixed -> 
+  # -> optimize the others: not need to reparametrize
+  if ((opt[1] ==F | opt[2] == F) & (opt[3] ==F | opt[4] == F) ){
+    if (opt[1] == F){
+      lb[2] <- -pars_0[1]+0.01
+    }
+    else {
+      lb[1] <- -pars_0[2]+0.01
+    }
+    
+    if (opt[3] == F){
+      lb[4] <- pars_0[3]+0.01
+    }
+    else{
+      ub[3] <- pars_0[4]-0.01
+    }
+    res <- optim(par = pars_0[opt], fn = neg_log_EFPF_negbin_mv_BB_replicates, n = n, 
+                 counts = counts, nopt_par = pars_0[!opt], opt = opt,
+                 method = "L-BFGS-B", lower = lb[opt], 
+                 upper = ub[opt])
+    sol <- pars_0
+    sol[opt] <- res$par
+  }
+  else if (sum(opt)==4){
+    pars_0[2] <- pars_0[1] + pars_0[2]
+    pars_0[4] <- pars_0[4] - pars_0[3]
+    # set constraints stricter so that function is limited
+    res <- optim(par = pars_0, fn = neg_log_EFPF_negbin_mv_BB_rep_all_replicates, n = n, 
+                 counts = counts,
+                 method = "L-BFGS-B", lower = lb, upper = ub)
+    
+    sol <- pars_0
+    sol[opt] <- res$par
+    sol[2] <- sol[2] - sol[1]
+    sol[4] <- sol[4] + sol[3]
+  }
+  else {
+    if (opt[1] == T & opt[2] == T){ #alpha or theta are optimized -> use s
+      pars_0[2] <- pars_0[1] + pars_0[2]
+    }
+    if (opt[3] == T & opt[4] == T){ #mu or sigma are optimized -> use t
+      pars_0[4] <- pars_0[4] - pars_0[3]
+    }  
+    if (opt[3] == F){
+      lb[4] <- pars_0[3]+0.01
+    }
+    if (opt[4] == F){
+      ub[3] <- pars_0[4]-0.01
+    }
+    
+    if (opt[1] == F){
+      lb[2] <- -pars_0[1]+0.01
+    }
+    if (opt[2] == F) {
+      lb[1] <- -pars_0[2]+0.01
+    }
+    res <- optim(par = pars_0[opt], fn = neg_log_EFPF_negbin_mv_BB_rep_R_replicates, n = n, 
                  counts = counts, nopt_par = pars_0[!opt], opt = opt,
                  method = "L-BFGS-B", lower = lb[opt], 
                  upper = ub[opt])

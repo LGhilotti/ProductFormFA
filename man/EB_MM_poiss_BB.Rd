@@ -4,17 +4,25 @@
 \alias{EB_MM_poiss_BB}
 \title{EB based on method of moments - BB with Poisson mixture}
 \usage{
-EB_MM_poiss_BB(n, ntrain, num_new, pars_0)
+EB_MM_poiss_BB(n, ntrain, val_rep, obs_sample, pars_0, seed_id)
 }
 \arguments{
 \item{n}{\link{integer} dimension of the observed sample}
 
 \item{ntrain}{\link{integer} dimension of training set}
 
-\item{num_new}{\link{numeric} vector of number of new features selected by each customer}
+\item{val_rep}{\link{integer} number of samples in the validation averaged over for
+assessing the number of new features observed}
+
+\item{obs_sample}{\link{list} list with the whole sample of features, where
+$features contains the simulated features for each customer,
+$num_new contains the number of new features selected for each customer
+$counts contains the counts for the observed features}
 
 \item{pars_0}{\link{numeric} Initialization for (alpha, theta, lambda) to
 be optimized}
+
+\item{seed_id}{\link{numeric} Seed to be used}
 }
 \description{
 This function returns the value of (alpha, theta, lambda) obtained

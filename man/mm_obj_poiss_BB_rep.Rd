@@ -4,19 +4,26 @@
 \alias{mm_obj_poiss_BB_rep}
 \title{MM objective function for BB with Poisson mixture with reparametrization}
 \usage{
-mm_obj_poiss_BB_rep(pars, ntest, ntrain, num_new_m)
+mm_obj_poiss_BB_rep(pars, ntest, ntrain, val_rep, obs_sample, seed_id)
 }
 \arguments{
 \item{pars}{\link{numeric} pars\link{1} = value of alpha in product-form feature allocation,
 pars\link{2} = value of s = theta+alpha in product-form feature allocation,
 pars\link{3} =  value of lambda - Poisson hyperparameter}
 
+\item{ntest}{\link{integer} dimension of the validation set}
+
 \item{ntrain}{\link{integer} dimension of the training set}
 
-\item{num_new_m}{\link{numeric} vector of number of new features selected
-by each customer, for the last m customers}
+\item{val_rep}{\link{integer} number of samples in the validation averaged over for
+assessing the number of new features observed}
 
-\item{n}{\link{integer} dimension of the observed sample}
+\item{obs_sample}{\link{list} list with the whole sample of features, where
+$features contains the simulated features for each customer,
+$num_new contains the number of new features selected for each customer
+$counts contains the counts for the observed features}
+
+\item{seed_id}{\link{numeric} Seed to be used}
 }
 \value{
 value of the MM objective function to be minimized

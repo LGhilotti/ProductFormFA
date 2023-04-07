@@ -17,7 +17,7 @@ plot_Kmn(ci_kmn_poiss_bb)
 # Generate from buffet procedure from beginning
 # (returns the features, the number of new features for new customers, 
 # counts of observed features)
-buff_poiss_bb <- buffet_poiss_BB(alpha = - 1, theta = 10, n = 100000, lambda = 10000)
+buff_poiss_bb <- buffet_poiss_BB(alpha = - 100, theta = 101, n = 100000, lambda = 100)
 
 # Matrix of order-of-appearance features from the buffet
 ooa_mat_poiss_bb <- create_features_matrix(buff_poiss_bb)
@@ -33,16 +33,16 @@ buff_poiss_bb_initial_sample <- buffet_poiss_BB_initial_sample(alpha = - 1, thet
 
 # Empirical Bayes estimate of (alpha, theta, lambda) via EFPF maximization
 eb_efpf_poiss_BB <- EB_EFPF_poiss_BB(n = length(buff_poiss_bb$num_new), 
-                        counts = buff_poiss_bb$counts, pars_0 = c(-100, 150, 1000))
+                        counts = buff_poiss_bb$counts, pars_0 = c(-10, 15, 10))
 
 eb_efpf_poiss_BB
 
 # Empirical Bayes estimate of (alpha, theta, lambda) via MM 
-eb_mm_poiss_BB <- EB_MM_poiss_BB(n = length(buff_poiss_bb$num_new), 
-                                 ntrain = round(length(buff_poiss_bb$num_new)*2/3),
-                                 num_new = buff_poiss_bb$num_new, pars_0 = eb_efpf_poiss_BB)
-
-eb_mm_poiss_BB
+#eb_mm_poiss_BB <- EB_MM_poiss_BB(n = length(buff_poiss_bb$num_new), 
+#                                 ntrain = round(length(buff_poiss_bb$num_new)*2/3),
+#                                 num_new = buff_poiss_bb$num_new, pars_0 = eb_efpf_poiss_BB)
+#
+#eb_mm_poiss_BB
 
 n = length(buff_poiss_bb$num_new)
 ntrain = round(length(buff_poiss_bb$num_new)*2/3)
@@ -140,7 +140,7 @@ plot_Kmn(ci_kmn_gamma_ibp)
 
 # Generate from buffet procedure from beginning
 # (returns the features and the number of new features for new customers)
-buff_gamma_ibp <- buffet_gamma_IBP(alpha = 0.6, theta = 10, n = 1000, a = 10, b = 1)
+buff_gamma_ibp <- buffet_gamma_IBP(alpha = 0.1, theta = 2, n = 100000, a = 2, b = 1)
 
 # Matrix of order-of-appearance features from the buffet
 ooa_mat_gamma_ibp <- create_features_matrix(buff_gamma_ibp)
