@@ -33,7 +33,7 @@ buff_poiss_bb_initial_sample <- buffet_poiss_BB_initial_sample(alpha = - 1, thet
 
 # Empirical Bayes estimate of (alpha, theta, lambda) via EFPF maximization
 eb_efpf_poiss_BB <- EB_EFPF_poiss_BB(n = length(buff_poiss_bb$num_new), 
-                        counts = buff_poiss_bb$counts, pars_0 = c(-10, 15, 10))
+                        counts = buff_poiss_bb$counts, pars_0 = c(-1, 10, 10))
 
 eb_efpf_poiss_BB
 
@@ -121,11 +121,58 @@ buff_negbin_bb_initial_sample <- buffet_negbin_BB_initial_sample(alpha=-1,theta=
 
 
 # Empirical Bayes estimate of (alpha, theta, n*, p) via EFPF maximization
-eb_efpf_negbin_BB <- EB_EFPF_negbin_BB(n = length(buff_negbin_bb$num_new), 
-                        counts = buff_negbin_bb$counts, pars_0 = c(-10, 150, 100, 0.5))
+eb_efpf_negbin_BB <- EB_EFPF_fixed_negbin_BB(n = length(buff_negbin_bb$num_new), 
+                                        counts = buff_negbin_bb$counts, 
+                                        pars_0 = c(-10, 15, 50, 0.2),
+                                        opt = c(T,T,T,T))
 
-eb_efpf_negbin_BB
+# Empirical Bayes estimate of (alpha, theta, mu, sigma2) via EFPF maximization (m-v param)
+eb_efpf_negbin_mv_BB <- EB_EFPF_fixed_negbin_mv_BB(n = length(buff_negbin_bb$num_new), 
+                                              counts = buff_negbin_bb$counts, 
+                                              pars_0 = c(-1, 15, 10, true_var),
+                                              opt = c(T,T,T,F))
 
+########################################################################################
+############# START CHECK ##############################################################
+########################################################################################
+
+# Empirical Bayes estimate of (alpha, theta, mu, sigma2) via EFPF maximization (m-v param)
+# with replicates (JUST FOR A CHECK)
+set.seed(1234)
+n_replicates <- 100
+l_counts_negbin_bb <- vector("list",n_replicates) # list of counts of features for each replicate
+alpha = -100; theta = 101; n = 10000; nstar = 100; p = 0.8
+
+true_mean <- nstar*(1-p)/p
+true_mean
+
+true_var <- nstar*(1-p)/(p**2)
+true_var
+
+# Generate from buffet procedure multiple times and store in list
+for (i in 1:n_replicates){
+  
+  buff_negbin_bb_rep <- buffet_negbin_BB(alpha, theta, n, nstar, p)
+  l_counts_negbin_bb[[i]] <- buff_negbin_bb_rep$counts
+}
+
+avg_n_obs_feat <- length(unlist(l_counts_negbin_bb))/n_replicates
+avg_n_obs_feat
+eb_efpf_mv_replicates <- EB_EFPF_fixed_negbin_mv_BB_replicates(n, 
+                                                               counts = l_counts_negbin_bb,
+                                                               pars_0 = c(-1, 5, 10, 20),
+                                                               opt = c(T,T,T,T))
+eb_efpf_mv_replicates
+
+# -> single realization of the sample
+eb_efpf_mv_single <- EB_EFPF_fixed_negbin_mv_BB(n,
+                                                counts = l_counts_negbin_bb[[1]],
+                                                pars_0 = c(-3, 10, 30, 60),
+                                                opt = c(T,T,T,T))
+eb_efpf_mv_single
+#################################################################################
+############### END CHECK #######################################################
+#################################################################################
 
 ###############################################################
 ############ IBP with Gamma(a,b) ##############################
@@ -140,7 +187,7 @@ plot_Kmn(ci_kmn_gamma_ibp)
 
 # Generate from buffet procedure from beginning
 # (returns the features and the number of new features for new customers)
-buff_gamma_ibp <- buffet_gamma_IBP(alpha = 0.1, theta = 2, n = 100000, a = 2, b = 1)
+buff_gamma_ibp <- buffet_gamma_IBP(alpha = 0.2, theta = 2, n = 10000, a = 2, b = 1)
 
 # Matrix of order-of-appearance features from the buffet
 ooa_mat_gamma_ibp <- create_features_matrix(buff_gamma_ibp)
@@ -157,7 +204,7 @@ buff_gamma_ibp_initial_sample <- buffet_gamma_IBP_initial_sample(alpha = - 1, th
 
 # Empirical Bayes estimate of (alpha, theta, a, b) via EFPF maximization
 eb_efpf_gamma_IBP <- EB_EFPF_gamma_IBP(n = length(buff_gamma_ibp$num_new), 
-                                      counts = buff_gamma_ibp$counts, pars_0 = c(0.5, 50, 10, 10))
+                                      counts = buff_gamma_ibp$counts, pars_0 = c(0.5, 10, 5, 5))
 
 eb_efpf_gamma_IBP
 
