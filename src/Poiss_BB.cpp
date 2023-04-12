@@ -213,6 +213,7 @@ std::vector<double> mean_kmn_all_poiss_BB(double alpha,double theta,int m, int n
 
 ////////////////////////////////////////////////////////////////////
 
+//' @export
 // [[Rcpp::export]]
 double mean_kmn_poiss_BB(double alpha,double theta,int m, int n,double lambda){
   

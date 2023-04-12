@@ -15,19 +15,114 @@ plot_Kmn <- function(ci){
   bands <- data.frame(
     x = 1:m,
     means = ci$means,
-    lb = ci$lb,
-    ub = ci$ub
+    lbs = ci$lbs,
+    ubs = ci$ubs
   )
   
   ggplot(bands, aes(x, means)) + # ggplot2 plot with confidence intervals
     geom_line(col = "darkblue") +
-    geom_ribbon(aes(ymin = lb, ymax = ub), alpha = 0.1, fill = "darkblue") +
+    geom_ribbon(aes(ymin = lbs, ymax = ubs), alpha = 0.1, fill = "darkblue") +
     xlab("m") + ylab(expression(K[m]^n)) + theme_bw() + 
     theme(plot.title = element_text(hjust = 0.5)) +
     scale_y_continuous(breaks = pretty_breaks()) +
     scale_x_continuous(breaks = pretty_breaks())
 }
 
+#####################################################
+#' Plot function for the credible intervals of Kmn, given initial sample
+#'
+#' This function allows to plot the credible intervals of Kmn given initial sample
+#'
+#' @param N [integer] dimension of initial sample
+#' @param train_list [list] list of features in the initial sample 
+#' @param ci [list] it contains means, upper-bounds and lower-bounds of the credible intervals
+#'
+#' @export
+#' @import ggplot2
+#' @import scales
+#'
+plot_Kmn_given_sample <- function(N, train_list, ci){
+  
+  m <- length(ci$means)
+  
+  cum_nfeat <- sapply(1:N, function(n) length(unique(unlist(train_list[1:n]))))
+    
+  init_sample <- data.frame(
+    x = 0:N,
+    nfeat = c(0,cum_nfeat)
+  )
+  
+  nfeat_sample <- cum_nfeat[N]
+  
+  bands <- data.frame(
+    x = N:(N+m),
+    means = c(nfeat_sample, ci$means + nfeat_sample),
+    lbs = c(nfeat_sample, ci$lbs + nfeat_sample),
+    ubs = c(nfeat_sample, ci$ubs + nfeat_sample)
+  )
+  
+  
+  ggplot(bands, aes(x,means) ) +
+    geom_line(col = "red", linetype = "dashed") +
+    geom_ribbon(aes(ymin = lbs, ymax = ubs), alpha = 0.1, fill = "red") +
+    geom_line(data = init_sample, aes(x, nfeat), color="red", linetype="dashed") +
+    geom_segment(aes(x = N, y = 0, xend = N, yend = ubs[m+1] + 10), color="grey",
+                 linetype="dashed", size=1) +
+    xlab("# observations") + ylab("# distinct features") + theme_bw() + 
+    theme(plot.title = element_text(hjust = 0.5)) +
+    ggtitle(paste0("N = ", N)) +
+    scale_y_continuous(breaks = pretty_breaks()) +
+    scale_x_continuous(breaks = pretty_breaks())
+}
+
+#####################################################
+#' Plot function for the credible intervals of Kmn, given initial sample, and the observed 
+#' 
+#'
+#' This function allows to plot the credible intervals of Kmn given initial sample,
+#' and the observed test as well
+#'
+#' @param N [integer] dimension of initial sample
+#' @param data_list [list] list of features in the whole sample
+#' @param ci [list] it contains means, upper-bounds and lower-bounds of the credible intervals
+#'
+#' @export
+#' @import ggplot2
+#' @import scales
+#'
+plot_Kmn_given_sample_with_observed <- function(N, data_list, ci){
+  
+  m <- length(ci$means)
+  
+  cum_nfeat <- sapply(1:(N+m), function(n) length(unique(unlist(data_list[1:n]))))
+  
+  obs_sample <- data.frame(
+    x = 0:(N+m),
+    nfeat = c(0,cum_nfeat)
+  )
+  
+  nfeat_sample <- cum_nfeat[N]
+  
+  bands <- data.frame(
+    x = N:(N+m),
+    means = c(nfeat_sample, ci$means + nfeat_sample),
+    lbs = c(nfeat_sample, ci$lbs + nfeat_sample),
+    ubs = c(nfeat_sample, ci$ubs + nfeat_sample)
+  )
+  
+  
+  ggplot(bands, aes(x,means) ) +
+    geom_line(col = "red", linetype = "dashed") +
+    geom_ribbon(aes(ymin = lbs, ymax = ubs), alpha = 0.1, fill = "red") +
+    geom_line(data = obs_sample, aes(x, nfeat), color="black", linetype="solid", size=0.5) +
+    geom_segment(aes(x = N, y = 0, xend = N, yend = ubs[m+1] + 10), color="grey",
+                 linetype="dashed", size=1) +
+    xlab("# observations") + ylab("# distinct features") + theme_bw() + 
+    theme(plot.title = element_text(hjust = 0.5)) +
+    ggtitle(paste0("N = ", N)) +
+    scale_y_continuous(breaks = pretty_breaks()) +
+    scale_x_continuous(breaks = pretty_breaks())
+}
 
 ##############################################################
 

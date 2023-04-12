@@ -253,6 +253,7 @@ mean_kmn_all_poiss_BB <- function(alpha, theta, m, n, lambda) {
     .Call(`_ProductFormFA_mean_kmn_all_poiss_BB`, alpha, theta, m, n, lambda)
 }
 
+#' @export
 mean_kmn_poiss_BB <- function(alpha, theta, m, n, lambda) {
     .Call(`_ProductFormFA_mean_kmn_poiss_BB`, alpha, theta, m, n, lambda)
 }

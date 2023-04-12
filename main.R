@@ -10,7 +10,7 @@ set.seed(1234)
 
 # Credible intervals
 ci_kmn_poiss_bb <- CI_Kmn_poiss_BB(alpha = - 1, theta = 10, m = 3000, n = 100, 
-                                   lambda = 10000, lev = 0.95)
+                                   lambda = 1000, lev = 0.95)
 # Plot Credible intervals
 plot_Kmn(ci_kmn_poiss_bb)
 
@@ -20,7 +20,7 @@ plot_Kmn(ci_kmn_poiss_bb)
 buff_poiss_bb <- buffet_poiss_BB(alpha = - 100, theta = 101, n = 100000, lambda = 100)
 
 # Matrix of order-of-appearance features from the buffet
-ooa_mat_poiss_bb <- create_features_matrix(buff_poiss_bb)
+ooa_mat_poiss_bb <- create_features_matrix(buff_poiss_bb$features)
 plot_binary_matrix(ooa_mat_poiss_bb)
 plot_binary_matrix(ooa_mat_poiss_bb, max_f = 20)
 
@@ -108,7 +108,7 @@ buff_negbin_bb <- buffet_negbin_BB(alpha = -1, theta = 10, n = 100000, nstar = 1
 n_feat <- length(buff_negbin_bb$counts)
 
 # Matrix of order-of-appearance features from the buffet
-ooa_mat_negbin_bb <- create_features_matrix(buff_negbin_bb)
+ooa_mat_negbin_bb <- create_features_matrix(buff_negbin_bb$features)
 plot_binary_matrix(ooa_mat_negbin_bb)
 plot_binary_matrix(ooa_mat_negbin_bb, max_f = 20)
 
@@ -190,7 +190,7 @@ plot_Kmn(ci_kmn_gamma_ibp)
 buff_gamma_ibp <- buffet_gamma_IBP(alpha = 0.2, theta = 2, n = 10000, a = 2, b = 1)
 
 # Matrix of order-of-appearance features from the buffet
-ooa_mat_gamma_ibp <- create_features_matrix(buff_gamma_ibp)
+ooa_mat_gamma_ibp <- create_features_matrix(buff_gamma_ibp$features)
 plot_binary_matrix(ooa_mat_gamma_ibp)
 plot_binary_matrix(ooa_mat_gamma_ibp, max_f = 20)
 
