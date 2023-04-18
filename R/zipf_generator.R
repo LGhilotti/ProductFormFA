@@ -12,11 +12,16 @@
 #'
 #' @export
 #'
-rzipf <- function(n, K, xi, seed = 1234){
+rzipf <- function(n, K, xi, seed = "no"){
   
-  set.seed(seed)
+  if (seed != "no"){
+    set.seed(seed)
+  }
   
   prob_vec <- sapply(1:K, function(x) (1/(x+1))**xi)
+  
+  # To normalize ! 
+  prob_vec <- prob_vec / sum(prob_vec)
   
   zipf_sample <- matrix(, nrow = n, ncol = K)
   

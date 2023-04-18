@@ -65,14 +65,16 @@ perc_accuracy <- function(train_list, test_list, est_new_features){
   U_M_N <- length(obs_new_features)
   
   if (U_M_N==0){
-    return (list("estimated" = est_new_features, "Umn" = 0))
+    #return (list("estimated" = est_new_features, "Umn" = 0))
+    return (-1)
   }
   else {
     ratio <- abs(U_M_N - est_new_features)/U_M_N
   
     acc <- 1 - min(ratio, 1)
     
-    return (list("acc" = acc, "Umn" = U_M_N))
+    #return (list("acc" = acc, "Umn" = U_M_N))
+    return (acc)
   }
       
 }

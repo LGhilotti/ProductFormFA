@@ -4,7 +4,7 @@
 \alias{rzipf}
 \title{Simulate observations with features from Zipf distribution}
 \usage{
-rzipf(n, K, xi, seed = 1234)
+rzipf(n, K, xi, seed = "no")
 }
 \arguments{
 \item{n}{\link{integer} number of observations to extract}

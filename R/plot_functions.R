@@ -62,7 +62,7 @@ plot_Kmn_given_sample <- function(N, train_list, ci){
   )
   
   
-  ggplot(bands, aes(x,means) ) +
+  ggfig <- ggplot(bands, aes(x,means) ) +
     geom_line(col = "red", linetype = "dashed") +
     geom_ribbon(aes(ymin = lbs, ymax = ubs), alpha = 0.1, fill = "red") +
     geom_line(data = init_sample, aes(x, nfeat), color="red", linetype="dashed") +
@@ -73,6 +73,8 @@ plot_Kmn_given_sample <- function(N, train_list, ci){
     ggtitle(paste0("N = ", N)) +
     scale_y_continuous(breaks = pretty_breaks()) +
     scale_x_continuous(breaks = pretty_breaks())
+  
+  return (ggfig)
 }
 
 #####################################################
@@ -111,17 +113,114 @@ plot_Kmn_given_sample_with_observed <- function(N, data_list, ci){
   )
   
   
-  ggplot(bands, aes(x,means) ) +
+  ggfig <- ggplot(bands, aes(x,means) ) +
     geom_line(col = "red", linetype = "dashed") +
     geom_ribbon(aes(ymin = lbs, ymax = ubs), alpha = 0.1, fill = "red") +
     geom_line(data = obs_sample, aes(x, nfeat), color="black", linetype="solid", size=0.5) +
-    geom_segment(aes(x = N, y = 0, xend = N, yend = ubs[m+1] + 10), color="grey",
+    geom_segment(aes(x = N, y = 0, xend = N, yend = max(ubs[m+1],cum_nfeat[N+m]) + 10), color="grey",
                  linetype="dashed", size=1) +
     xlab("# observations") + ylab("# distinct features") + theme_bw() + 
     theme(plot.title = element_text(hjust = 0.5)) +
     ggtitle(paste0("N = ", N)) +
     scale_y_continuous(breaks = pretty_breaks()) +
     scale_x_continuous(breaks = pretty_breaks())
+  
+  return (ggfig)
+}
+
+#####################################################
+#' Plot function for the credible intervals of Kmn, given initial sample, for 
+#' both efpf and MM, and the observed trajectory
+#' 
+#'
+#' This function allows to plot the credible intervals of Kmn given initial sample,
+#' for both efpf and MM, and the observed test as well
+#'
+#' @param N [integer] dimension of initial sample
+#' @param data_list [list] list of features in the whole sample
+#' @param ci_efpf [list] it contains means, upper-bounds and lower-bounds of the CI for efpf
+#' @param ci_mm [list] it contains means, upper-bounds and lower-bounds of the CI for mm
+#' 
+#' @export
+#' @import ggplot2
+#' @import scales
+#'
+plot_Kmn_given_sample_with_observed_both <- function(N, data_list, ci_efpf, ci_mm){
+  
+  m <- length(ci_efpf$means)
+  
+  cum_nfeat <- sapply(1:(N+m), function(n) length(unique(unlist(data_list[1:n]))))
+  
+  obs_sample <- data.frame(
+    x = 0:(N+m),
+    nfeat = c(0,cum_nfeat),
+    Method = rep("sample", N+m+1)
+  )
+  
+  nfeat_sample <- cum_nfeat[N]
+  
+  bands <- data.frame(
+    x = rep(N:(N+m), 2),
+    means = c(nfeat_sample, ci_efpf$means + nfeat_sample,
+              nfeat_sample, ci_mm$means + nfeat_sample),
+    lbs = c(nfeat_sample, ci_efpf$lbs + nfeat_sample,
+            nfeat_sample, ci_mm$lbs + nfeat_sample),
+    ubs = c(nfeat_sample, ci_efpf$ubs + nfeat_sample,
+            nfeat_sample, ci_mm$ubs + nfeat_sample),
+    Method = c(rep("EFPF", m+1), rep("MM", m+1))
+    
+  )
+  
+  ggfig <- ggplot(data = bands, aes(x=x,y=means, group= Method) ) + 
+    geom_line(aes(color = Method), linetype = "dashed") +
+    geom_ribbon(aes(ymin = lbs, ymax = ubs, fill = Method), alpha = 0.1) +
+    geom_line(data = obs_sample, aes(x, nfeat), color="black", linetype="solid", size=0.5) +
+    geom_segment(aes(x = N, y = 0, xend = N, yend = max(ubs[m+1],cum_nfeat[N+m]) + 10), color="grey",
+                 linetype="dashed", size=1) +
+    xlab("# observations") + ylab("# distinct features") + theme_bw() + 
+    theme(plot.title = element_text(hjust = 0.5)) +
+    ggtitle(paste0("N = ", N)) +
+    scale_y_continuous(breaks = pretty_breaks()) +
+    scale_x_continuous(breaks = pretty_breaks())
+    
+  
+  return (ggfig)
+}
+ 
+  
+#####################################################
+#' Plot function for the observed trajectory 
+#' 
+#'
+#' This function allows to plot the observed trajectory
+#'
+#' @param data_list [list] list of features in the whole sample
+#'
+#' @export
+#' @import ggplot2
+#' @import scales
+#'
+plot_trajectory <- function(data_list){
+  
+  L <- length(data_list)
+  
+  cum_nfeat <- sapply(1:L, function(n) length(unique(unlist(data_list[1:n]))))
+  
+  obs_sample <- data.frame(
+    x = 0:L,
+    nfeat = c(0,cum_nfeat)
+  )
+  
+  
+  ggfig <- ggplot(obs_sample, aes(x,nfeat) ) +
+    geom_line(col = "black", linetype = "solid", size=0.5) +
+    xlab("# observations") + ylab("# distinct features") + theme_bw() + 
+    theme(plot.title = element_text(hjust = 0.5)) +
+    ggtitle(paste0("L = ", L)) +
+    scale_y_continuous(breaks = pretty_breaks()) +
+    scale_x_continuous(breaks = pretty_breaks())
+  
+  return (ggfig)
 }
 
 ##############################################################

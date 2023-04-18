@@ -1,6 +1,7 @@
 ######################################################
 #### Main script where functions are invoked ##########
 #######################################################
+library(comprehenr)
 
 
 ####################################################
@@ -17,7 +18,8 @@ plot_Kmn(ci_kmn_poiss_bb)
 # Generate from buffet procedure from beginning
 # (returns the features, the number of new features for new customers, 
 # counts of observed features)
-buff_poiss_bb <- buffet_poiss_BB(alpha = - 100, theta = 101, n = 100000, lambda = 100)
+buff_poiss_bb <- buffet_poiss_BB(alpha = - 1, theta = 50, n = 1000, lambda = 1000)
+plot_trajectory(buff_poiss_bb$features)
 
 # Matrix of order-of-appearance features from the buffet
 ooa_mat_poiss_bb <- create_features_matrix(buff_poiss_bb$features)
@@ -38,58 +40,74 @@ eb_efpf_poiss_BB <- EB_EFPF_poiss_BB(n = length(buff_poiss_bb$num_new),
 eb_efpf_poiss_BB
 
 # Empirical Bayes estimate of (alpha, theta, lambda) via MM 
-#eb_mm_poiss_BB <- EB_MM_poiss_BB(n = length(buff_poiss_bb$num_new), 
-#                                 ntrain = round(length(buff_poiss_bb$num_new)*2/3),
-#                                 num_new = buff_poiss_bb$num_new, pars_0 = eb_efpf_poiss_BB)
-#
-#eb_mm_poiss_BB
+eb_mm_poiss_BB <- EB_MM_poiss_BB(n = length(buff_poiss_bb$num_new), 
+                                 ntrain = round(length(buff_poiss_bb$num_new)*2/3),
+                                 val_rep = 10, data_list = buff_poiss_bb$features,
+                                 pars_0 = c(-1,10,10), seed_id = 1234)
+
+eb_mm_poiss_BB
 
 n = length(buff_poiss_bb$num_new)
 ntrain = round(length(buff_poiss_bb$num_new)*2/3)
-ntest = n - ntrain
-num_new_m = buff_poiss_bb$num_new[(ntrain+1):n]
+val_rep = 10
+data_list = buff_poiss_bb$features
 
 alpha = eb_mm_poiss_BB[1]; theta = eb_mm_poiss_BB[2]; lambda = eb_mm_poiss_BB[3];
 s=theta+alpha
 mm_obj_poiss_BB_rep(pars=c(alpha,s,lambda), ntest=ntest,
                     ntrain = ntrain,
-                    num_new_m = num_new_m)
+                    val_rep = val_rep, data_list = data_list, seed_id = 1234 )
 
 alpha = eb_efpf_poiss_BB[1]; theta = eb_efpf_poiss_BB[2]; lambda = eb_efpf_poiss_BB[3];
 s=theta+alpha
 mm_obj_poiss_BB_rep(pars=c(alpha,s,lambda), ntest=ntest,
                     ntrain = ntrain,
-                    num_new_m = num_new_m)
+                    val_rep = val_rep, data_list = data_list, seed_id = 1234)
 
-alpha = -100; theta = 150; lambda = 100; s = alpha + theta
+alpha = -1; theta = 10; lambda = 10; s = alpha + theta
 mm_obj_poiss_BB_rep(pars=c(alpha,s,lambda), ntest=ntest,
                     ntrain = ntrain,
-                    num_new_m = num_new_m)
+                    val_rep = val_rep, data_list = data_list, seed_id = 1234)
 
-alpha = -100; theta = 150; lambda = 10000; s = alpha + theta
-mm_obj_poiss_BB_rep(pars=c(alpha,s,lambda), ntest=ntest,
-                    ntrain = ntrain,
-                    num_new_m = num_new_m)
 
-alpha = -10; theta = 100; lambda = 100; s = alpha + theta
-mm_obj_poiss_BB_rep(pars=c(alpha,s,lambda), ntest=ntest,
-                    ntrain = ntrain,
-                    num_new_m = num_new_m)
+# objective function as function of alpha
+alpha_grid = seq(from = -5, to = -0.01, length.out = 100)
+#theta = 10; lambda = 10;
+theta = eb_mm_poiss_BB[2] ; lambda = eb_mm_poiss_BB[3]
 
-alpha = -10; theta = 100; lambda = 10000; s = alpha + theta
-mm_obj_poiss_BB_rep(pars=c(alpha,s,lambda), ntest=ntest,
-                    ntrain = ntrain,
-                    num_new_m = num_new_m)
+ev_mm_obj_alpha <- to_vec(for(alp in alpha_grid) 
+  mm_obj_poiss_BB_rep(pars = c(alp,alp+theta,lambda),
+                      ntest=ntest,
+                      ntrain = ntrain,
+                      val_rep = val_rep, data_list = data_list, seed_id = 1234))
 
-alpha = -1; theta = 10; lambda = 100; s = alpha + theta
-mm_obj_poiss_BB_rep(pars=c(alpha,s,lambda), ntest=ntest,
-                    ntrain = ntrain,
-                    num_new_m = num_new_m)
+plot(alpha_grid, ev_mm_obj_alpha, pch=16, cex=0.5)
 
-alpha = -1; theta = 10; lambda = 10000; s = alpha + theta
-mm_obj_poiss_BB_rep(pars=c(alpha,s,lambda), ntest=ntest,
-                    ntrain = ntrain,
-                    num_new_m = num_new_m)
+# objective function as function of theta
+theta_grid = seq(from = 30, to = 1000, length.out = 100)
+#alpha = -1; lambda = 10; 
+alpha = eb_mm_poiss_BB[1] ; lambda = eb_mm_poiss_BB[3]
+
+ev_mm_obj_theta <- to_vec(for(theta in theta_grid) 
+  mm_obj_poiss_BB_rep(pars = c(alpha,alpha+theta,lambda),
+                      ntest=ntest,
+                      ntrain = ntrain,
+                      val_rep = val_rep, data_list = data_list, seed_id = 1234))
+
+plot(theta_grid, ev_mm_obj_theta, pch=16, cex=0.5)
+
+# objective function as function of lambda
+lambda_grid = seq(from = 5, to = 500, length.out = 100)
+#alpha=-1; theta = 10;  
+alpha = eb_mm_poiss_BB[1] ; theta = eb_mm_poiss_BB[2]
+
+ev_mm_obj_lambda <- to_vec(for(lambda in lambda_grid) 
+  mm_obj_poiss_BB_rep(pars = c(alpha,alpha+theta,lambda),
+                      ntest=ntest,
+                      ntrain = ntrain,
+                      val_rep = val_rep, data_list = data_list, seed_id = 1234))
+
+plot(lambda_grid, ev_mm_obj_lambda, pch=16, cex=0.5)
 
 ###############################################################
 ################ BB with Negative-Binomial(n*,p) #############
@@ -104,8 +122,8 @@ plot_Kmn(ci_kmn_negbin_bb)
 
 # Generate from buffet procedure from beginning
 # (returns the features and the number of new features for new customers)
-buff_negbin_bb <- buffet_negbin_BB(alpha = -1, theta = 10, n = 100000, nstar = 1000, p = 0.5)
-n_feat <- length(buff_negbin_bb$counts)
+buff_negbin_bb <- buffet_negbin_BB(alpha = -1, theta = 2, n = 10, nstar = 1000, p = 0.5)
+plot_trajectory(buff_negbin_bb$features)
 
 # Matrix of order-of-appearance features from the buffet
 ooa_mat_negbin_bb <- create_features_matrix(buff_negbin_bb$features)
@@ -129,9 +147,16 @@ eb_efpf_negbin_BB <- EB_EFPF_fixed_negbin_BB(n = length(buff_negbin_bb$num_new),
 # Empirical Bayes estimate of (alpha, theta, mu, sigma2) via EFPF maximization (m-v param)
 eb_efpf_negbin_mv_BB <- EB_EFPF_fixed_negbin_mv_BB(n = length(buff_negbin_bb$num_new), 
                                               counts = buff_negbin_bb$counts, 
-                                              pars_0 = c(-1, 15, 10, true_var),
-                                              opt = c(T,T,T,F))
+                                              pars_0 = c(-1, 15, 10, 20),
+                                              opt = c(T,T,T,T))
 
+# Empirical Bayes estimate of (alpha, theta, mu, sigma2) via MM 
+eb_mm_negbin_mv_BB <- EB_MM_negbin_mv_BB(n = length(buff_negbin_bb$num_new), 
+                                 ntrain = round(length(buff_negbin_bb$num_new)*2/5),
+                                 val_rep = 4, data_list = buff_negbin_bb$features,
+                                 pars_0 = c(-1,10,10,50), seed_id = 12345)
+
+eb_mm_negbin_mv_BB
 ########################################################################################
 ############# START CHECK ##############################################################
 ########################################################################################

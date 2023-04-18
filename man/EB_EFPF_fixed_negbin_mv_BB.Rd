@@ -19,6 +19,9 @@ be optimized}
 
 \item{opt}{\link{logical} vector with 1 if value is optimized, 0 if not optimized}
 }
+\value{
+value of (alpha, theta, mu, sigma2) optimizing the efpf
+}
 \description{
 This function returns the value of the parameters maximizing the
 EFPF for the given sample (possibly some parameters are fixed) -

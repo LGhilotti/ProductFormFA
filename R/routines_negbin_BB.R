@@ -27,7 +27,29 @@ CI_Kmn_negbin_BB <- function(alpha, theta, m, n, Kn, nstar, p, lev) {
   
 }
 
-
+#' Expected value of of Kmn for the BB with Negative-Binomial mixture
+#'
+#' This function computes the expected value of Kmn for the BB with Negative-Binomial mixture
+#'
+#' @param alpha [numeric] value of alpha in product-form feature allocation
+#' @param theta [numeric] value of theta in product-form feature allocation
+#' @param m [numeric] dimension of the new sample to be observed
+#' @param n [numeric] dimension of the already observed sample
+#' @param Kn [numeric] number of features in the already observed sample
+#' @param nstar [numeric] Negative-Binomial hyperparameter (number of successes)
+#' @param p [numeric] Negative-Binomial hyperparameter (success probability)
+#'
+#' @export
+#'
+mean_kmn_negbin_BB <- function(alpha, theta, m, n, Kn, nstar, p){
+  
+  pbar <- p_kmn_negbin_BB(alpha, theta, m, n, p)
+  
+  mean <- (nstar + Kn) * (1 - pbar) / pbar
+  
+  return (mean)
+  
+}
 #########################################################################
 
 #' EB based on EFPF-max (possibly some parameters are fixed) - 
@@ -170,8 +192,9 @@ neg_log_EFPF_negbin_mv_BB_rep_R <- function(pars, n, counts, nopt_par, opt){
 #' @param pars_0 [numeric] Initialization for (alpha, theta, mu, sigma2) to 
 #' be optimized
 #' @param opt [logical] vector with 1 if value is optimized, 0 if not optimized
-#'  
-#' @export
+#'
+#' @return value of (alpha, theta, mu, sigma2) optimizing the efpf
+#' @export 
 EB_EFPF_fixed_negbin_mv_BB <- function(n, counts, pars_0, opt = c(T,T,T,T)){
   
   lb <- c(-Inf,0.1, 0.1, 0.1)
@@ -252,6 +275,123 @@ EB_EFPF_fixed_negbin_mv_BB <- function(n, counts, pars_0, opt = c(T,T,T,T)){
   return (sol)
   
 }
+
+#########################################################################
+######## Method of moments ##############################################
+#########################################################################
+
+#' EB based on method of moments - BB with Negative-Binomial mixture
+#'
+#' This function returns the value of (alpha, theta, mu, sigma2) obtained 
+#' via the method of moments for the given sample - BB with NB mixture
+#'
+#' @param n [integer] dimension of the observed sample
+#' @param ntrain [integer] dimension of training set 
+#' @param val_rep [integer] number of samples in the validation averaged over for 
+#' assessing the number of new features observed 
+#' @param data_list [list] list of features by individual
+#' @param pars_0 [numeric] Initialization for (alpha, theta, mu, sigma2) to 
+#' be optimized
+#' @param seed_id [numeric] Seed to be used
+#' 
+#' @export
+EB_MM_negbin_mv_BB <- function(n, ntrain, val_rep, data_list, pars_0, seed_id){
+  
+  set.seed(seed_id)
+  lb <- c(-Inf,0.2, 0.2, 0.2)
+  ub <- c(-0.2, Inf, Inf, Inf)
+  pars_0[2] <- pars_0[1] + pars_0[2]
+  pars_0[4] <- pars_0[4] - pars_0[3]
+
+  # dimension of the validation set
+  M <- n - ntrain
+  
+  # set constraints stricter so that function is limited
+  res <- optim(par = pars_0, fn = mm_obj_negbin_mv_BB_rep, ntest = M,
+               ntrain=ntrain, val_rep = val_rep, data_list=data_list, seed_id=seed_id,
+               method = "L-BFGS-B", lower = lb, upper = ub)
+  
+  # convert to the theta and sigma2 parameters
+  sol <- res$par
+  sol[2] <- sol[2] - sol[1]
+  sol[4] <- sol[4] + sol[3]
+  
+  return (sol)
+  
+}
+
+#########################################################################
+
+#' MM objective function for BB with NB mixture with reparametrization
+#'
+#' @param pars [numeric] pars[1] = value of alpha in product-form feature allocation,
+#' pars[2] = value of s = theta+alpha in product-form feature allocation,
+#' pars[3] =  value of mu - NB hyperparameter,
+#' pars[4] = value of t = sigma2 - mu
+#' 
+#' @param ntest [integer] dimension of the validation set
+#' @param ntrain [integer] dimension of the training set
+#' @param val_rep [integer] number of samples in the validation averaged over for 
+#' assessing the number of new features observed 
+#' @param data_list [list] list of features by individual
+#' @param seed_id [numeric] Seed to be used
+#' 
+#' @return value of the MM objective function to be minimized
+#' 
+#' @export
+mm_obj_negbin_mv_BB_rep <- function(pars, ntest, ntrain, val_rep, data_list, seed_id){
+  
+  set.seed(seed_id)
+  
+  L <- ntrain + ntest
+  alpha <- pars[1]
+  s <- pars[2]
+  theta <- s-alpha
+  
+  mu <- pars[3]
+  t <- pars[4]
+  sigma2 <- t + mu
+  nstar <- (mu**2)/(sigma2 - mu)
+  p <- mu / sigma2
+  
+  # training and test list
+  train_list <- data_list[1:ntrain]
+  test_list <- data_list[(ntrain+1):L]
+  # compute number of observed feature in the training set Kn
+  Kn <- length(unique(unlist(train_list)))
+  
+  # features observed in the training set
+  feat_train <- unique(unlist(train_list))
+  
+  # storing the sum
+  sum <- 0
+  
+  for (m in 1:ntest){
+    # features observed in the sampled validation
+    nfeat_new_obs_avg <- 0
+    for (r in 1:val_rep){
+      idx_val_rep <- sample(1:ntest, size = m) 
+      feat_val <- unique(unlist( test_list[idx_val_rep] ))
+      
+      nfeat_new_obs <- length(setdiff(feat_val, feat_train))
+      
+      nfeat_new_obs_avg <- nfeat_new_obs_avg + nfeat_new_obs
+    }
+    # average number of observed new features (Umn observed)
+    nfeat_new_obs_avg <- nfeat_new_obs_avg/val_rep
+    
+    # predicted number of new features
+    nfeat_new_pred <- mean_kmn_negbin_BB(alpha, theta, m, ntrain, Kn, nstar, p)
+    
+    sum <- sum + (nfeat_new_pred - nfeat_new_obs_avg)**2
+  }
+  
+  return (sum)
+  
+}
+
+################# END OF METHOD OF MOMENTS #################################
+############################################################################
 
 
 #############################################################

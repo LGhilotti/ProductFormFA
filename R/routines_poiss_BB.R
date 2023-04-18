@@ -64,27 +64,24 @@ EB_EFPF_poiss_BB <- function(n, counts, pars_0){
 #' @param ntrain [integer] dimension of training set 
 #' @param val_rep [integer] number of samples in the validation averaged over for 
 #' assessing the number of new features observed 
-#' @param obs_sample [list] list with the whole sample of features, where
-#' $features contains the simulated features for each customer,
-#' $num_new contains the number of new features selected for each customer
-#' $counts contains the counts for the observed features
+#' @param data_list [list] list of features by individual
 #' @param pars_0 [numeric] Initialization for (alpha, theta, lambda) to 
 #' be optimized
 #' @param seed_id [numeric] Seed to be used
 #' 
 #' @export
-EB_MM_poiss_BB <- function(n, ntrain, val_rep, obs_sample, pars_0, seed_id){
+EB_MM_poiss_BB <- function(n, ntrain, val_rep, data_list, pars_0, seed_id){
   
   set.seed(seed_id)
   # initialize s = theta + alpha
   pars_0[2] <- pars_0[2] + pars_0[1]
   
   # dimension of the validation set
-  ntest <- n - ntrain
-
+  M <- n - ntrain
+  
   # set constraints stricter so that function is limited
-  res <- optim(par = pars_0, fn = mm_obj_poiss_BB_rep, ntest = ntest,
-               ntrain=ntrain, val_rep = val_rep, obs_sample=obs_sample, seed_id=seed_id,
+  res <- optim(par = pars_0, fn = mm_obj_poiss_BB_rep, ntest = M,
+               ntrain=ntrain, val_rep = val_rep, data_list=data_list, seed_id = seed_id,
                method = "L-BFGS-B", lower = c(-Inf,0.1,0.1), upper = c(-0.1, Inf, Inf))
   
   sol <- res$par
@@ -108,40 +105,52 @@ EB_MM_poiss_BB <- function(n, ntrain, val_rep, obs_sample, pars_0, seed_id){
 #' @param ntrain [integer] dimension of the training set
 #' @param val_rep [integer] number of samples in the validation averaged over for 
 #' assessing the number of new features observed 
-#' @param obs_sample [list] list with the whole sample of features, where
-#' $features contains the simulated features for each customer,
-#' $num_new contains the number of new features selected for each customer
-#' $counts contains the counts for the observed features
+#' @param data_list [list] list of features by individual
 #' @param seed_id [numeric] Seed to be used
 #' 
 #' @return value of the MM objective function to be minimized
 #' 
 #' @export
-mm_obj_poiss_BB_rep <- function(pars, ntest, ntrain, val_rep, obs_sample, seed_id){
+mm_obj_poiss_BB_rep <- function(pars, ntest, ntrain, val_rep, data_list, seed_id = seed_id){
   
-  set.seed(seed_id)
-  
-  n <- ntrain + ntest
+  L <- ntrain + ntest
   alpha <- pars[1]
   s <- pars[2]
   lambda <- pars[3]
   theta <- s-alpha
   
+  # training and test list
+  train_list <- data_list[1:ntrain]
+  test_list <- data_list[(ntrain+1):L]
+  
   # features observed in the training set
-  feat_train <- unique(unlist( obs_sample$features[1:ntrain] ))
+  feat_train <- unique(unlist(train_list))
   
-  #while (){
+  # storing the sum
+  sum <- 0
+  
+  for (m in 1:ntest){
+    # features observed in the sampled validation
+    nfeat_new_obs_avg <- 0
+    set.seed(seed_id)
+    for (r in 1:val_rep){
+      idx_val_rep <- sample(1:ntest, size = m) 
+      feat_val <- unique(unlist( test_list[idx_val_rep] ))
+      
+      nfeat_new_obs <- length(setdiff(feat_val, feat_train))
+      
+      nfeat_new_obs_avg <- nfeat_new_obs_avg + nfeat_new_obs
+    }
+    # average number of observed new features (Umn observed)
+    nfeat_new_obs_avg <- nfeat_new_obs_avg/val_rep
     
-  #}
-  # features observed in the sampled validation of val_rep
-  idx_val_rep <- sample((ntrain+1):n, size = val_rep) 
-  feat_val <- unique(unlist( obs_sample$features[idx_val_rep] ))
+    # predicted number of new features
+    nfeat_new_pred <- mean_kmn_poiss_BB(alpha, theta, m, ntrain, lambda)
+    
+    sum <- sum + (nfeat_new_pred - nfeat_new_obs_avg)**2
+  }
   
-  vec_obs_new_feat <- cumsum(num_new_m)
-  
-  vec_pred_new_feat <- mean_kmn_all_poiss_BB(alpha, theta, ntest, ntrain, lambda)
-  
-  return(norm(vec_pred_new_feat - vec_obs_new_feat, type="2")**2)
+  return (sum)
     
 }
 
