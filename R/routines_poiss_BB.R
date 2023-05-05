@@ -1,3 +1,5 @@
+
+
 #' Credible intervals of Kmn for the BB with Poisson mixture
 #'
 #' This function computes the means and the credible intervals of Kmn for the BB with Poisson mixture

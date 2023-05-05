@@ -125,14 +125,126 @@ for (j in 1:length(Ns)){
   
 }
 
+#save(gg_list_poiss, file = "zipf_gg_poiss")
+#save(gg_list_negbin, file = "zipf_gg_negbin")
+load("zipf_gg_poiss")
+load("zipf_gg_negbin")
+
 # display plots on the same page
 ggarrange(gg_list_poiss[[1]], gg_list_poiss[[2]], gg_list_poiss[[3]],
           gg_list_negbin[[1]], gg_list_negbin[[2]], gg_list_negbin[[3]],
           ncol = 3, nrow = 2)
 
 
-save(gg_list_poiss, file = "zipf_gg_poiss")
-save(gg_list_negbin, file = "zipf_gg_negbin")
+
+####################################################################
+#### Simulation using Zipf data - plotting the number of features -
+## - EFPF with Poisson and Negative-Binomial - same setting
+####################################################################
+
+#################################################
+######## Data Generation ########################
+#################################################
+
+seed = 1234
+
+# total number of samples
+#L = 30000
+L = 8000
+
+# value of xi
+xi = 0.3
+
+# generate data from zipf, in form of binary matrix
+data_mat <- rzipf(n = L, K = 2*10^3, xi = xi, seed = seed)
+
+# convert the binary matrix into list of features
+data_list <- create_features_list(data_mat)
+plot_trajectory(data_list)
+
+print(paste0("Number of observed features: ", length(unique(unlist(data_list))) ))
+
+# set the dimension of the training set and the training set itself
+#Ns <- c(1000, 2000, 4000)
+Ns <- c(1000, 2000, 4000)
+
+############################################################
+#### Fit the 4 models, under different training sets #######
+############################################################
+
+# list of ggplots - poiss
+gg_list_poiss_efpf <- vector("list", length = length(Ns) )
+# list of ggplots - negbin
+gg_list_negbin_efpf <- vector("list", length = length(Ns) )
+
+for (j in 1:length(Ns)){
+  N <- Ns[j]
+  
+  train_list <- data_list[1:N]
+  train_mat <- data_mat[1:N, ]
+  
+  # set the dimension of the test set and the test set itself
+  M <- L - N
+  test_list <- data_list[(N+1):L]
+  test_mat <- data_mat[(N+1):L, ]
+  train_counts <- tabulate(unlist(train_list))[tabulate(unlist(train_list)) != 0]
+  
+  ################################################################
+  ################# Poisson model ################################
+  ################################################################
+  
+  # EB: fix the model hyperparameters based on EFPF-maximization
+  eb_efpf_poiss_BB <- EB_EFPF_poiss_BB(n = N, 
+                                       counts = train_counts, pars_0 = c(-2, 5, 10))
+  alpha_est_poiss_efpf <- eb_efpf_poiss_BB[1]
+  theta_est_poiss_efpf <- eb_efpf_poiss_BB[2]
+  lambda_est_poiss_efpf <- eb_efpf_poiss_BB[3]
+  
+  # Compute E[KMN|Z_N] together with 90% credible intervals, for given N and train set
+  CI_given_sample_poiss_efpf <- CI_Kmn_poiss_BB(alpha_est_poiss_efpf, theta_est_poiss_efpf,
+                                                M, N, lambda_est_poiss_efpf, 0.95)
+  gg_list_poiss_efpf[[j]] <- plot_Kmn_given_sample_with_observed(N, data_list, CI_given_sample_poiss_efpf)
+  
+  
+  ################################################################################
+  ###########à Negative Binomial model ##########################################
+  ##############################################################################
+  
+  # compute number of observed feature in the training set Kn
+  Kn <- length(unique(unlist(train_list)))
+  
+  # EB: fix the model hyperparameters based on EFPF-maximization
+  eb_efpf_negbin_BB <- EB_EFPF_fixed_negbin_mv_BB(n = N, 
+                                                  counts = train_counts, pars_0 = c(-2, 5, 100, 150))
+  
+  alpha_est_negbin_efpf <- eb_efpf_negbin_BB[1]
+  theta_est_negbin_efpf <- eb_efpf_negbin_BB[2]
+  mu_est_negbin_efpf <- eb_efpf_negbin_BB[3]
+  sigma2_est_negbin_efpf <- eb_efpf_negbin_BB[4]
+  
+  nstar_est_negbin_efpf <- (mu_est_negbin_efpf**2)/(sigma2_est_negbin_efpf - mu_est_negbin_efpf)
+  p_est_negbin_efpf <- mu_est_negbin_efpf / sigma2_est_negbin_efpf
+  
+  
+  # Compute E[KMN|Z_N] together with 90% credible intervals, for given N and train set
+  CI_given_sample_negbin_efpf <- CI_Kmn_negbin_BB(alpha_est_negbin_efpf, theta_est_negbin_efpf,
+                                                  M, N, Kn, nstar_est_negbin_efpf, 
+                                                  p_est_negbin_efpf, 0.95)
+  gg_list_negbin_efpf[[j]] <- plot_Kmn_given_sample_with_observed(N, data_list, CI_given_sample_negbin_efpf)
+  
+  
+}
+
+#save(gg_list_poiss_efpf, file = "zipf_gg_poiss_efpf")
+#save(gg_list_negbin_efpf, file = "zipf_gg_negbin_efpf")
+load("zipf_gg_poiss_efpf")
+load("zipf_gg_negbin_efpf")
+
+# display plots on the same page
+ggarrange(gg_list_poiss_efpf[[1]], gg_list_poiss_efpf[[2]], gg_list_poiss_efpf[[3]],
+          gg_list_negbin_efpf[[1]], gg_list_negbin_efpf[[2]], gg_list_negbin_efpf[[3]],
+          ncol = 3, nrow = 2)
+
 
 
 ####################################################################

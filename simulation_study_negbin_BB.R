@@ -57,7 +57,7 @@ ggarrange(gg_list[[1]], gg_list[[2]], gg_list[[3]],
 ## EFPF-maximization
 ####################################################################
 
-seed = 12345
+seed = 123
 
 # set true parameters of the poiss BB process
 alpha <- -1
