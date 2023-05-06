@@ -30,12 +30,12 @@ compute_grad_log_full_poiss <- function(s_hat, alpha_bar_hat, lambda,
                           sum(digamma(n - counts + es)) -
                           K*digamma(es) - b_s)
   
-  dalpha_bar <- K + a_alpha + ea_bar*( (digamma(n+es+ea_bar) - digamma(es+ea_bar))*
+  dalpha_bar_hat <- K + a_alpha + ea_bar*( (digamma(n+es+ea_bar) - digamma(es+ea_bar))*
                                          (- lambda* p1 - K) +
                                          sum(digamma(counts + ea_bar)) -
                                          K*digamma(1+ea_bar) - b_alpha)
   
-  return (c(ds_hat, dalpha_bar))
+  return (c(ds_hat, dalpha_bar_hat))
 }
 
 
@@ -107,7 +107,7 @@ compute_log_ratio_full_poiss <- function(s_hat_prop, alpha_bar_hat_prop,
 #'
 #' @export
 #'
-compute_log_ratio_q <- function(s_hat_prop, alpha_bar_hat_prop,
+compute_log_ratio_q_poiss <- function(s_hat_prop, alpha_bar_hat_prop,
                     s_hat_curr, alpha_bar_hat_curr, tau,
                     grad_log_full_curr, grad_log_full_prop){
   
@@ -168,6 +168,9 @@ gibbs_sampler_poiss <- function(Z,
   # Set K to be the observed number of features
   K <- ncol(Z)
   
+  # Compute vector of counts
+  counts <- colSums(Z)
+  
   ############## Gibbs-sampler ##########################
   
   # Define structure to store parameters along the iterations
@@ -213,8 +216,8 @@ gibbs_sampler_poiss <- function(Z,
     grad_log_full_curr <- compute_grad_log_full_poiss(s_hat_curr, alpha_bar_hat_curr, lambda,
                                                       n, K, counts, a_s, b_s, a_alpha, b_alpha)
     
-    s_hat_prop <- s_hat_curr + tau*grad_log_full[1] + sqrt(2*tau)*rnorm(1)
-    alpha_bar_hat_prop <- alpha_bar_hat_curr + tau*grad_log_full[2] + sqrt(2*tau)*rnorm(1)
+    s_hat_prop <- s_hat_curr + tau*grad_log_full_curr[1] + sqrt(2*tau)*rnorm(1)
+    alpha_bar_hat_prop <- alpha_bar_hat_curr + tau*grad_log_full_curr[2] + sqrt(2*tau)*rnorm(1)
     
     ### Acceptance probability 
     # Compute the log ratio of the full-cond in prop point and curr point
@@ -226,7 +229,7 @@ gibbs_sampler_poiss <- function(Z,
     grad_log_full_prop <- compute_grad_log_full_poiss(s_hat_prop, alpha_bar_hat_prop, lambda,
                                                       n, K, counts, a_s, b_s, a_alpha, b_alpha)
     
-    log_ratio_q <- compute_log_ratio_q(s_hat_prop, alpha_bar_hat_prop,
+    log_ratio_q <- compute_log_ratio_q_poiss(s_hat_prop, alpha_bar_hat_prop,
                                        s_hat_curr, alpha_bar_hat_curr, tau,
                                        grad_log_full_curr, grad_log_full_prop)
     
