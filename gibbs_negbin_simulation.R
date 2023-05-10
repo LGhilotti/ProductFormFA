@@ -4,14 +4,14 @@ seed = 1234
 # set true parameters of the poiss BB process
 alpha <- -1
 theta <- 10
-nstar <- 50
-p <- 0.1
+nstar <- 100
+p <- 0.3
 # compute the corresponding mean and variance of the negbin
 mu <- nstar*(1-p)/p
 sigma2 <- nstar*(1-p)/(p**2)
 
 # total number of samples
-L = 5000
+L = 200
 
 # generate data in list form
 data_list_full <- buffet_negbin_BB(alpha = alpha, theta = theta, 
@@ -22,6 +22,8 @@ data_list <- data_list_full$features
 data_mat <- create_features_matrix(data_list)
 
 ncol(data_mat)
+
+plot_trajectory(data_list)
 
 ##############################################################################
 ############################## GAMMA PRIOR ###################################
@@ -105,7 +107,7 @@ p
 ##########################################################################
 
 # Set prior hyperparameters
-q_star <- 0.01
+q_star <- 0.005
 print(paste0("E(nstar) = ", 1/ q_star))
 print(paste0("Var(nstar) = ", (1-q_star)/ (q_star^2)) )
 alpha_p <- 0.000001
@@ -128,12 +130,12 @@ print(paste0("Var(theta) = ", a_s/ (b_s^2) + a_alpha/ (b_alpha^2)))
 # Set initial values for the parameters
 nstar_0 <- 100
 p_0 <- 0.2
-alpha_bar_0 <- 1
-s_0 <- 9
+alpha_bar_0 <- 10
+s_0 <- 15
 
 # Set tau for MALA
 # tau <- 0.001 # when nstar is fixed
-tau <- 0.00008
+tau <- 0.0002
 
 # Set MCMC parameters
 S <- 8*10^4
@@ -182,7 +184,23 @@ plot(alpha_chain, type="l") # mixing of "alpha"
 # Running mean
 plot(cumsum(alpha_chain)/(1:n_saved_iter), type="l")
 
-alpha 
-theta 
-nstar
-p 
+##############################################################
+######## Model-checking on Kn within sample ##################
+##############################################################
+M <- nrow(data_mat)
+kmn_chain <- generate_Kmn_chain_negbin(nstar_chain, p_chain, alpha_chain, 
+                                       theta_chain, M, n=0)
+
+est_ci_negbin <- matrix(NA, nrow = M, ncol = 3)
+# first column = lower bound
+# second columns = medians
+# third columns = upper bound
+for (m in 1:M){
+  est_ci_negbin[m,] <- quantile(kmn_chain[m,], probs = c(0.025,0.5,0.975))
+}
+est_ci_negbin <- list("medians" = est_ci_negbin[,2],
+                     "lbs" = est_ci_negbin[,1],
+                     "ubs" = est_ci_negbin[,3])
+
+plot_Kn_median_and_sample(data_list = data_list, est_ci_negbin)
+

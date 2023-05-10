@@ -636,6 +636,49 @@ gibbs_sampler_negbin_geometric <- function(Z,
 }
 
 
+#########################################################################
+#########################################################################
+
+
+
+#' Generate the chain for Kmn, from m=1 to m=M, given the output chains of the mcmc
+#'
+#' @param nstar_chain
+#' @param p_chain
+#' @param alpha_chain
+#' @param theta_chain
+#' @param M
+#' @param n
+#' @param Kn
+#'
+#' @export
+#'
+generate_Kmn_chain_negbin <- function(nstar_chain, p_chain, alpha_chain, theta_chain, M, n, Kn = 0){
+  
+  if (n == 0 & Kn != 0){
+    stop("if n=0, the number of observed features Kn must be 0!")
+  }
+  
+  S <- length(nstar_chain)
+  M_vec <- 1:M
+  kmn_chain <- matrix(NA, nrow = M, ncol = S )
+  for (q in 1:S){
+    nstar <- nstar_chain[q]
+    p <- p_chain[q]
+    alpha <- alpha_chain[q]
+    theta <- theta_chain[q]
+    
+    par_0 = (1-p)*exp(lgamma(theta) - lgamma(theta+alpha))
+    par_1 = exp(lgamma( theta + alpha +n)- lgamma(theta +n))
+    par_2 = exp(lgamma(theta+alpha+n+M_vec) - lgamma(theta+n+M_vec))
+    
+    p_bar <- 1- par_0 *(par_1 - par_2)/(1-par_0*par_2)
+    
+    kmn_chain[,q] <- rnbinom(M, nstar + Kn, p_bar)
+  }
+  
+  return (kmn_chain)
+}
 
 
 
