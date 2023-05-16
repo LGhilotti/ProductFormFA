@@ -172,7 +172,7 @@ plot(nstar_chain, type="l") # mixing of nstar in prior number of features
 # Running mean
 plot(cumsum(nstar_chain)/(1:n_saved_iter), type="l")
 
-plot(p_chain, type="l") # mixing of p in prior number of featuresplot(alpha_chain, type="l") # mixing of "alpha" 
+plot(p_chain, type="l") # mixing of p in prior number of features
 # Running mean
 plot(cumsum(p_chain)/(1:n_saved_iter), type="l")
 
