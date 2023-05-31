@@ -682,3 +682,37 @@ generate_Kmn_chain_negbin <- function(nstar_chain, p_chain, alpha_chain, theta_c
 
 
 
+
+##########################################
+
+#' Title
+#'
+#' @param lambda_chain_poiss 
+#' @param alpha_chain_poiss 
+#' @param theta_chain_poiss 
+#' @param n 
+#' @param Kn
+#'
+#' @export
+#'
+generate_Ntilde_chain_negbin <- function(nstar_chain_negbin, p_chain_negbin,
+                                         alpha_chain_negbin, theta_chain_negbin,
+                                         n, Kn){
+  
+  S <- length(nstar_chain_negbin)
+  
+  Ntilde_chain <- vector(length = S )
+  for (q in 1:S){
+    nstar <- nstar_chain_negbin[q]
+    p <- p_chain_negbin[q]
+    alpha <- alpha_chain_negbin[q]
+    theta <- theta_chain_negbin[q]
+    
+    negbin_par <- 1 - (1 - p)*exp(lgamma(theta+alpha+n) - lgamma(theta+alpha) - 
+                              lgamma(theta+n) + lgamma(theta))
+    
+    Ntilde_chain[q] <- Kn + rnbinom(1, nstar+Kn, negbin_par)
+  }
+  
+  return (Ntilde_chain)
+}

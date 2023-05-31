@@ -316,28 +316,25 @@ generate_Kmn_chain_poiss <- function(lambda_chain, alpha_chain, theta_chain, M, 
 #' @param alpha_chain_poiss 
 #' @param theta_chain_poiss 
 #' @param n 
+#' @param Kn
 #'
 #' @export
 #'
 generate_Ntilde_chain_poiss <- function(lambda_chain_poiss, alpha_chain_poiss,
-                                        theta_chain_poiss, n = N){
-  S <- length(lambda_chain)
+                                        theta_chain_poiss, n, Kn){
+  S <- length(lambda_chain_poiss)
   
-  kmn_chain <- matrix(NA, nrow = M, ncol = S )
+  Ntilde_chain <- vector(length = S )
   for (q in 1:S){
-    lambda <- lambda_chain[q]
-    alpha <- alpha_chain[q]
-    theta <- theta_chain[q]
+    lambda <- lambda_chain_poiss[q]
+    alpha <- alpha_chain_poiss[q]
+    theta <- theta_chain_poiss[q]
     
-    par_1 <- lambda*exp(lgamma(theta+alpha+n) - lgamma(theta+alpha) - 
+    poiss_par <- lambda*exp(lgamma(theta+alpha+n) - lgamma(theta+alpha) - 
                           lgamma(theta+n) + lgamma(theta))
-    par_2 <- lambda*exp(lgamma(theta+alpha+n+M_vec) - lgamma(theta+alpha+n) - 
-                          lgamma(theta+n+M_vec) + lgamma(theta+n) +
-                          lgamma(theta+alpha+n) - lgamma(theta+alpha) - 
-                          lgamma(theta+n) + lgamma(theta) )
-    poiss_par <- par_1 - par_2
-    kmn_chain[,q] <- rpois(M, poiss_par)
+    
+    Ntilde_chain[q] <- Kn + rpois(1, poiss_par)
   }
   
-  return (kmn_chain)
+  return (Ntilde_chain)
 }

@@ -8,7 +8,8 @@ generate_Ntilde_chain_poiss(
   lambda_chain_poiss,
   alpha_chain_poiss,
   theta_chain_poiss,
-  n = N
+  n,
+  Kn
 )
 }
 \arguments{
@@ -19,6 +20,8 @@ generate_Ntilde_chain_poiss(
 \item{theta_chain_poiss}{}
 
 \item{n}{}
+
+\item{Kn}{}
 }
 \description{
 Title

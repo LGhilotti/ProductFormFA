@@ -37,6 +37,10 @@ buffet_gamma_IBP_initial_sample <- function(alpha, theta, m, n, counts, a, b) {
     .Call(`_ProductFormFA_buffet_gamma_IBP_initial_sample`, alpha, theta, m, n, counts, a, b)
 }
 
+stable_sum_M_all_gamma_IBP <- function(alpha, theta, m, n) {
+    .Call(`_ProductFormFA_stable_sum_M_all_gamma_IBP`, alpha, theta, m, n)
+}
+
 p_kmn_all_gamma_IBP <- function(alpha, theta, m, n, b) {
     .Call(`_ProductFormFA_p_kmn_all_gamma_IBP`, alpha, theta, m, n, b)
 }

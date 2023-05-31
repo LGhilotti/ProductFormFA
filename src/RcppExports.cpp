@@ -42,6 +42,20 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// stable_sum_M_all_gamma_IBP
+std::vector<double> stable_sum_M_all_gamma_IBP(double alpha, double theta, int m, int n);
+RcppExport SEXP _ProductFormFA_stable_sum_M_all_gamma_IBP(SEXP alphaSEXP, SEXP thetaSEXP, SEXP mSEXP, SEXP nSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< double >::type alpha(alphaSEXP);
+    Rcpp::traits::input_parameter< double >::type theta(thetaSEXP);
+    Rcpp::traits::input_parameter< int >::type m(mSEXP);
+    Rcpp::traits::input_parameter< int >::type n(nSEXP);
+    rcpp_result_gen = Rcpp::wrap(stable_sum_M_all_gamma_IBP(alpha, theta, m, n));
+    return rcpp_result_gen;
+END_RCPP
+}
 // p_kmn_all_gamma_IBP
 std::vector<double> p_kmn_all_gamma_IBP(double alpha, double theta, int m, int n, double b);
 RcppExport SEXP _ProductFormFA_p_kmn_all_gamma_IBP(SEXP alphaSEXP, SEXP thetaSEXP, SEXP mSEXP, SEXP nSEXP, SEXP bSEXP) {
@@ -337,6 +351,7 @@ END_RCPP
 static const R_CallMethodDef CallEntries[] = {
     {"_ProductFormFA_buffet_gamma_IBP", (DL_FUNC) &_ProductFormFA_buffet_gamma_IBP, 5},
     {"_ProductFormFA_buffet_gamma_IBP_initial_sample", (DL_FUNC) &_ProductFormFA_buffet_gamma_IBP_initial_sample, 7},
+    {"_ProductFormFA_stable_sum_M_all_gamma_IBP", (DL_FUNC) &_ProductFormFA_stable_sum_M_all_gamma_IBP, 4},
     {"_ProductFormFA_p_kmn_all_gamma_IBP", (DL_FUNC) &_ProductFormFA_p_kmn_all_gamma_IBP, 5},
     {"_ProductFormFA_p_kmn_gamma_IBP", (DL_FUNC) &_ProductFormFA_p_kmn_gamma_IBP, 5},
     {"_ProductFormFA_neg_log_EFPF_gamma_IBP_rep", (DL_FUNC) &_ProductFormFA_neg_log_EFPF_gamma_IBP_rep, 3},

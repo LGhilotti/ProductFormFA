@@ -358,16 +358,21 @@ generate_Kmn_chain_gamma_ibp <- function(a_chain, b_chain, alpha_chain, theta_ch
     if (n == 0){
       gamma_a_t_n <- 0
     } else {
-      gamma_a_t_n <- sum(exp(lgamma(alpha + theta + (1:n) - 1) - lgamma(alpha + theta) - 
+      gamma_a_t_n <- sum(exp(lgamma(alpha + theta + (1:n) - 1) - lgamma(alpha + theta) -
                              lgamma(theta + (1:n)) + lgamma(theta +1) ) )
     }
-    
-    sum_M <- sapply(M_vec, function(m) sum(exp(lgamma(alpha + theta + n + (1:m) - 1) - 
-                                                 lgamma(alpha + theta) - 
-                                                 lgamma(theta + n + (1:m)) + 
-                                                 lgamma(theta +1) ) ) )
-    print(paste0("iteration: ", q))
+
+    # sum_M <- sapply(M_vec, function(m) sum(exp(lgamma(alpha + theta + n + (1:m) - 1) -
+    #                                              lgamma(alpha + theta) -
+    #                                              lgamma(theta + n + (1:m)) +
+    #                                              lgamma(theta +1) ) ) )
+    sum_M <- stable_sum_M_all_gamma_IBP(alpha, theta, M, n)
+    #print(sum_M)
     kmn_chain[,q] <- rnbinom(M, a + Kn, (gamma_a_t_n + b)/(gamma_a_t_n + b + sum_M))
+    print(paste0("iteration: ", q))
+    # pbar <- p_kmn_all_gamma_IBP(alpha, theta, M, n, b)
+    # print(paste0("pbar: ", pbar))
+    # kmn_chain[,q] <- rnbinom(M, a + Kn, pbar)
   }
   
   return (kmn_chain)

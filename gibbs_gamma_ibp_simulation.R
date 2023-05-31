@@ -1,11 +1,11 @@
 rm(list=ls())
 seed = 1234
 
-# set true parameters of the poiss BB process
+# set true parameters of the gamma IBP process
 alpha_true <- 0.8
-theta_true <- 50
-a_true <- 20
-b_true <- 10
+theta_true <- 10
+a_true <- 30
+b_true <- 0.1
 s_true <- theta_true + alpha_true
 
 # total number of samples
@@ -38,7 +38,7 @@ a_alpha <- 0.1
 b_alpha <- 0.1
 print(paste0("E(alpha) = ", a_alpha/ (a_alpha + b_alpha)))
 print(paste0("Var(alpha) = ", a_alpha*b_alpha/ (a_alpha + b_alpha)^2 /(a_alpha+b_alpha+1)))
-a_s <- 2
+a_s <- 1
 b_s <- 0.05
 print(paste0("E(s) = ", a_s/ b_s))
 print(paste0("Var(s) = ", a_s/ (b_s^2)))

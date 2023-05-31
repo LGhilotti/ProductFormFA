@@ -21,7 +21,7 @@ rzipf <- function(n, K, xi, seed = "no"){
   prob_vec <- sapply(1:K, function(x) (1/(x+1))**xi)
   
   # To normalize ! 
-  prob_vec <- prob_vec / sum(prob_vec)
+  # prob_vec <- prob_vec / sum(prob_vec)
   
   zipf_sample <- matrix(, nrow = n, ncol = K)
   
