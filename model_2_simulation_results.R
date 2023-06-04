@@ -117,10 +117,13 @@ ggsave("chao_model_simulation/m2/m2_ibp_extr.pdf", width = 16, height = 8, units
 load(file = "chao_model_simulation/m2/m2_avg_ntilde_poiss.Rda")
 load(file = "chao_model_simulation/m2/m2_avg_ntilde_negbin.Rda")
 
-###### 2) Read results: boxplots on accuracy #####
-load(file = "chao_model_simulation/m2/m2_acc_poiss.Rda")
-load(file = "chao_model_simulation/m2/m2_acc_negbin.Rda")
-load(file = "chao_model_simulation/m2/m2_acc_ibp.Rda")
+###### 2) Read results: quantities on accuracy #####
+load(file = "chao_model_simulation/m2/m2_obs_train.Rda")
+load(file = "chao_model_simulation/m2/m2_obs_new.Rda")
+
+load(file = "chao_model_simulation/m2/m2_est_new_poiss.Rda")
+load(file = "chao_model_simulation/m2/m2_est_new_negbin.Rda")
+load(file = "chao_model_simulation/m2/m2_est_new_ibp.Rda")
 
 D <- nrow(avg_ntilde_poiss)
 
@@ -146,27 +149,67 @@ ggplot(joint_ntilde_long, aes( y=estimate, fill=model)) +
 
 
 
-###### 4) Plot boxplots on accuracy #####
-acc_poiss_long <- gather(acc_poiss, training, accuracy, 
-                         paste0("N.",Ns[1]):paste0("N.",Ns[length(Ns)]), factor_key=TRUE) %>%
+###### 4.1) Plot boxplots on accuracy (scaled) #####
+ratio_scaled_poiss <- as.matrix(abs(obs_new - est_new_poiss)/obs_new)
+acc_scaled_poiss <- as.data.frame(1 - pmin(ratio_scaled_poiss,1))
+
+ratio_scaled_negbin <- as.matrix(abs(obs_new - est_new_negbin)/obs_new)
+acc_scaled_negbin <- as.data.frame(1 - pmin(ratio_scaled_negbin,1))
+
+ratio_scaled_ibp <- as.matrix(abs(obs_new - est_new_ibp)/obs_new)
+acc_scaled_ibp <- as.data.frame(1 - pmin(ratio_scaled_ibp,1))
+
+acc_scaled_poiss_long <- gather(acc_scaled_poiss, training, accuracy, 
+                                paste0("N.",Ns[1]):paste0("N.",Ns[length(Ns)]), factor_key=TRUE) %>%
   add_column(model = "Poiss", N = rep(Ns, each = D))
 
-acc_negbin_long <- gather(acc_negbin, training , accuracy, 
-                          paste0("N.",Ns[1]):paste0("N.",Ns[length(Ns)]), factor_key=TRUE) %>%
+acc_scaled_negbin_long <- gather(acc_scaled_negbin, training , accuracy, 
+                                 paste0("N.",Ns[1]):paste0("N.",Ns[length(Ns)]), factor_key=TRUE) %>%
   add_column(model = "Neg-Bin", N = rep(Ns, each = D))
 
-acc_ibp_long <- gather(acc_ibp, training , accuracy, 
-                       paste0("N.",Ns[1]):paste0("N.",Ns[length(Ns)]), factor_key=TRUE) %>%
+acc_scaled_ibp_long <- gather(acc_scaled_ibp, training , accuracy, 
+                              paste0("N.",Ns[1]):paste0("N.",Ns[length(Ns)]), factor_key=TRUE) %>%
   add_column(model = "Gamma IBP", N = rep(Ns, each = D))
 
-joint_long <- bind_rows(acc_poiss_long, acc_negbin_long, acc_ibp_long)
+joint_scaled_long <- bind_rows(acc_scaled_poiss_long, acc_scaled_negbin_long, acc_scaled_ibp_long)
 
 # plots
-ggplot(joint_long, aes( y=accuracy, fill=model)) + 
+ggplot(joint_scaled_long, aes( y=accuracy, fill=model)) + 
   geom_boxplot() + 
   facet_wrap(~N) +
   theme_bw() + 
   theme(plot.title = element_text(hjust = 0.5)) +
-  ggtitle(paste0("Model 1: average on D = ", D)) +
+  ggtitle(paste0("Model 1: accuracy (scaled) on D = ", D)) +
+  scale_y_continuous(breaks = pretty_breaks()) 
+
+
+###### 4.2) Plot boxplots on accuracy (alt) #####
+acc_alt_poiss <- 1/(1 + abs(obs_new - est_new_poiss))
+
+acc_alt_negbin <- 1/(1 + abs(obs_new - est_new_negbin))
+
+acc_alt_ibp <- 1/(1 + abs(obs_new - est_new_ibp))
+
+acc_alt_poiss_long <- gather(acc_alt_poiss, training, accuracy, 
+                             paste0("N.",Ns[1]):paste0("N.",Ns[length(Ns)]), factor_key=TRUE) %>%
+  add_column(model = "Poiss", N = rep(Ns, each = D))
+
+acc_alt_negbin_long <- gather(acc_alt_negbin, training , accuracy, 
+                              paste0("N.",Ns[1]):paste0("N.",Ns[length(Ns)]), factor_key=TRUE) %>%
+  add_column(model = "Neg-Bin", N = rep(Ns, each = D))
+
+acc_alt_ibp_long <- gather(acc_alt_ibp, training , accuracy, 
+                           paste0("N.",Ns[1]):paste0("N.",Ns[length(Ns)]), factor_key=TRUE) %>%
+  add_column(model = "Gamma IBP", N = rep(Ns, each = D))
+
+joint_alt_long <- bind_rows(acc_alt_poiss_long, acc_alt_negbin_long, acc_alt_ibp_long)
+
+# plots
+ggplot(joint_alt_long, aes( y=accuracy, fill=model)) + 
+  geom_boxplot() + 
+  facet_wrap(~N) +
+  theme_bw() + 
+  theme(plot.title = element_text(hjust = 0.5)) +
+  ggtitle(paste0("Model 2: accuracy (alt) on D = ", D)) +
   scale_y_continuous(breaks = pretty_breaks()) 
 

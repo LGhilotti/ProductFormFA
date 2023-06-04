@@ -329,7 +329,7 @@ saveRDS(data_mat, "chao_model_simulation/m3/m3_data_mat.rds")
 D <- 50
 
 # mcmc parameters
-S_poiss <- S_negbin <- S_ibp <-  5*10^4
+S_poiss <- S_negbin <- S_ibp <- 5*10^4
 n_burnin_poiss <- n_burnin_negbin <- n_burnin_ibp<- 10^4
 thin_poiss <- thin_negbin <- thin_ibp <- 2
 number_saved_iterations_poiss <- (S_poiss - n_burnin_poiss)/thin_poiss 
@@ -342,19 +342,26 @@ colnames(avg_ntilde_poiss) <- paste("N", Ns, sep = ".")
 avg_ntilde_negbin <- data.frame(matrix(nrow = D, ncol = length(Ns)))
 colnames(avg_ntilde_negbin) <- paste("N", Ns, sep = ".")
 
-acc_poiss <- data.frame(matrix(nrow = D, ncol = length(Ns)))
-colnames(acc_poiss) <- paste("N", Ns, sep = ".")
-acc_negbin <- data.frame(matrix(nrow = D, ncol = length(Ns)))
-colnames(acc_negbin) <- paste("N", Ns, sep = ".")
-acc_ibp <- data.frame(matrix(nrow = D, ncol = length(Ns)))
-colnames(acc_ibp) <- paste("N", Ns, sep = ".")
+# number of new features observed in the test
+obs_new <- data.frame(matrix(nrow = D, ncol = length(Ns)))
+colnames(obs_new) <- paste("N", Ns, sep = ".")
+
+# number of old features observed in the training
+obs_train <- data.frame(matrix(nrow = D, ncol = length(Ns)))
+colnames(obs_train) <- paste("N", Ns, sep = ".")
+
+est_new_poiss <- data.frame(matrix(nrow = D, ncol = length(Ns)))
+colnames(est_new_poiss) <- paste("N", Ns, sep = ".")
+est_new_negbin <- data.frame(matrix(nrow = D, ncol = length(Ns)))
+colnames(est_new_negbin) <- paste("N", Ns, sep = ".")
+est_new_ibp <- data.frame(matrix(nrow = D, ncol = length(Ns)))
+colnames(est_new_ibp) <- paste("N", Ns, sep = ".")
 
 seed = 12345
 set.seed(seed)
 
 for (d in 1:D){
-  data_mat <- matrix(rbinom(L*H, size = 1, prob = rep(pis, L)), 
-                     nrow = L, ncol = H, byrow = T )
+  data_mat <- matrix(rbinom(L*H, size = 1, prob = pres_prob), nrow = L, ncol = H)
   data_list <- create_features_list(data_mat)
   
   for (j in 1:length(Ns)){
@@ -438,25 +445,33 @@ for (d in 1:D){
     avg_ntilde_poiss[d, j] <- mean(ntilde_chain_poiss)
     avg_ntilde_negbin[d, j] <- mean(ntilde_chain_negbin)
     
-    ##### 7) Accuracy on the last individual (Poiss/NB/Gamma) #####
+    ##### 7) Collect quantities for accuracy (Poiss/NB/Gamma) #####
+    feat_train <- unique(unlist(train_list))
+    feat_test <- unique(unlist(test_list))
+    # number of features observed in training
+    obs_train[d,j] <- length(feat_train)
+    # number of new features observed in test
+    obs_new_features <- setdiff(feat_test, feat_train)
+    obs_new[d,j] <- length(obs_new_features)
+    
     # Poisson
     kmn_chain_poiss <- generate_Kmn_chain_poiss(lambda_chain_poiss, alpha_chain_poiss,
                                                 theta_chain_poiss, M = M, n = N)
     
-    acc_poiss[d , j] <- perc_accuracy(train_list, test_list, mean(kmn_chain_poiss))
+    est_new_poiss[d , j] <- mean(kmn_chain_poiss)
     
     # Negative Binomial
     kmn_chain_negbin <- generate_Kmn_chain_negbin(nstar_chain_negbin, p_chain_negbin,
                                                   alpha_chain_negbin, theta_chain_negbin,
                                                   M = M, n = N, Kn)
     
-    acc_negbin[d , j] <- perc_accuracy(train_list, test_list, mean(kmn_chain_negbin))
+    est_new_negbin[d , j] <- mean(kmn_chain_negbin)
     
     # IBP + Gamma
     kmn_chain_ibp <- generate_Kmn_chain_gamma_ibp(a_chain_ibp, b_chain_ibp, alpha_chain_ibp, 
                                                   theta_chain_ibp, M = M, n = N, Kn)
     
-    acc_ibp[d , j] <- perc_accuracy(train_list, test_list, mean(kmn_chain_ibp))
+    est_new_ibp[d , j] <- mean(kmn_chain_ibp)
     
   }
   
@@ -468,7 +483,10 @@ save(avg_ntilde_poiss, file = "chao_model_simulation/m3/m3_avg_ntilde_poiss.Rda"
 save(avg_ntilde_negbin, file = "chao_model_simulation/m3/m3_avg_ntilde_negbin.Rda")
 
 
-###### 9) Save results: boxplots on accuracy #####
-save(acc_poiss, file = "chao_model_simulation/m3/m3_acc_poiss.Rda")
-save(acc_negbin, file = "chao_model_simulation/m3/m3_acc_negbin.Rda")
-save(acc_ibp, file = "chao_model_simulation/m3/m3_acc_ibp.Rda")
+###### 9) Save results: quantities for accuracy #####
+save(obs_train, file = "chao_model_simulation/m3/m3_obs_train.Rda")
+save(obs_new, file = "chao_model_simulation/m3/m3_obs_new.Rda")
+save(est_new_poiss, file = "chao_model_simulation/m3/m3_est_new_poiss.Rda")
+save(est_new_negbin, file = "chao_model_simulation/m3/m3_est_new_negbin.Rda")
+save(est_new_ibp, file = "chao_model_simulation/m3/m3_est_new_ibp.Rda")
+
