@@ -361,7 +361,8 @@ seed = 12345
 set.seed(seed)
 
 for (d in 1:D){
-  data_mat <- matrix(rbinom(L*H, size = 1, prob = pres_prob), nrow = L, ncol = H)
+  data_mat <- matrix(rbinom(L*H, size = 1, prob = rep(pis, L)), 
+                     nrow = L, ncol = H, byrow = T )
   data_list <- create_features_list(data_mat)
   
   for (j in 1:length(Ns)){

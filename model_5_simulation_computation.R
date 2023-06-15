@@ -6,8 +6,8 @@ rm(list=ls())
 library(tidyverse)
 
 # set number of individuals
-Ns <- c(10, 20, 40, 80) 
-L <- 400
+Ns <- c(20, 40, 60, 80, 150) 
+L <- 500
 
 # maximum number of features
 H <- 500
@@ -87,7 +87,7 @@ s_0_ibp <- 15
 
 
 ##### Single dataset -> Ntilde (Poiss/NB) and extrapolation (Poiss/NB/Gamma) #####
-seed = 1234
+seed = 123456
 set.seed(seed)
 data_mat <- matrix(rbinom(L*H, size = 1, prob = rep(pis, L)), 
                    nrow = L, ncol = H, byrow = T )
@@ -351,11 +351,12 @@ colnames(est_new_negbin) <- paste("N", Ns, sep = ".")
 est_new_ibp <- data.frame(matrix(nrow = D, ncol = length(Ns)))
 colnames(est_new_ibp) <- paste("N", Ns, sep = ".")
 
-seed = 12345
+seed = 123456
 set.seed(seed)
 
 for (d in 1:D){
-  data_mat <- matrix(rbinom(L*H, size = 1, prob = pres_prob), nrow = L, ncol = H)
+  data_mat <- matrix(rbinom(L*H, size = 1, prob = rep(pis, L)), 
+                     nrow = L, ncol = H, byrow = T )
   data_list <- create_features_list(data_mat)
   
   for (j in 1:length(Ns)){

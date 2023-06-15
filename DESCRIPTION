@@ -16,3 +16,7 @@ LinkingTo:
     Rcpp
 Imports: 
     Rcpp
+Suggests: 
+    knitr,
+    rmarkdown
+VignetteBuilder: knitr

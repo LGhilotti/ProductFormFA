@@ -54,16 +54,26 @@ ggs_traceplot(samples_ggs_ibp) +
 
 ####### 6) Plot limiting distributions (Poiss/NB) ##############
 # Poisson
-samples_ntilde_poiss <- mcmc.list(mcmc(gg_ntilde_poiss))
-samples_ntilde_ggs_poiss <- ggs(samples_ntilde_poiss, keep_original_order = TRUE)
-ggs_density(samples_ntilde_ggs_poiss) + 
-  facet_wrap(~Parameter, nrow = length(Ns), scales = "free")
+gg_ntilde_poiss_long <- gather(gg_ntilde_poiss, training, estimate, 
+                               paste0("N.",Ns[1]):paste0("N.",Ns[length(Ns)]), factor_key=TRUE)
+ggplot(gg_ntilde_poiss_long, aes(x = estimate, fill = training)) + 
+  geom_density(alpha = 0.5, bw = 5) +
+  theme_bw() + 
+  theme(plot.title = element_text(hjust = 0.5)) +
+  ggtitle("Model 3, Poisson: limiting distributions") +
+  scale_y_continuous(breaks = pretty_breaks()) 
 
 # Negative Binomial
-samples_ntilde_negbin <- mcmc.list(mcmc(gg_ntilde_negbin))
-samples_ntilde_ggs_negbin <- ggs(samples_ntilde_negbin, keep_original_order = TRUE)
-ggs_density(samples_ntilde_ggs_negbin) + 
-  facet_wrap(~Parameter, nrow = length(Ns), scales = "free")
+gg_ntilde_negbin_long <- gather(gg_ntilde_negbin, training, estimate, 
+                                paste0("N.",Ns[1]):paste0("N.",Ns[length(Ns)]), factor_key=TRUE)
+ggplot(gg_ntilde_negbin_long, aes(x = estimate, fill = training)) + 
+  geom_density(alpha = 0.5, bw = 8) +
+  theme_bw() + 
+  theme(plot.title = element_text(hjust = 0.5)) +
+  ggtitle("Model 3, Neg-Bin: limiting distributions") +
+  scale_y_continuous(breaks = pretty_breaks()) + 
+  xlim(200,1200)
+
 
 ######## 7) Plot Extrapolation curve (Poiss/NB/Gamma) ################
 gg_kmn_pred_test_poiss  <- vector(mode="list", length = length(Ns))
