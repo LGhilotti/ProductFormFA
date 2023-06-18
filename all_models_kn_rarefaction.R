@@ -11,10 +11,12 @@ library(tidyverse)
 
 ##### Single dataset -> Ntilde (Poiss/NB) and extrapolation (Poiss/NB/Gamma) #####
 
-###### 1) Read results:  MCMC convergence ####################
+###### 1) Read results ####################
 load(file = "chao_model_simulation/m1/m1_params_poiss.Rda")
 load(file =  "chao_model_simulation/m1/m1_params_negbin.Rda")
 load(file =  "chao_model_simulation/m1/m1_params_ibp.Rda" )
+list_kmn_pred_test_poiss <- readRDS(file = "chao_model_simulation/m1/m1_ci_poiss.rds")
+
 ###### 4) Read the data ###############################
 data_mat <- readRDS(file = "chao_model_simulation/m1/m1_data_mat.rds")
 L <- nrow(data_mat)
@@ -129,10 +131,11 @@ library(scales)
 
 ##### Single dataset -> Ntilde (Poiss/NB) and extrapolation (Poiss/NB/Gamma) #####
 
-###### 1) Read results:  MCMC convergence ####################
+###### 1) Read results ####################
 load(file = "chao_model_simulation/m2/m2_params_poiss.Rda")
 load(file =  "chao_model_simulation/m2/m2_params_negbin.Rda")
 load(file =  "chao_model_simulation/m2/m2_params_ibp.Rda", )
+list_kmn_pred_test_poiss <- readRDS(file = "chao_model_simulation/m2/m2_ci_poiss.rds")
 
 ###### 4) Read the data ###############################
 data_mat <- readRDS(file = "chao_model_simulation/m2/m2_data_mat.rds")
@@ -248,10 +251,11 @@ library(scales)
 
 ##### Single dataset -> Ntilde (Poiss/NB) and extrapolation (Poiss/NB/Gamma) #####
 
-###### 1) Read results:  MCMC convergence ####################
+###### 1) Read results ####################
 load(file = "chao_model_simulation/m3/m3_params_poiss.Rda")
 load(file =  "chao_model_simulation/m3/m3_params_negbin.Rda")
 load(file =  "chao_model_simulation/m3/m3_params_ibp.Rda", )
+list_kmn_pred_test_poiss <- readRDS(file = "chao_model_simulation/m3/m3_ci_poiss.rds")
 
 ###### 4) Read the data ###############################
 data_mat <- readRDS(file = "chao_model_simulation/m3/m3_data_mat.rds")
@@ -366,10 +370,11 @@ library(scales)
 
 ##### Single dataset -> Ntilde (Poiss/NB) and extrapolation (Poiss/NB/Gamma) #####
 
-###### 1) Read results:  MCMC convergence ####################
+###### 1) Read results ####################
 load(file = "chao_model_simulation/m4/m4_params_poiss.Rda")
 load(file =  "chao_model_simulation/m4/m4_params_negbin.Rda")
 load(file =  "chao_model_simulation/m4/m4_params_ibp.Rda", )
+list_kmn_pred_test_poiss <- readRDS(file = "chao_model_simulation/m4/m4_ci_poiss.rds")
 
 ###### 4) Read the data ###############################
 data_mat <- readRDS(file = "chao_model_simulation/m4/m4_data_mat.rds")
@@ -485,10 +490,11 @@ library(scales)
 
 ##### Single dataset -> Ntilde (Poiss/NB) and extrapolation (Poiss/NB/Gamma) #####
 
-###### 1) Read results:  MCMC convergence ####################
+###### 1) Read results ####################
 load(file = "chao_model_simulation/m5/m5_params_poiss.Rda")
 load(file =  "chao_model_simulation/m5/m5_params_negbin.Rda")
 load(file =  "chao_model_simulation/m5/m5_params_ibp.Rda" )
+list_kmn_pred_test_poiss <- readRDS(file = "chao_model_simulation/m5/m5_ci_poiss.rds")
 
 ###### 4) Read the data ###############################
 data_mat <- readRDS(file = "chao_model_simulation/m5/m5_data_mat.rds")
@@ -605,10 +611,11 @@ library(scales)
 
 ##### Single dataset -> Ntilde (Poiss/NB) and extrapolation (Poiss/NB/Gamma) #####
 
-###### 1) Read results:  MCMC convergence ####################
+###### 1) Read results ####################
 load(file = "unbounded_features_scenario/unb_params_poiss.Rda")
 load(file =  "unbounded_features_scenario/unb_params_negbin.Rda")
 load(file =  "unbounded_features_scenario/unb_params_ibp.Rda", )
+list_kmn_pred_test_poiss <- readRDS(file = "unbounded_features_scenario/unb_ci_poiss.rds")
 
 ###### 4) Read the data ###############################
 data_mat <- readRDS(file = "unbounded_features_scenario/unb_data_mat.rds")

@@ -211,7 +211,7 @@ ggplot(joint_alt_long, aes( y=accuracy, fill=model)) +
 
 
 ```
-
+\newpage
 For the mixtures of Beta-Bernoulli, we report (iii) the posterior distribution of the total number of features (on a single dataset).
 
 
@@ -457,6 +457,7 @@ ggplot(joint_alt_long, aes( y=accuracy, fill=model)) +
 ```
 Even if the Mixture of IBP seems to reach better performance when the training set increases, this is just due to the fact the test set dimension is reducing: see the behaviour of the extrapolated rarefaction curve to get the behaviour of the model on larger test sets.
 
+\newpage
 For the mixtures of Beta-Bernoulli, we report (iii) the posterior distribution of the total number of features (on a single dataset).
 
 
@@ -701,6 +702,7 @@ ggplot(joint_alt_long, aes( y=accuracy, fill=model)) +
 ```
 Even if the Mixture of IBP seems to reach better performance when the training set increases, this is just due to the fact the test set dimension is reducing: see the behavior of the extrapolated rarefaction curve to get the behavior of the model on larger test sets.
 
+\newpage
 For the mixtures of Beta-Bernoulli, we report (iii) the posterior distribution of the total number of features (on a single dataset).
 
 
@@ -947,6 +949,7 @@ ggplot(joint_alt_long, aes( y=accuracy, fill=model)) +
 ```
 Even if the Mixture of IBP seems to reach better performance when the training set increases, this is just due to the fact the test set dimension is reducing: see the behavior of the extrapolated rarefaction curve to get the behavior of the model on larger test sets.
 
+\newpage
 For the mixtures of Beta-Bernoulli, we report (iii) the posterior distribution of the total number of features (on a single dataset).
 
 
@@ -1114,12 +1117,12 @@ for (j in 1:length(Ns)){
 }
 ```
 
-```{r, echo=FALSE, fig.height=15, fig.align = "center"}
+```{r, echo=FALSE, fig.height=8, fig.align = "center"}
 # Print plots
-grid.arrange(grobs = gg_kn_rarefaction_all, ncol= 1)
+grid.arrange(grobs = gg_kn_rarefaction_all, ncol= 2)
 
 ```
-
+\newpage
 Here, we report (i.b) the extrapolated rarefaction curve (on a single dataset).
 
 ```{r, echo=FALSE}
@@ -1150,12 +1153,12 @@ for (j in 1:length(Ns)){
 ```
 
 
-```{r, echo=FALSE, fig.height=15, fig.align = "center"}
+```{r, echo=FALSE, fig.height=8, fig.align = "center"}
 # Print plots
-grid.arrange(grobs = gg_kmn_pred_test_all, ncol= 1)
+grid.arrange(grobs = gg_kmn_pred_test_all, ncol= 2)
 
 ```
-
+\newpage
 Here, we report (ii) the accuracy of the estimated number of unseen features in the test sample, over $D=50$ replicated datasets. 
 
 ```{r, echo=FALSE, fig.align = "center"}
@@ -1191,7 +1194,7 @@ ggplot(joint_alt_long, aes( y=accuracy, fill=model)) +
 
 
 ```
-
+\newpage
 For the mixtures of Beta-Bernoulli, we report (iii) the posterior distribution of the total number of features (on a single dataset).
 
 
@@ -1253,7 +1256,7 @@ ggplot(joint_ntilde_long, aes( y=estimate, fill=model)) +
 
 
 
-
+\newpage
 ## Unbounded-features scenario
 ```{r, include=FALSE, eval=TRUE}
 ####
@@ -1289,6 +1292,7 @@ list_kn_rarefaction_ibp <- readRDS(file = "unbounded_features_scenario/unb_ci_in
 
 ###### 4) Read the data ###############################
 data_mat <- readRDS(file = "unbounded_features_scenario/unb_data_mat.rds")
+data_list <- create_features_list(data_mat)
 L <- nrow(data_mat)
 Ms <- sapply(list_kmn_pred_test_poiss, function(l) length(l$medians))
 Ns <- L - Ms
