@@ -17,10 +17,10 @@ knitr::opts_chunk$set(warning = FALSE, echo = TRUE)
 library(ProductFormFA)
 ```
 
-In this section, we illustrate the performance of the different proposed models under different scenarios. Through these simulations, we aim at highlighting the specific properties of the  models we have discussed in the previous sections, in terms of prediction of the number of unseen features in a future sample. To this end, we distinguish between two broad classes of generating mechanisms, i.e. (i.b) bounded-features scenarios, where the number of features observable in the population is bounded, that is $\exists K^* > 0$ such that $\lim_{n \to \infty} K_n = K^*$ almost surely; (ii) diverging-features scenarios, where the number of features observable in the population is unbounded, that is $\lim_{n \to \infty} K_n = \infty$ almost surely. We are going to discuss how the two classes of feature allocation models - *Mixtures of IBP* and *Mixtures of Beta-Bernoulli with $N$ features* - are suitable for different scenarios.
+In this section, we illustrate the performance of the different proposed models under different scenarios. Through these simulations, we aim at highlighting the model-specific properties that we have discussed in the previous sections, both in terms of in-sample rarefaction curve and in terms of prediction of the number of unseen features in future samples. To this end, we distinguish between two broad classes of generating mechanisms, i.e. (i) bounded-features scenarios, where the number of features observable in the population is bounded, that is $\exists K^* > 0$ such that $\lim_{n \to \infty} K_n = K^*$ almost surely; (ii) unbounded-features scenarios, where the number of features observable in the population is unbounded, that is $\lim_{n \to \infty} K_n = \infty$ almost surely. We are going to discuss how the two examples of feature allocation models - *Mixtures of IBP* and *Mixtures of Beta-Bernoulli with $N$ features* - are suitable for different scenarios. Remark: it is not possible to establish with certainty whether the true generating mechanism belongs to a bounded-features scenario or an unbounded-features one by looking at the data. This decision pertains to the analyst, based on expert knowledge of the problem, translated into proper modeling assumptions. Through the following simulations, we just want to show that, if the true generating mechanism were known, then some models are more suitable than others to fit the data. As a consequence, when the knowledge of the problem suggests one of the two scenarios, some models might be preferred with respect to others.  
 
 ## Bounded-features scenarios
-For these scenarios, we consider 4 ecological species detection models, as in Chiu (2022). Within these settings, the individuals are geographical sites where species of animals are collected (each species is a feature). In each scenario, the total number of species is $H=500$ and the species occurrence probabilities $(\pi_1,\ldots,\pi_H)$ are determined. We compare the Gamma mixture of IBP, the mixture of Beta-Bernoulli with Poisson prior on $N$ and the mixture of Beta-Bernoulli with negative binomial prior on $N$. For each setting and each model we show the following quantities, estimated for different dimensions of the training set: (i.a) the in-sample rarefaction curve (on a single dataset), (i.b) the extrapolated rarefaction curve on the test set (on a single dataset), (ii) the accuracy of the estimated number of unseen features in the test sample, over $D=50$ replicated datasets. Specifically, we focus on the following measure of accuracy, denoted with $\nu_m^{(n)}$, 
+For these scenarios, we consider 5 ecological species detection models, as in \href{https://besjournals.onlinelibrary.wiley.com/doi/full/10.1111/2041-210X.13979}{Chiu (2022)}. Within these settings, the individuals are geographical sites where species of animals are collected (each species is a feature which might be displayed by the individual). In each scenario, the total number of species is $H=500$ and the species occurrence probabilities $(\pi_1,\ldots,\pi_H)$ are determined. We compare the Gamma mixture of IBP, the mixture of Beta-Bernoulli with Poisson prior on $N$ and the mixture of Beta-Bernoulli with negative binomial prior on $N$. For each setting and each model we show the following quantities, estimated for different dimensions of the training set: (i.a) the in-sample rarefaction curve (on a single dataset), (i.b) the extrapolated rarefaction curve on the test set (on a single dataset), (ii) the accuracy of the estimated number of unseen features in the test sample, over $D=50$ replicated datasets. Specifically, we focus on the following measure of accuracy, denoted with $\nu_m^{(n)}$, 
 \[
 \nu_m^{(n)} := \frac{1}{1 + \frac{|\tilde{K}_m^{(n)} - \hat{K}_m^{(n)} |}{\tilde{K}_n}},
 \]
@@ -28,8 +28,8 @@ where $\tilde{K}_m^{(n)}$ is the observed number of unseen features in the test 
 
 Moreover, for the mixtures of Beta-Bernoulli, we also report (iii) the posterior distribution of the total number of features (on a single dataset), (iv) the expected value of the posterior distribution of the total number of features, over $D=50$ replicated datasets.
 
-
-### Model 1: the homogeneous model
+\newpage
+### Scenario 1: the homogeneous model
 
 ```{r, include=FALSE, eval=TRUE}
 ####
@@ -92,7 +92,7 @@ D <- nrow(avg_ntilde_poiss)
 
 ```
 
-Set $\pi_k = 0.05$, for $k =1,\ldots,H$. Let the total dimension of the dataset to be $L$, and consider different dimensions for the training set $n$, i.e. 
+Set $\pi_k = 0.05$, for $k =1,\ldots,H$. Let $L$ be the total dimension of the dataset, and consider different dimensions for the training set $n$, i.e. 
 
 ```{r, echo=FALSE}
 # Total dimension of the dataset
@@ -206,7 +206,7 @@ ggplot(joint_alt_long, aes( y=accuracy, fill=model)) +
   facet_wrap(~N) +
   theme_bw() + 
   theme(plot.title = element_text(hjust = 0.5)) +
-  ggtitle(paste0("Model 1: accuracy on D = ", D)) +
+  ggtitle(paste0("Scenario 1: accuracy on D = ", D)) +
   scale_y_continuous(breaks = pretty_breaks()) 
 
 
@@ -224,7 +224,7 @@ ggplot(gg_ntilde_poiss_long, aes(x = estimate, fill = training)) +
   geom_density(alpha = 0.5) +
   theme_bw() + 
   theme(plot.title = element_text(hjust = 0.5)) +
-  ggtitle("Model 1, Poisson: limiting distributions") +
+  ggtitle("Scenario 1, Poisson: limiting distributions") +
   scale_y_continuous(breaks = pretty_breaks()) 
   
 
@@ -236,7 +236,7 @@ ggplot(gg_ntilde_negbin_long, aes(x = estimate, fill = training)) +
   geom_density(alpha = 0.5) +
   theme_bw() + 
   theme(plot.title = element_text(hjust = 0.5)) +
-  ggtitle("Model 1, Neg-Bin: limiting distributions") +
+  ggtitle("Scenario 1, Neg-Bin: limiting distributions") +
   scale_y_continuous(breaks = pretty_breaks()) +
   xlim(400,1200)
 ```
@@ -262,7 +262,7 @@ ggplot(joint_ntilde_long, aes( y=estimate, fill=model)) +
   facet_wrap(~N) +
   theme_bw() + 
   theme(plot.title = element_text(hjust = 0.5)) +
-  ggtitle(paste0("Model 1: average on D = ", D)) +
+  ggtitle(paste0("Scenario 1: average on D = ", D)) +
   scale_y_continuous(breaks = pretty_breaks()) 
 
 
@@ -273,7 +273,7 @@ ggplot(joint_ntilde_long, aes( y=estimate, fill=model)) +
 #######################################
 
 \newpage
-### Model 2: the random uniform model
+### Scenario 2: the random uniform model
 
 ```{r, include=FALSE, eval=TRUE}
 ####
@@ -336,7 +336,7 @@ D <- nrow(avg_ntilde_poiss)
 
 ```
 
-Set $\pi_k = c\cdot a_k$, for $k =1,\ldots,H$, and $a_k \overset{iid}{\sim} {\rm Uniform}(0,1)$. Set $c$ such that the maximum $\pi_k$ is equal to $0.5$. Let the total dimension of the dataset to be $L$, and consider different dimensions for the training set $n$, i.e. 
+Set $\pi_k = c\cdot a_k$, for $k =1,\ldots,H$, and $a_k \overset{iid}{\sim} {\rm Uniform}(0,1)$. Set $c$ such that the maximum $\pi_k$ is equal to $0.5$. Let $L$ be the total dimension of the dataset, and consider different dimensions for the training set $n$, i.e. 
 
 ```{r, echo=FALSE}
 # Total dimension of the dataset
@@ -450,7 +450,7 @@ ggplot(joint_alt_long, aes( y=accuracy, fill=model)) +
   facet_wrap(~N) +
   theme_bw() + 
   theme(plot.title = element_text(hjust = 0.5)) +
-  ggtitle(paste0("Model 2: accuracy on D = ", D)) +
+  ggtitle(paste0("Scenario 2: accuracy on D = ", D)) +
   scale_y_continuous(breaks = pretty_breaks()) 
 
 
@@ -470,7 +470,7 @@ ggplot(gg_ntilde_poiss_long, aes(x = estimate, fill = training)) +
   geom_density(alpha = 0.5, bw = 1) +
   theme_bw() + 
   theme(plot.title = element_text(hjust = 0.5)) +
-  ggtitle("Model 2, Poisson: limiting distributions") +
+  ggtitle("Scenario 2, Poisson: limiting distributions") +
   scale_y_continuous(breaks = pretty_breaks()) 
 
 # Negative Binomial
@@ -480,7 +480,7 @@ ggplot(gg_ntilde_negbin_long, aes(x = estimate, fill = training)) +
   geom_density(alpha = 0.5, bw = 1) +
   theme_bw() + 
   theme(plot.title = element_text(hjust = 0.5)) +
-  ggtitle("Model 2, Neg-Bin: limiting distributions") +
+  ggtitle("Scenario 2, Neg-Bin: limiting distributions") +
   scale_y_continuous(breaks = pretty_breaks()) 
 
 ```
@@ -506,7 +506,7 @@ ggplot(joint_ntilde_long, aes( y=estimate, fill=model)) +
   facet_wrap(~N) +
   theme_bw() + 
   theme(plot.title = element_text(hjust = 0.5)) +
-  ggtitle(paste0("Model 2: average on D = ", D)) +
+  ggtitle(paste0("Scenario 2: average on D = ", D)) +
   scale_y_continuous(breaks = pretty_breaks()) 
 
 
@@ -517,7 +517,7 @@ ggplot(joint_ntilde_long, aes( y=estimate, fill=model)) +
 #######################################
 
 \newpage
-### Model 3: the broken stick model
+### Scenario 3: the broken stick model
 
 ```{r, include=FALSE, eval=TRUE}
 ####
@@ -581,7 +581,7 @@ D <- nrow(avg_ntilde_poiss)
 ```
 
 Set $\pi_k = c\cdot a_k$, for $k =1,\ldots,H$, and $a_k \overset{iid}{\sim} {\rm Exp}(1)$. Set $c$ such that the maximum $\pi_k$ is equal to $0.5$. As Chiu (2022) says: "This model is commonly used in previous literature
-and equivalent to the Dirichlet distribution". Let the total dimension of the dataset to be $L$, and consider different dimensions for the training set $n$, i.e. 
+and equivalent to the Dirichlet distribution". Let $L$ be the total dimension of the dataset, and consider different dimensions for the training set $n$, i.e. 
 
 ```{r, echo=FALSE}
 # Total dimension of the dataset
@@ -695,7 +695,7 @@ ggplot(joint_alt_long, aes( y=accuracy, fill=model)) +
   facet_wrap(~N) +
   theme_bw() + 
   theme(plot.title = element_text(hjust = 0.5)) +
-  ggtitle(paste0("Model 3: accuracy on D = ", D)) +
+  ggtitle(paste0("Scenario 3: accuracy on D = ", D)) +
   scale_y_continuous(breaks = pretty_breaks()) 
 
 
@@ -715,7 +715,7 @@ ggplot(gg_ntilde_poiss_long, aes(x = estimate, fill = training)) +
   geom_density(alpha = 0.5, bw = 5) +
   theme_bw() + 
   theme(plot.title = element_text(hjust = 0.5)) +
-  ggtitle("Model 3, Poisson: limiting distributions") +
+  ggtitle("Scenario 3, Poisson: limiting distributions") +
   scale_y_continuous(breaks = pretty_breaks()) 
 
 # Negative Binomial
@@ -725,7 +725,7 @@ ggplot(gg_ntilde_negbin_long, aes(x = estimate, fill = training)) +
   geom_density(alpha = 0.5, bw = 8) +
   theme_bw() + 
   theme(plot.title = element_text(hjust = 0.5)) +
-  ggtitle("Model 3, Neg-Bin: limiting distributions") +
+  ggtitle("Scenario 3, Neg-Bin: limiting distributions") +
   scale_y_continuous(breaks = pretty_breaks()) + 
   xlim(200,1200)
 
@@ -752,7 +752,7 @@ ggplot(joint_ntilde_long, aes( y=estimate, fill=model)) +
   facet_wrap(~N) +
   theme_bw() + 
   theme(plot.title = element_text(hjust = 0.5)) +
-  ggtitle(paste0("Model 3: average on D = ", D)) +
+  ggtitle(paste0("Scenario 3: average on D = ", D)) +
   scale_y_continuous(breaks = pretty_breaks()) 
 
 
@@ -764,7 +764,7 @@ ggplot(joint_ntilde_long, aes( y=estimate, fill=model)) +
 #######################################
 
 \newpage
-### Model 4: the log-normal model
+### Scenario 4: the log-normal model
 
 ```{r, include=FALSE, eval=TRUE}
 ####
@@ -828,7 +828,7 @@ D <- nrow(avg_ntilde_poiss)
 
 ```
 
-Set $\pi_k = c\cdot a_k$, for $k =1,\ldots,H$, and $a_k \overset{iid}{\sim} {\rm log-normal}(0,1)$. Set $c$ such that the maximum $\pi_k$ is equal to $1$. Let the total dimension of the dataset to be $L$, and consider different dimensions for the training set $n$, i.e. 
+Set $\pi_k = c\cdot a_k$, for $k =1,\ldots,H$, and $a_k \overset{iid}{\sim} {\rm lognormal}(0,1)$. Set $c$ such that the maximum $\pi_k$ is equal to $1$. Let $L$ be the total dimension of the dataset, and consider different dimensions for the training set $n$, i.e. 
 
 ```{r, echo=FALSE}
 # Total dimension of the dataset
@@ -942,7 +942,7 @@ ggplot(joint_alt_long, aes( y=accuracy, fill=model)) +
   facet_wrap(~N) +
   theme_bw() + 
   theme(plot.title = element_text(hjust = 0.5)) +
-  ggtitle(paste0("Model 4: accuracy on D = ", D)) +
+  ggtitle(paste0("Scenario 4: accuracy on D = ", D)) +
   scale_y_continuous(breaks = pretty_breaks()) 
 
 
@@ -962,7 +962,7 @@ ggplot(gg_ntilde_poiss_long, aes(x = estimate, fill = training)) +
   geom_density(alpha = 0.5, bw = 5) +
   theme_bw() + 
   theme(plot.title = element_text(hjust = 0.5)) +
-  ggtitle("Model 4, Poisson: limiting distributions") +
+  ggtitle("Scenario 4, Poisson: limiting distributions") +
   scale_y_continuous(breaks = pretty_breaks()) 
 
 # Negative Binomial
@@ -972,7 +972,7 @@ ggplot(gg_ntilde_negbin_long, aes(x = estimate, fill = training)) +
   geom_density(alpha = 0.5, bw = 10) +
   theme_bw() + 
   theme(plot.title = element_text(hjust = 0.5)) +
-  ggtitle("Model 4, Neg-Bin: limiting distributions") +
+  ggtitle("Scenario 4, Neg-Bin: limiting distributions") +
   scale_y_continuous(breaks = pretty_breaks()) + 
   xlim(200,1500)
 
@@ -999,7 +999,7 @@ ggplot(joint_ntilde_long, aes( y=estimate, fill=model)) +
   facet_wrap(~N) +
   theme_bw() + 
   theme(plot.title = element_text(hjust = 0.5)) +
-  ggtitle(paste0("Model 4: average on D = ", D)) +
+  ggtitle(paste0("Scenario 4: average on D = ", D)) +
   scale_y_continuous(breaks = pretty_breaks()) 
 
 
@@ -1011,7 +1011,7 @@ ggplot(joint_ntilde_long, aes( y=estimate, fill=model)) +
 #######################################
 
 \newpage
-### Model 5: the Zipf–Mandelbrot model
+### Scenario 5: the Zipf–Mandelbrot model
 
 ```{r, include=FALSE, eval=TRUE}
 ####
@@ -1075,7 +1075,7 @@ D <- nrow(avg_ntilde_poiss)
 
 ```
 
-Set $\pi_k = \frac{3}{k + 5}$, for $k =1,\ldots,H$. Note that the maximum $\pi_k$ is equal to $0.5$. Let the total dimension of the dataset to be $L$, and consider different dimensions for the training set $n$, i.e. 
+Set $\pi_k = \frac{3}{k + 5}$, for $k =1,\ldots,H$. Note that the maximum $\pi_k$ is equal to $0.5$. Let $L$ be the total dimension of the dataset, and consider different dimensions for the training set $n$, i.e. 
 
 ```{r, echo=FALSE}
 # Total dimension of the dataset
@@ -1189,7 +1189,7 @@ ggplot(joint_alt_long, aes( y=accuracy, fill=model)) +
   facet_wrap(~N) +
   theme_bw() + 
   theme(plot.title = element_text(hjust = 0.5)) +
-  ggtitle(paste0("Model 5: accuracy on D = ", D)) +
+  ggtitle(paste0("Scenario 5: accuracy on D = ", D)) +
   scale_y_continuous(breaks = pretty_breaks()) 
 
 
@@ -1207,7 +1207,7 @@ ggplot(gg_ntilde_poiss_long, aes(x = estimate, fill = training)) +
   geom_density(alpha = 0.5, bw = 5) +
   theme_bw() + 
   theme(plot.title = element_text(hjust = 0.5)) +
-  ggtitle("Model 5, Poisson: limiting distributions") +
+  ggtitle("Scenario 5, Poisson: limiting distributions") +
   scale_y_continuous(breaks = pretty_breaks()) 
 
 # Negative Binomial
@@ -1217,7 +1217,7 @@ ggplot(gg_ntilde_negbin_long, aes(x = estimate, fill = training)) +
   geom_density(alpha = 0.5, bw = 20) +
   theme_bw() + 
   theme(plot.title = element_text(hjust = 0.5)) +
-  ggtitle("Model 5, Neg-Bin: limiting distributions") +
+  ggtitle("Scenario 5, Neg-Bin: limiting distributions") +
   scale_y_continuous(breaks = pretty_breaks())  +
   xlim(0,3000)
 
@@ -1244,7 +1244,7 @@ ggplot(joint_ntilde_long, aes( y=estimate, fill=model)) +
   facet_wrap(~N) +
   theme_bw() + 
   theme(plot.title = element_text(hjust = 0.5)) +
-  ggtitle(paste0("Model 5: average on D = ", D)) +
+  ggtitle(paste0("Scenario 5: average on D = ", D)) +
   scale_y_continuous(breaks = pretty_breaks()) 
 
 
@@ -1257,7 +1257,11 @@ ggplot(joint_ntilde_long, aes( y=estimate, fill=model)) +
 
 
 \newpage
-## Unbounded-features scenario
+## Unbounded-features scenarios
+We consider 3 different scenarios corresponding to 3 different growth rates of the number of distinct features observed in the population. 
+
+### Scenario 1: polynomial growth with exponent 1
+
 ```{r, include=FALSE, eval=TRUE}
 ####
 ##### Unbounded-features scenario ############################
@@ -1272,26 +1276,26 @@ library(scales)
 ##### Single dataset -> Ntilde (Poiss/NB) and extrapolation (Poiss/NB/Gamma) #####
 
 ###### 1) Read results:  MCMC convergence ####################
-load(file = "unbounded_features_scenario/unb_params_poiss.Rda")
-load(file =  "unbounded_features_scenario/unb_params_negbin.Rda")
-load(file =  "unbounded_features_scenario/unb_params_ibp.Rda", )
+load(file = "unbounded_features_scenario/unb_poly_1_params_poiss.Rda")
+load(file =  "unbounded_features_scenario/unb_poly_1_params_negbin.Rda")
+load(file =  "unbounded_features_scenario/unb_poly_1_params_ibp.Rda", )
 
 ###### 2) Read results: samples from limiting distributions (Poiss/NB) ##############
-load(file = "unbounded_features_scenario/unb_ntilde_poiss.Rda")
-load(file = "unbounded_features_scenario/unb_ntilde_negbin.Rda")
+load(file = "unbounded_features_scenario/unb_poly_1_ntilde_poiss.Rda")
+load(file = "unbounded_features_scenario/unb_poly_1_ntilde_negbin.Rda")
 
 ###### 3) Read results: CI for extrapolation (Poiss/NB/Gamma) ################
-list_kmn_pred_test_poiss <- readRDS(file = "unbounded_features_scenario/unb_ci_poiss.rds")
-list_kmn_pred_test_negbin <- readRDS(file = "unbounded_features_scenario/unb_ci_negbin.rds")
-list_kmn_pred_test_ibp <- readRDS(file = "unbounded_features_scenario/unb_ci_ibp.rds")
+list_kmn_pred_test_poiss <- readRDS(file = "unbounded_features_scenario/unb_poly_1_ci_poiss.rds")
+list_kmn_pred_test_negbin <- readRDS(file = "unbounded_features_scenario/unb_poly_1_ci_negbin.rds")
+list_kmn_pred_test_ibp <- readRDS(file = "unbounded_features_scenario/unb_poly_1_ci_ibp.rds")
 
 ###### 3.b) Read results: CI for insample (Poiss/NB/Gamma) ################
-list_kn_rarefaction_poiss <- readRDS(file = "unbounded_features_scenario/unb_ci_insample_poiss.rds")
-list_kn_rarefaction_negbin <- readRDS(file = "unbounded_features_scenario/unb_ci_insample_negbin.rds")
-list_kn_rarefaction_ibp <- readRDS(file = "unbounded_features_scenario/unb_ci_insample_ibp.rds")
+list_kn_rarefaction_poiss <- readRDS(file = "unbounded_features_scenario/unb_poly_1_ci_insample_poiss.rds")
+list_kn_rarefaction_negbin <- readRDS(file = "unbounded_features_scenario/unb_poly_1_ci_insample_negbin.rds")
+list_kn_rarefaction_ibp <- readRDS(file = "unbounded_features_scenario/unb_poly_1_ci_insample_ibp.rds")
 
 ###### 4) Read the data ###############################
-data_mat <- readRDS(file = "unbounded_features_scenario/unb_data_mat.rds")
+data_mat <- readRDS(file = "unbounded_features_scenario/unb_poly_1_data_mat.rds")
 data_list <- create_features_list(data_mat)
 L <- nrow(data_mat)
 Ms <- sapply(list_kmn_pred_test_poiss, function(l) length(l$medians))
@@ -1302,22 +1306,22 @@ Ns <- L - Ms
 ##### Accuracy on multiple datasets #####
 
 ###### 1) Read results: limit distribution estimates #####
-load(file = "unbounded_features_scenario/unb_avg_ntilde_poiss.Rda")
-load(file = "unbounded_features_scenario/unb_avg_ntilde_negbin.Rda")
+load(file = "unbounded_features_scenario/unb_poly_1_avg_ntilde_poiss.Rda")
+load(file = "unbounded_features_scenario/unb_poly_1_avg_ntilde_negbin.Rda")
 
 ###### 2) Read results: quantities on accuracy #####
-load(file = "unbounded_features_scenario/unb_obs_train.Rda")
-load(file = "unbounded_features_scenario/unb_obs_new.Rda")
+load(file = "unbounded_features_scenario/unb_poly_1_obs_train.Rda")
+load(file = "unbounded_features_scenario/unb_poly_1_obs_new.Rda")
 
-load(file = "unbounded_features_scenario/unb_est_new_poiss.Rda")
-load(file = "unbounded_features_scenario/unb_est_new_negbin.Rda")
-load(file = "unbounded_features_scenario/unb_est_new_ibp.Rda")
+load(file = "unbounded_features_scenario/unb_poly_1_est_new_poiss.Rda")
+load(file = "unbounded_features_scenario/unb_poly_1_est_new_negbin.Rda")
+load(file = "unbounded_features_scenario/unb_poly_1_est_new_ibp.Rda")
 
 D <- nrow(avg_ntilde_poiss)
 
 ```
 
-Set $\pi_k = \frac{1}{(k + 1)^{\xi}}$, for $k =1,\ldots,H$, with $H = 10^5$ and $\xi = 1.2$. Let the total dimension of the dataset to be $L$, and consider different dimensions for the training set $n$, i.e. 
+Set $\pi_k = \frac{1}{k}$, for $k =1,\ldots,H$, with $H = 10^5$. Let $L$ be the total dimension of the dataset, and consider different dimensions for the training set $n$, i.e. 
 
 ```{r, echo=FALSE}
 # Total dimension of the dataset
@@ -1432,7 +1436,375 @@ ggplot(joint_alt_long, aes( y=accuracy, fill=model)) +
   facet_wrap(~N) +
   theme_bw() + 
   theme(plot.title = element_text(hjust = 0.5)) +
-  ggtitle(paste0("Unbounded-feature: accuracy on D = ", D)) +
+  ggtitle(paste0("Unbounded-feature (exp 1): accuracy on D = ", D)) +
+  scale_y_continuous(breaks = pretty_breaks()) 
+
+
+```
+
+\newpage
+### Scenario 2: polynomial growth with exponent 0.8
+
+```{r, include=FALSE, eval=TRUE}
+####
+##### Unbounded-features scenario ############################
+####
+
+rm(list=ls())
+library(ggmcmc)
+library(coda)
+library(ggpubr)
+library(scales)
+
+##### Single dataset -> Ntilde (Poiss/NB) and extrapolation (Poiss/NB/Gamma) #####
+
+###### 1) Read results:  MCMC convergence ####################
+load(file = "unbounded_features_scenario/unb_poly_0_8_params_poiss.Rda")
+load(file =  "unbounded_features_scenario/unb_poly_0_8_params_negbin.Rda")
+load(file =  "unbounded_features_scenario/unb_poly_0_8_params_ibp.Rda", )
+
+###### 2) Read results: samples from limiting distributions (Poiss/NB) ##############
+load(file = "unbounded_features_scenario/unb_poly_0_8_ntilde_poiss.Rda")
+load(file = "unbounded_features_scenario/unb_poly_0_8_ntilde_negbin.Rda")
+
+###### 3) Read results: CI for extrapolation (Poiss/NB/Gamma) ################
+list_kmn_pred_test_poiss <- readRDS(file = "unbounded_features_scenario/unb_poly_0_8_ci_poiss.rds")
+list_kmn_pred_test_negbin <- readRDS(file = "unbounded_features_scenario/unb_poly_0_8_ci_negbin.rds")
+list_kmn_pred_test_ibp <- readRDS(file = "unbounded_features_scenario/unb_poly_0_8_ci_ibp.rds")
+
+###### 3.b) Read results: CI for insample (Poiss/NB/Gamma) ################
+list_kn_rarefaction_poiss <- readRDS(file = "unbounded_features_scenario/unb_poly_0_8_ci_insample_poiss.rds")
+list_kn_rarefaction_negbin <- readRDS(file = "unbounded_features_scenario/unb_poly_0_8_ci_insample_negbin.rds")
+list_kn_rarefaction_ibp <- readRDS(file = "unbounded_features_scenario/unb_poly_0_8_ci_insample_ibp.rds")
+
+###### 4) Read the data ###############################
+data_mat <- readRDS(file = "unbounded_features_scenario/unb_poly_0_8_data_mat.rds")
+data_list <- create_features_list(data_mat)
+L <- nrow(data_mat)
+Ms <- sapply(list_kmn_pred_test_poiss, function(l) length(l$medians))
+Ns <- L - Ms
+
+
+
+##### Accuracy on multiple datasets #####
+
+###### 1) Read results: limit distribution estimates #####
+load(file = "unbounded_features_scenario/unb_poly_0_8_avg_ntilde_poiss.Rda")
+load(file = "unbounded_features_scenario/unb_poly_0_8_avg_ntilde_negbin.Rda")
+
+###### 2) Read results: quantities on accuracy #####
+load(file = "unbounded_features_scenario/unb_poly_0_8_obs_train.Rda")
+load(file = "unbounded_features_scenario/unb_poly_0_8_obs_new.Rda")
+
+load(file = "unbounded_features_scenario/unb_poly_0_8_est_new_poiss.Rda")
+load(file = "unbounded_features_scenario/unb_poly_0_8_est_new_negbin.Rda")
+load(file = "unbounded_features_scenario/unb_poly_0_8_est_new_ibp.Rda")
+
+D <- nrow(avg_ntilde_poiss)
+
+```
+
+Set $\pi_k = \frac{1}{k}$, for $k =1,\ldots,H$, with $H = 10^5$. Let $L$ be the total dimension of the dataset, and consider different dimensions for the training set $n$, i.e. 
+
+```{r, echo=FALSE}
+# Total dimension of the dataset
+cat("L = ",L, "\n", sep = "\t")
+# Different dimensions of the training set
+cat("n = ",as.numeric(Ns), "\n", sep = "\t")
+```
+
+Here, the curve representing the number of observed features in increasing samples, where the grey vertical lines indicate the different training dimensions.
+
+```{r, echo=FALSE, fig.align = "center"}
+    
+plot_trajectory(data_list) + 
+  ggtitle("Number of observed features in increasing samples") +
+  geom_vline(xintercept = Ns, color="grey", linetype="dashed", linewidth=1)
+
+```
+
+\newpage
+Here, we report (i.a) the in-sample rarefaction curve (on a single dataset).
+
+```{r, echo=FALSE}
+gg_kn_rarefaction_all  <- vector(mode="list", length = length(Ns))
+
+for (j in 1:length(Ns)){
+  N <- Ns[j]
+
+  train_mat <- data_mat[1:N,]
+  # convert the binary matrix into list of features
+  train_list <- create_features_list(train_mat)
+
+  gg_kn_rarefaction_all[[j]] <- plot_Kn_median_and_rarefaction_all(
+    train_list = train_list,
+    ci_poiss = list_kn_rarefaction_poiss[[paste0("N.",N)]], 
+    ci_negbin = list_kn_rarefaction_negbin[[paste0("N.",N)]],
+    ci_ibp = list_kn_rarefaction_ibp[[paste0("N.",N)]],
+    n_avg = 100) +
+    ggtitle(paste0("n = ", N))
+  
+}
+```
+
+```{r, echo=FALSE, fig.align = "center"}
+# Print plots
+grid.arrange(grobs = gg_kn_rarefaction_all, ncol= 2)
+
+```
+
+Here, we report (i.b) the extrapolated rarefaction curve (on a single dataset).
+
+```{r, echo=FALSE}
+gg_kmn_pred_test_all  <- vector(mode="list", length = length(Ns))
+
+for (j in 1:length(Ns)){
+  N <- Ns[j]
+  M <- L - N
+  
+  train_mat <- data_mat[1:N,]
+  test_mat <- data_mat[(N+1):L, ]
+  # convert the binary matrix into list of features
+  train_list <- create_features_list(train_mat)
+  test_list <- create_features_list(test_mat)
+  
+  
+  gg_kmn_pred_test_all[[j]] <- plot_Kmn_median_pred_and_test_all(
+    train_list = train_list,
+    test_list = test_list,
+    ci_poiss = list_kmn_pred_test_poiss[[paste0("N.",N)]], 
+    ci_negbin = list_kmn_pred_test_negbin[[paste0("N.",N)]],
+    ci_ibp = list_kmn_pred_test_ibp[[paste0("N.",N)]],
+    n_avg = 100) +
+    ggtitle(paste0("n = ", N))
+  
+}
+
+```
+
+
+```{r, echo=FALSE, fig.align = "center"}
+# Print plots
+grid.arrange(grobs = gg_kmn_pred_test_all, ncol= 2)
+
+```
+
+Here, we report (ii) the accuracy of the estimated number of unseen features in the test sample, over $D=50$ replicated datasets. 
+
+```{r, echo=FALSE, fig.align = "center"}
+# Print plots
+acc_alt_poiss <- 1/(1 + abs(obs_new - est_new_poiss)/obs_train)
+
+acc_alt_negbin <- 1/(1 + abs(obs_new - est_new_negbin)/obs_train)
+
+acc_alt_ibp <- 1/(1 + abs(obs_new - est_new_ibp)/obs_train)
+
+acc_alt_poiss_long <- gather(acc_alt_poiss, training, accuracy, 
+                                paste0("N.",Ns[1]):paste0("N.",Ns[length(Ns)]), factor_key=TRUE) %>%
+  add_column(model = "Poiss", N = rep(Ns, each = D))
+
+acc_alt_negbin_long <- gather(acc_alt_negbin, training , accuracy, 
+                                 paste0("N.",Ns[1]):paste0("N.",Ns[length(Ns)]), factor_key=TRUE) %>%
+  add_column(model = "Neg-Bin", N = rep(Ns, each = D))
+
+acc_alt_ibp_long <- gather(acc_alt_ibp, training , accuracy, 
+                              paste0("N.",Ns[1]):paste0("N.",Ns[length(Ns)]), factor_key=TRUE) %>%
+  add_column(model = "Gamma IBP", N = rep(Ns, each = D))
+
+joint_alt_long <- bind_rows(acc_alt_poiss_long, acc_alt_negbin_long, acc_alt_ibp_long)
+
+# plots
+ggplot(joint_alt_long, aes( y=accuracy, fill=model)) + 
+  geom_boxplot() + 
+  facet_wrap(~N) +
+  theme_bw() + 
+  theme(plot.title = element_text(hjust = 0.5)) +
+  ggtitle(paste0("Unbounded-feature (exp 0.8): accuracy on D = ", D)) +
+  scale_y_continuous(breaks = pretty_breaks()) 
+
+
+```
+
+
+
+\newpage
+### Scenario 3: polynomial growth with exponent 1.2
+
+```{r, include=FALSE, eval=TRUE}
+####
+##### Unbounded-features scenario ############################
+####
+
+rm(list=ls())
+library(ggmcmc)
+library(coda)
+library(ggpubr)
+library(scales)
+
+##### Single dataset -> Ntilde (Poiss/NB) and extrapolation (Poiss/NB/Gamma) #####
+
+###### 1) Read results:  MCMC convergence ####################
+load(file = "unbounded_features_scenario/unb_poly_1_2_params_poiss.Rda")
+load(file =  "unbounded_features_scenario/unb_poly_1_2_params_negbin.Rda")
+load(file =  "unbounded_features_scenario/unb_poly_1_2_params_ibp.Rda", )
+
+###### 2) Read results: samples from limiting distributions (Poiss/NB) ##############
+load(file = "unbounded_features_scenario/unb_poly_1_2_ntilde_poiss.Rda")
+load(file = "unbounded_features_scenario/unb_poly_1_2_ntilde_negbin.Rda")
+
+###### 3) Read results: CI for extrapolation (Poiss/NB/Gamma) ################
+list_kmn_pred_test_poiss <- readRDS(file = "unbounded_features_scenario/unb_poly_1_2_ci_poiss.rds")
+list_kmn_pred_test_negbin <- readRDS(file = "unbounded_features_scenario/unb_poly_1_2_ci_negbin.rds")
+list_kmn_pred_test_ibp <- readRDS(file = "unbounded_features_scenario/unb_poly_1_2_ci_ibp.rds")
+
+###### 3.b) Read results: CI for insample (Poiss/NB/Gamma) ################
+list_kn_rarefaction_poiss <- readRDS(file = "unbounded_features_scenario/unb_poly_1_2_ci_insample_poiss.rds")
+list_kn_rarefaction_negbin <- readRDS(file = "unbounded_features_scenario/unb_poly_1_2_ci_insample_negbin.rds")
+list_kn_rarefaction_ibp <- readRDS(file = "unbounded_features_scenario/unb_poly_1_2_ci_insample_ibp.rds")
+
+###### 4) Read the data ###############################
+data_mat <- readRDS(file = "unbounded_features_scenario/unb_poly_1_2_data_mat.rds")
+data_list <- create_features_list(data_mat)
+L <- nrow(data_mat)
+Ms <- sapply(list_kmn_pred_test_poiss, function(l) length(l$medians))
+Ns <- L - Ms
+
+
+
+##### Accuracy on multiple datasets #####
+
+###### 1) Read results: limit distribution estimates #####
+load(file = "unbounded_features_scenario/unb_poly_1_2_avg_ntilde_poiss.Rda")
+load(file = "unbounded_features_scenario/unb_poly_1_2_avg_ntilde_negbin.Rda")
+
+###### 2) Read results: quantities on accuracy #####
+load(file = "unbounded_features_scenario/unb_poly_1_2_obs_train.Rda")
+load(file = "unbounded_features_scenario/unb_poly_1_2_obs_new.Rda")
+
+load(file = "unbounded_features_scenario/unb_poly_1_2_est_new_poiss.Rda")
+load(file = "unbounded_features_scenario/unb_poly_1_2_est_new_negbin.Rda")
+load(file = "unbounded_features_scenario/unb_poly_1_2_est_new_ibp.Rda")
+
+D <- nrow(avg_ntilde_poiss)
+
+```
+
+Set $\pi_k = \frac{1}{k}$, for $k =1,\ldots,H$, with $H = 10^5$. Let $L$ be the total dimension of the dataset, and consider different dimensions for the training set $n$, i.e. 
+
+```{r, echo=FALSE}
+# Total dimension of the dataset
+cat("L = ",L, "\n", sep = "\t")
+# Different dimensions of the training set
+cat("n = ",as.numeric(Ns), "\n", sep = "\t")
+```
+
+Here, the curve representing the number of observed features in increasing samples, where the grey vertical lines indicate the different training dimensions.
+
+```{r, echo=FALSE, fig.align = "center"}
+    
+plot_trajectory(data_list) + 
+  ggtitle("Number of observed features in increasing samples") +
+  geom_vline(xintercept = Ns, color="grey", linetype="dashed", linewidth=1)
+
+```
+
+\newpage
+Here, we report (i.a) the in-sample rarefaction curve (on a single dataset).
+
+```{r, echo=FALSE}
+gg_kn_rarefaction_all  <- vector(mode="list", length = length(Ns))
+
+for (j in 1:length(Ns)){
+  N <- Ns[j]
+
+  train_mat <- data_mat[1:N,]
+  # convert the binary matrix into list of features
+  train_list <- create_features_list(train_mat)
+
+  gg_kn_rarefaction_all[[j]] <- plot_Kn_median_and_rarefaction_all(
+    train_list = train_list,
+    ci_poiss = list_kn_rarefaction_poiss[[paste0("N.",N)]], 
+    ci_negbin = list_kn_rarefaction_negbin[[paste0("N.",N)]],
+    ci_ibp = list_kn_rarefaction_ibp[[paste0("N.",N)]],
+    n_avg = 100) +
+    ggtitle(paste0("n = ", N))
+  
+}
+```
+
+```{r, echo=FALSE, fig.align = "center"}
+# Print plots
+grid.arrange(grobs = gg_kn_rarefaction_all, ncol= 2)
+
+```
+
+Here, we report (i.b) the extrapolated rarefaction curve (on a single dataset).
+
+```{r, echo=FALSE}
+gg_kmn_pred_test_all  <- vector(mode="list", length = length(Ns))
+
+for (j in 1:length(Ns)){
+  N <- Ns[j]
+  M <- L - N
+  
+  train_mat <- data_mat[1:N,]
+  test_mat <- data_mat[(N+1):L, ]
+  # convert the binary matrix into list of features
+  train_list <- create_features_list(train_mat)
+  test_list <- create_features_list(test_mat)
+  
+  
+  gg_kmn_pred_test_all[[j]] <- plot_Kmn_median_pred_and_test_all(
+    train_list = train_list,
+    test_list = test_list,
+    ci_poiss = list_kmn_pred_test_poiss[[paste0("N.",N)]], 
+    ci_negbin = list_kmn_pred_test_negbin[[paste0("N.",N)]],
+    ci_ibp = list_kmn_pred_test_ibp[[paste0("N.",N)]],
+    n_avg = 100) +
+    ggtitle(paste0("n = ", N))
+  
+}
+
+```
+
+
+```{r, echo=FALSE, fig.align = "center"}
+# Print plots
+grid.arrange(grobs = gg_kmn_pred_test_all, ncol= 2)
+
+```
+
+Here, we report (ii) the accuracy of the estimated number of unseen features in the test sample, over $D=50$ replicated datasets. 
+
+```{r, echo=FALSE, fig.align = "center"}
+# Print plots
+acc_alt_poiss <- 1/(1 + abs(obs_new - est_new_poiss)/obs_train)
+
+acc_alt_negbin <- 1/(1 + abs(obs_new - est_new_negbin)/obs_train)
+
+acc_alt_ibp <- 1/(1 + abs(obs_new - est_new_ibp)/obs_train)
+
+acc_alt_poiss_long <- gather(acc_alt_poiss, training, accuracy, 
+                                paste0("N.",Ns[1]):paste0("N.",Ns[length(Ns)]), factor_key=TRUE) %>%
+  add_column(model = "Poiss", N = rep(Ns, each = D))
+
+acc_alt_negbin_long <- gather(acc_alt_negbin, training , accuracy, 
+                                 paste0("N.",Ns[1]):paste0("N.",Ns[length(Ns)]), factor_key=TRUE) %>%
+  add_column(model = "Neg-Bin", N = rep(Ns, each = D))
+
+acc_alt_ibp_long <- gather(acc_alt_ibp, training , accuracy, 
+                              paste0("N.",Ns[1]):paste0("N.",Ns[length(Ns)]), factor_key=TRUE) %>%
+  add_column(model = "Gamma IBP", N = rep(Ns, each = D))
+
+joint_alt_long <- bind_rows(acc_alt_poiss_long, acc_alt_negbin_long, acc_alt_ibp_long)
+
+# plots
+ggplot(joint_alt_long, aes( y=accuracy, fill=model)) + 
+  geom_boxplot() + 
+  facet_wrap(~N) +
+  theme_bw() + 
+  theme(plot.title = element_text(hjust = 0.5)) +
+  ggtitle(paste0("Unbounded-feature (exp 1.2): accuracy on D = ", D)) +
   scale_y_continuous(breaks = pretty_breaks()) 
 
 

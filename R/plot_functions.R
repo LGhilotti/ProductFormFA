@@ -266,9 +266,8 @@ plot_Kn_median_and_rarefaction_all <- function(
     geom_line(linetype = "dashed") +
     geom_ribbon(aes(ymin = lbs, ymax = ubs, fill = model), alpha = 0.1) +
     geom_line(data = obs_sample, aes(x, nfeat), color="black", linetype="solid", linewidth=0.5) +
-    xlab("n = # observations") + ylab(expression(K[n])) + theme_bw() + 
+    xlab("# observations") + ylab("# distinct features") + theme_bw() + 
     theme(plot.title = element_text(hjust = 0.5)) +
-    ggtitle("In-sample rarefaction curve") +
     scale_y_continuous(breaks = pretty_breaks()) +
     scale_x_continuous(breaks = pretty_breaks())
   
