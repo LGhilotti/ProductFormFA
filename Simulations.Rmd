@@ -20,7 +20,7 @@ library(ProductFormFA)
 In this section, we illustrate the performance of the different proposed models under different scenarios. Through these simulations, we aim at highlighting the model-specific properties that we have discussed in the previous sections, both in terms of in-sample rarefaction curve and in terms of prediction of the number of unseen features in future samples. To this end, we distinguish between two broad classes of generating mechanisms, i.e. (i) bounded-features scenarios, where the number of features observable in the population is bounded, that is $\exists K^* > 0$ such that $\lim_{n \to \infty} K_n = K^*$ almost surely; (ii) unbounded-features scenarios, where the number of features observable in the population is unbounded, that is $\lim_{n \to \infty} K_n = \infty$ almost surely. We are going to discuss how the two examples of feature allocation models - *Mixtures of IBP* and *Mixtures of Beta-Bernoulli with $N$ features* - are suitable for different scenarios. Remark: it is not possible to establish with certainty whether the true generating mechanism belongs to a bounded-features scenario or an unbounded-features one by looking at the data. This decision pertains to the analyst, based on expert knowledge of the problem, translated into proper modeling assumptions. Through the following simulations, we just want to show that, if the true generating mechanism were known, then some models are more suitable than others to fit the data. As a consequence, when the knowledge of the problem suggests one of the two scenarios, some models might be preferred with respect to others.  
 
 ## Bounded-features scenarios
-For these scenarios, we consider 5 ecological species detection models, as in \href{https://besjournals.onlinelibrary.wiley.com/doi/full/10.1111/2041-210X.13979}{Chiu (2022)}. Within these settings, the individuals are geographical sites where species of animals are collected (each species is a feature which might be displayed by the individual). In each scenario, the total number of species is $H=500$ and the species occurrence probabilities $(\pi_1,\ldots,\pi_H)$ are determined. We compare the Gamma mixture of IBP, the mixture of Beta-Bernoulli with Poisson prior on $N$ and the mixture of Beta-Bernoulli with negative binomial prior on $N$. For each setting and each model we show the following quantities, estimated for different dimensions of the training set: (i.a) the in-sample rarefaction curve (on a single dataset), (i.b) the extrapolated rarefaction curve on the test set (on a single dataset), (ii) the accuracy of the estimated number of unseen features in the test sample, over $D=50$ replicated datasets. Specifically, we focus on the following measure of accuracy, denoted with $\nu_m^{(n)}$, 
+In this section, we consider 5 ecological species detection models, as in \href{https://besjournals.onlinelibrary.wiley.com/doi/full/10.1111/2041-210X.13979}{Chiu (2022)}. Within these settings, the individuals are geographical sites where species of animals are collected (each species is a feature which might be displayed by the individual). In each scenario, the total number of species is $H=500$ and the species occurrence probabilities $(\pi_1,\ldots,\pi_H)$ are determined. We compare the Gamma mixture of IBP, the mixture of Beta-Bernoulli with Poisson prior on $N$ and the mixture of Beta-Bernoulli with negative binomial prior on $N$. For each setting and each model we show the following quantities, estimated for different dimensions of the training set: (i.a) the in-sample rarefaction curve (on a single dataset), (i.b) the extrapolated rarefaction curve on the test set (on a single dataset), (ii) the accuracy of the estimated number of unseen features in the test sample, over $D=50$ replicated datasets. Specifically, we focus on the following measure of accuracy, denoted with $\nu_m^{(n)}$, 
 \[
 \nu_m^{(n)} := \frac{1}{1 + \frac{|\tilde{K}_m^{(n)} - \hat{K}_m^{(n)} |}{\tilde{K}_n}},
 \]
@@ -1258,7 +1258,7 @@ ggplot(joint_ntilde_long, aes( y=estimate, fill=model)) +
 
 \newpage
 ## Unbounded-features scenarios
-We consider 3 different scenarios corresponding to 3 different growth rates of the number of distinct features observed in the population. 
+We consider 3 different scenarios corresponding to 3 different growth rates of the number of distinct features observed in the population. Note: in the following simulations related to mixtures of Beta-Bernoulli, the $\alpha$ parameter (which belongs to $(-\infty, 0)$) tends to concentrate around $0$, since the model strives to mimic the unbounded-features framework. For this reason, the mixing of such a chain is sometimes not ideal, but we can just put a prior on $\alpha$ (e.g. smaller variance) which makes the mixing better. The produced inference is overall invariant, in the sense that the pictures of rarefaction curves, etc.. look the same. 
 
 ### Scenario 1: polynomial growth with exponent 1
 
@@ -1276,26 +1276,26 @@ library(scales)
 ##### Single dataset -> Ntilde (Poiss/NB) and extrapolation (Poiss/NB/Gamma) #####
 
 ###### 1) Read results:  MCMC convergence ####################
-load(file = "unbounded_features_scenario/unb_poly_1_params_poiss.Rda")
-load(file =  "unbounded_features_scenario/unb_poly_1_params_negbin.Rda")
-load(file =  "unbounded_features_scenario/unb_poly_1_params_ibp.Rda", )
+load(file = "unbounded_features_simulation/unb_poly_1/unb_poly_1_params_poiss.Rda")
+load(file =  "unbounded_features_simulation/unb_poly_1/unb_poly_1_params_negbin.Rda")
+load(file =  "unbounded_features_simulation/unb_poly_1/unb_poly_1_params_ibp.Rda", )
 
 ###### 2) Read results: samples from limiting distributions (Poiss/NB) ##############
-load(file = "unbounded_features_scenario/unb_poly_1_ntilde_poiss.Rda")
-load(file = "unbounded_features_scenario/unb_poly_1_ntilde_negbin.Rda")
+load(file = "unbounded_features_simulation/unb_poly_1/unb_poly_1_ntilde_poiss.Rda")
+load(file = "unbounded_features_simulation/unb_poly_1/unb_poly_1_ntilde_negbin.Rda")
 
 ###### 3) Read results: CI for extrapolation (Poiss/NB/Gamma) ################
-list_kmn_pred_test_poiss <- readRDS(file = "unbounded_features_scenario/unb_poly_1_ci_poiss.rds")
-list_kmn_pred_test_negbin <- readRDS(file = "unbounded_features_scenario/unb_poly_1_ci_negbin.rds")
-list_kmn_pred_test_ibp <- readRDS(file = "unbounded_features_scenario/unb_poly_1_ci_ibp.rds")
+list_kmn_pred_test_poiss <- readRDS(file = "unbounded_features_simulation/unb_poly_1/unb_poly_1_ci_poiss.rds")
+list_kmn_pred_test_negbin <- readRDS(file = "unbounded_features_simulation/unb_poly_1/unb_poly_1_ci_negbin.rds")
+list_kmn_pred_test_ibp <- readRDS(file = "unbounded_features_simulation/unb_poly_1/unb_poly_1_ci_ibp.rds")
 
 ###### 3.b) Read results: CI for insample (Poiss/NB/Gamma) ################
-list_kn_rarefaction_poiss <- readRDS(file = "unbounded_features_scenario/unb_poly_1_ci_insample_poiss.rds")
-list_kn_rarefaction_negbin <- readRDS(file = "unbounded_features_scenario/unb_poly_1_ci_insample_negbin.rds")
-list_kn_rarefaction_ibp <- readRDS(file = "unbounded_features_scenario/unb_poly_1_ci_insample_ibp.rds")
+list_kn_rarefaction_poiss <- readRDS(file = "unbounded_features_simulation/unb_poly_1/unb_poly_1_ci_insample_poiss.rds")
+list_kn_rarefaction_negbin <- readRDS(file = "unbounded_features_simulation/unb_poly_1/unb_poly_1_ci_insample_negbin.rds")
+list_kn_rarefaction_ibp <- readRDS(file = "unbounded_features_simulation/unb_poly_1/unb_poly_1_ci_insample_ibp.rds")
 
 ###### 4) Read the data ###############################
-data_mat <- readRDS(file = "unbounded_features_scenario/unb_poly_1_data_mat.rds")
+data_mat <- readRDS(file = "unbounded_features_simulation/unb_poly_1/unb_poly_1_data_mat.rds")
 data_list <- create_features_list(data_mat)
 L <- nrow(data_mat)
 Ms <- sapply(list_kmn_pred_test_poiss, function(l) length(l$medians))
@@ -1306,16 +1306,16 @@ Ns <- L - Ms
 ##### Accuracy on multiple datasets #####
 
 ###### 1) Read results: limit distribution estimates #####
-load(file = "unbounded_features_scenario/unb_poly_1_avg_ntilde_poiss.Rda")
-load(file = "unbounded_features_scenario/unb_poly_1_avg_ntilde_negbin.Rda")
+load(file = "unbounded_features_simulation/unb_poly_1/unb_poly_1_avg_ntilde_poiss.Rda")
+load(file = "unbounded_features_simulation/unb_poly_1/unb_poly_1_avg_ntilde_negbin.Rda")
 
 ###### 2) Read results: quantities on accuracy #####
-load(file = "unbounded_features_scenario/unb_poly_1_obs_train.Rda")
-load(file = "unbounded_features_scenario/unb_poly_1_obs_new.Rda")
+load(file = "unbounded_features_simulation/unb_poly_1/unb_poly_1_obs_train.Rda")
+load(file = "unbounded_features_simulation/unb_poly_1/unb_poly_1_obs_new.Rda")
 
-load(file = "unbounded_features_scenario/unb_poly_1_est_new_poiss.Rda")
-load(file = "unbounded_features_scenario/unb_poly_1_est_new_negbin.Rda")
-load(file = "unbounded_features_scenario/unb_poly_1_est_new_ibp.Rda")
+load(file = "unbounded_features_simulation/unb_poly_1/unb_poly_1_est_new_poiss.Rda")
+load(file = "unbounded_features_simulation/unb_poly_1/unb_poly_1_est_new_negbin.Rda")
+load(file = "unbounded_features_simulation/unb_poly_1/unb_poly_1_est_new_ibp.Rda")
 
 D <- nrow(avg_ntilde_poiss)
 
@@ -1459,26 +1459,26 @@ library(scales)
 ##### Single dataset -> Ntilde (Poiss/NB) and extrapolation (Poiss/NB/Gamma) #####
 
 ###### 1) Read results:  MCMC convergence ####################
-load(file = "unbounded_features_scenario/unb_poly_0_8_params_poiss.Rda")
-load(file =  "unbounded_features_scenario/unb_poly_0_8_params_negbin.Rda")
-load(file =  "unbounded_features_scenario/unb_poly_0_8_params_ibp.Rda", )
+load(file = "unbounded_features_simulation/unb_poly_0_8/unb_poly_0_8_params_poiss.Rda")
+load(file =  "unbounded_features_simulation/unb_poly_0_8/unb_poly_0_8_params_negbin.Rda")
+load(file =  "unbounded_features_simulation/unb_poly_0_8/unb_poly_0_8_params_ibp.Rda", )
 
 ###### 2) Read results: samples from limiting distributions (Poiss/NB) ##############
-load(file = "unbounded_features_scenario/unb_poly_0_8_ntilde_poiss.Rda")
-load(file = "unbounded_features_scenario/unb_poly_0_8_ntilde_negbin.Rda")
+load(file = "unbounded_features_simulation/unb_poly_0_8/unb_poly_0_8_ntilde_poiss.Rda")
+load(file = "unbounded_features_simulation/unb_poly_0_8/unb_poly_0_8_ntilde_negbin.Rda")
 
 ###### 3) Read results: CI for extrapolation (Poiss/NB/Gamma) ################
-list_kmn_pred_test_poiss <- readRDS(file = "unbounded_features_scenario/unb_poly_0_8_ci_poiss.rds")
-list_kmn_pred_test_negbin <- readRDS(file = "unbounded_features_scenario/unb_poly_0_8_ci_negbin.rds")
-list_kmn_pred_test_ibp <- readRDS(file = "unbounded_features_scenario/unb_poly_0_8_ci_ibp.rds")
+list_kmn_pred_test_poiss <- readRDS(file = "unbounded_features_simulation/unb_poly_0_8/unb_poly_0_8_ci_poiss.rds")
+list_kmn_pred_test_negbin <- readRDS(file = "unbounded_features_simulation/unb_poly_0_8/unb_poly_0_8_ci_negbin.rds")
+list_kmn_pred_test_ibp <- readRDS(file = "unbounded_features_simulation/unb_poly_0_8/unb_poly_0_8_ci_ibp.rds")
 
 ###### 3.b) Read results: CI for insample (Poiss/NB/Gamma) ################
-list_kn_rarefaction_poiss <- readRDS(file = "unbounded_features_scenario/unb_poly_0_8_ci_insample_poiss.rds")
-list_kn_rarefaction_negbin <- readRDS(file = "unbounded_features_scenario/unb_poly_0_8_ci_insample_negbin.rds")
-list_kn_rarefaction_ibp <- readRDS(file = "unbounded_features_scenario/unb_poly_0_8_ci_insample_ibp.rds")
+list_kn_rarefaction_poiss <- readRDS(file = "unbounded_features_simulation/unb_poly_0_8/unb_poly_0_8_ci_insample_poiss.rds")
+list_kn_rarefaction_negbin <- readRDS(file = "unbounded_features_simulation/unb_poly_0_8/unb_poly_0_8_ci_insample_negbin.rds")
+list_kn_rarefaction_ibp <- readRDS(file = "unbounded_features_simulation/unb_poly_0_8/unb_poly_0_8_ci_insample_ibp.rds")
 
 ###### 4) Read the data ###############################
-data_mat <- readRDS(file = "unbounded_features_scenario/unb_poly_0_8_data_mat.rds")
+data_mat <- readRDS(file = "unbounded_features_simulation/unb_poly_0_8/unb_poly_0_8_data_mat.rds")
 data_list <- create_features_list(data_mat)
 L <- nrow(data_mat)
 Ms <- sapply(list_kmn_pred_test_poiss, function(l) length(l$medians))
@@ -1489,16 +1489,16 @@ Ns <- L - Ms
 ##### Accuracy on multiple datasets #####
 
 ###### 1) Read results: limit distribution estimates #####
-load(file = "unbounded_features_scenario/unb_poly_0_8_avg_ntilde_poiss.Rda")
-load(file = "unbounded_features_scenario/unb_poly_0_8_avg_ntilde_negbin.Rda")
+load(file = "unbounded_features_simulation/unb_poly_0_8/unb_poly_0_8_avg_ntilde_poiss.Rda")
+load(file = "unbounded_features_simulation/unb_poly_0_8/unb_poly_0_8_avg_ntilde_negbin.Rda")
 
 ###### 2) Read results: quantities on accuracy #####
-load(file = "unbounded_features_scenario/unb_poly_0_8_obs_train.Rda")
-load(file = "unbounded_features_scenario/unb_poly_0_8_obs_new.Rda")
+load(file = "unbounded_features_simulation/unb_poly_0_8/unb_poly_0_8_obs_train.Rda")
+load(file = "unbounded_features_simulation/unb_poly_0_8/unb_poly_0_8_obs_new.Rda")
 
-load(file = "unbounded_features_scenario/unb_poly_0_8_est_new_poiss.Rda")
-load(file = "unbounded_features_scenario/unb_poly_0_8_est_new_negbin.Rda")
-load(file = "unbounded_features_scenario/unb_poly_0_8_est_new_ibp.Rda")
+load(file = "unbounded_features_simulation/unb_poly_0_8/unb_poly_0_8_est_new_poiss.Rda")
+load(file = "unbounded_features_simulation/unb_poly_0_8/unb_poly_0_8_est_new_negbin.Rda")
+load(file = "unbounded_features_simulation/unb_poly_0_8/unb_poly_0_8_est_new_ibp.Rda")
 
 D <- nrow(avg_ntilde_poiss)
 
@@ -1644,26 +1644,26 @@ library(scales)
 ##### Single dataset -> Ntilde (Poiss/NB) and extrapolation (Poiss/NB/Gamma) #####
 
 ###### 1) Read results:  MCMC convergence ####################
-load(file = "unbounded_features_scenario/unb_poly_1_2_params_poiss.Rda")
-load(file =  "unbounded_features_scenario/unb_poly_1_2_params_negbin.Rda")
-load(file =  "unbounded_features_scenario/unb_poly_1_2_params_ibp.Rda", )
+load(file = "unbounded_features_simulation/unb_poly_1_2/unb_poly_1_2_params_poiss.Rda")
+load(file =  "unbounded_features_simulation/unb_poly_1_2/unb_poly_1_2_params_negbin.Rda")
+load(file =  "unbounded_features_simulation/unb_poly_1_2/unb_poly_1_2_params_ibp.Rda", )
 
 ###### 2) Read results: samples from limiting distributions (Poiss/NB) ##############
-load(file = "unbounded_features_scenario/unb_poly_1_2_ntilde_poiss.Rda")
-load(file = "unbounded_features_scenario/unb_poly_1_2_ntilde_negbin.Rda")
+load(file = "unbounded_features_simulation/unb_poly_1_2/unb_poly_1_2_ntilde_poiss.Rda")
+load(file = "unbounded_features_simulation/unb_poly_1_2/unb_poly_1_2_ntilde_negbin.Rda")
 
 ###### 3) Read results: CI for extrapolation (Poiss/NB/Gamma) ################
-list_kmn_pred_test_poiss <- readRDS(file = "unbounded_features_scenario/unb_poly_1_2_ci_poiss.rds")
-list_kmn_pred_test_negbin <- readRDS(file = "unbounded_features_scenario/unb_poly_1_2_ci_negbin.rds")
-list_kmn_pred_test_ibp <- readRDS(file = "unbounded_features_scenario/unb_poly_1_2_ci_ibp.rds")
+list_kmn_pred_test_poiss <- readRDS(file = "unbounded_features_simulation/unb_poly_1_2/unb_poly_1_2_ci_poiss.rds")
+list_kmn_pred_test_negbin <- readRDS(file = "unbounded_features_simulation/unb_poly_1_2/unb_poly_1_2_ci_negbin.rds")
+list_kmn_pred_test_ibp <- readRDS(file = "unbounded_features_simulation/unb_poly_1_2/unb_poly_1_2_ci_ibp.rds")
 
 ###### 3.b) Read results: CI for insample (Poiss/NB/Gamma) ################
-list_kn_rarefaction_poiss <- readRDS(file = "unbounded_features_scenario/unb_poly_1_2_ci_insample_poiss.rds")
-list_kn_rarefaction_negbin <- readRDS(file = "unbounded_features_scenario/unb_poly_1_2_ci_insample_negbin.rds")
-list_kn_rarefaction_ibp <- readRDS(file = "unbounded_features_scenario/unb_poly_1_2_ci_insample_ibp.rds")
+list_kn_rarefaction_poiss <- readRDS(file = "unbounded_features_simulation/unb_poly_1_2/unb_poly_1_2_ci_insample_poiss.rds")
+list_kn_rarefaction_negbin <- readRDS(file = "unbounded_features_simulation/unb_poly_1_2/unb_poly_1_2_ci_insample_negbin.rds")
+list_kn_rarefaction_ibp <- readRDS(file = "unbounded_features_simulation/unb_poly_1_2/unb_poly_1_2_ci_insample_ibp.rds")
 
 ###### 4) Read the data ###############################
-data_mat <- readRDS(file = "unbounded_features_scenario/unb_poly_1_2_data_mat.rds")
+data_mat <- readRDS(file = "unbounded_features_simulation/unb_poly_1_2/unb_poly_1_2_data_mat.rds")
 data_list <- create_features_list(data_mat)
 L <- nrow(data_mat)
 Ms <- sapply(list_kmn_pred_test_poiss, function(l) length(l$medians))
@@ -1674,16 +1674,16 @@ Ns <- L - Ms
 ##### Accuracy on multiple datasets #####
 
 ###### 1) Read results: limit distribution estimates #####
-load(file = "unbounded_features_scenario/unb_poly_1_2_avg_ntilde_poiss.Rda")
-load(file = "unbounded_features_scenario/unb_poly_1_2_avg_ntilde_negbin.Rda")
+load(file = "unbounded_features_simulation/unb_poly_1_2/unb_poly_1_2_avg_ntilde_poiss.Rda")
+load(file = "unbounded_features_simulation/unb_poly_1_2/unb_poly_1_2_avg_ntilde_negbin.Rda")
 
 ###### 2) Read results: quantities on accuracy #####
-load(file = "unbounded_features_scenario/unb_poly_1_2_obs_train.Rda")
-load(file = "unbounded_features_scenario/unb_poly_1_2_obs_new.Rda")
+load(file = "unbounded_features_simulation/unb_poly_1_2/unb_poly_1_2_obs_train.Rda")
+load(file = "unbounded_features_simulation/unb_poly_1_2/unb_poly_1_2_obs_new.Rda")
 
-load(file = "unbounded_features_scenario/unb_poly_1_2_est_new_poiss.Rda")
-load(file = "unbounded_features_scenario/unb_poly_1_2_est_new_negbin.Rda")
-load(file = "unbounded_features_scenario/unb_poly_1_2_est_new_ibp.Rda")
+load(file = "unbounded_features_simulation/unb_poly_1_2/unb_poly_1_2_est_new_poiss.Rda")
+load(file = "unbounded_features_simulation/unb_poly_1_2/unb_poly_1_2_est_new_negbin.Rda")
+load(file = "unbounded_features_simulation/unb_poly_1_2/unb_poly_1_2_est_new_ibp.Rda")
 
 D <- nrow(avg_ntilde_poiss)
 

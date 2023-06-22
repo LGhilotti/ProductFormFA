@@ -923,7 +923,7 @@ nstar_0_nb <- 100
 p_0_nb <- 0.2
 # Set initial values for other parameters
 alpha_bar_0_bb <- 1
-s_0_bb <- 1
+s_0_bb <- 100 # 1
 
 
 ########## 1.2) Set parameters for the Gamma IBP

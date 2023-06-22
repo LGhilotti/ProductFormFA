@@ -612,13 +612,13 @@ library(scales)
 ##### Single dataset -> Ntilde (Poiss/NB) and extrapolation (Poiss/NB/Gamma) #####
 
 ###### 1) Read results ####################
-load(file = "unbounded_features_scenario/unb_poly_1_params_poiss.Rda")
-load(file =  "unbounded_features_scenario/unb_poly_1_params_negbin.Rda")
-load(file =  "unbounded_features_scenario/unb_poly_1_params_ibp.Rda", )
-list_kmn_pred_test_poiss <- readRDS(file = "unbounded_features_scenario/unb_poly_1_ci_poiss.rds")
+load(file = "unbounded_features_simulation/unb_poly_1/unb_poly_1_params_poiss.Rda")
+load(file =  "unbounded_features_simulation/unb_poly_1/unb_poly_1_params_negbin.Rda")
+load(file =  "unbounded_features_simulation/unb_poly_1/unb_poly_1_params_ibp.Rda", )
+list_kmn_pred_test_poiss <- readRDS(file = "unbounded_features_simulation/unb_poly_1/unb_poly_1_ci_poiss.rds")
 
 ###### 4) Read the data ###############################
-data_mat <- readRDS(file = "unbounded_features_scenario/unb_poly_1_data_mat.rds")
+data_mat <- readRDS(file = "unbounded_features_simulation/unb_poly_1/unb_poly_1_data_mat.rds")
 L <- nrow(data_mat)
 Ms <- sapply(list_kmn_pred_test_poiss, function(l) length(l$medians))
 Ns <- L - Ms
@@ -711,11 +711,11 @@ for (j in 1:length(Ns)){
 
 
 # Poisson
-saveRDS(list_kn_rarefaction_poiss, "unbounded_features_scenario/unb_poly_1_ci_insample_poiss.rds")
+saveRDS(list_kn_rarefaction_poiss, "unbounded_features_simulation/unb_poly_1/unb_poly_1_ci_insample_poiss.rds")
 # Negative Binomial
-saveRDS(list_kn_rarefaction_negbin, "unbounded_features_scenario/unb_poly_1_ci_insample_negbin.rds")
+saveRDS(list_kn_rarefaction_negbin, "unbounded_features_simulation/unb_poly_1/unb_poly_1_ci_insample_negbin.rds")
 # Gamma IBP
-saveRDS(list_kn_rarefaction_ibp, "unbounded_features_scenario/unb_poly_1_ci_insample_ibp.rds")
+saveRDS(list_kn_rarefaction_ibp, "unbounded_features_simulation/unb_poly_1/unb_poly_1_ci_insample_ibp.rds")
 
 
 ####
@@ -731,13 +731,13 @@ library(scales)
 ##### Single dataset -> Ntilde (Poiss/NB) and extrapolation (Poiss/NB/Gamma) #####
 
 ###### 1) Read results ####################
-load(file = "unbounded_features_scenario/unb_poly_1_2_params_poiss.Rda")
-load(file =  "unbounded_features_scenario/unb_poly_1_2_params_negbin.Rda")
-load(file =  "unbounded_features_scenario/unb_poly_1_2_params_ibp.Rda", )
-list_kmn_pred_test_poiss <- readRDS(file = "unbounded_features_scenario/unb_poly_1_2_ci_poiss.rds")
+load(file = "unbounded_features_simulation/unb_poly_1_2/unb_poly_1_2_params_poiss.Rda")
+load(file =  "unbounded_features_simulation/unb_poly_1_2/unb_poly_1_2_params_negbin.Rda")
+load(file =  "unbounded_features_simulation/unb_poly_1_2/unb_poly_1_2_params_ibp.Rda", )
+list_kmn_pred_test_poiss <- readRDS(file = "unbounded_features_simulation/unb_poly_1_2/unb_poly_1_2_ci_poiss.rds")
 
 ###### 4) Read the data ###############################
-data_mat <- readRDS(file = "unbounded_features_scenario/unb_poly_1_2_data_mat.rds")
+data_mat <- readRDS(file = "unbounded_features_simulation/unb_poly_1_2/unb_poly_1_2_data_mat.rds")
 L <- nrow(data_mat)
 Ms <- sapply(list_kmn_pred_test_poiss, function(l) length(l$medians))
 Ns <- L - Ms
@@ -830,11 +830,11 @@ for (j in 1:length(Ns)){
 
 
 # Poisson
-saveRDS(list_kn_rarefaction_poiss, "unbounded_features_scenario/unb_poly_1_2_ci_insample_poiss.rds")
+saveRDS(list_kn_rarefaction_poiss, "unbounded_features_simulation/unb_poly_1_2/unb_poly_1_2_ci_insample_poiss.rds")
 # Negative Binomial
-saveRDS(list_kn_rarefaction_negbin, "unbounded_features_scenario/unb_poly_1_2_ci_insample_negbin.rds")
+saveRDS(list_kn_rarefaction_negbin, "unbounded_features_simulation/unb_poly_1_2/unb_poly_1_2_ci_insample_negbin.rds")
 # Gamma IBP
-saveRDS(list_kn_rarefaction_ibp, "unbounded_features_scenario/unb_poly_1_2_ci_insample_ibp.rds")
+saveRDS(list_kn_rarefaction_ibp, "unbounded_features_simulation/unb_poly_1_2/unb_poly_1_2_ci_insample_ibp.rds")
 
 
 ####
@@ -850,13 +850,13 @@ library(scales)
 ##### Single dataset -> Ntilde (Poiss/NB) and extrapolation (Poiss/NB/Gamma) #####
 
 ###### 1) Read results ####################
-load(file = "unbounded_features_scenario/unb_poly_0_8_params_poiss.Rda")
-load(file =  "unbounded_features_scenario/unb_poly_0_8_params_negbin.Rda")
-load(file =  "unbounded_features_scenario/unb_poly_0_8_params_ibp.Rda", )
-list_kmn_pred_test_poiss <- readRDS(file = "unbounded_features_scenario/unb_poly_0_8_ci_poiss.rds")
+load(file = "unbounded_features_simulation/unb_poly_0_8/unb_poly_0_8_params_poiss.Rda")
+load(file =  "unbounded_features_simulation/unb_poly_0_8/unb_poly_0_8_params_negbin.Rda")
+load(file =  "unbounded_features_simulation/unb_poly_0_8/unb_poly_0_8_params_ibp.Rda", )
+list_kmn_pred_test_poiss <- readRDS(file = "unbounded_features_simulation/unb_poly_0_8/unb_poly_0_8_ci_poiss.rds")
 
 ###### 4) Read the data ###############################
-data_mat <- readRDS(file = "unbounded_features_scenario/unb_poly_0_8_data_mat.rds")
+data_mat <- readRDS(file = "unbounded_features_simulation/unb_poly_0_8/unb_poly_0_8_data_mat.rds")
 L <- nrow(data_mat)
 Ms <- sapply(list_kmn_pred_test_poiss, function(l) length(l$medians))
 Ns <- L - Ms
@@ -949,8 +949,8 @@ for (j in 1:length(Ns)){
 
 
 # Poisson
-saveRDS(list_kn_rarefaction_poiss, "unbounded_features_scenario/unb_poly_0_8_ci_insample_poiss.rds")
+saveRDS(list_kn_rarefaction_poiss, "unbounded_features_simulation/unb_poly_0_8/unb_poly_0_8_ci_insample_poiss.rds")
 # Negative Binomial
-saveRDS(list_kn_rarefaction_negbin, "unbounded_features_scenario/unb_poly_0_8_ci_insample_negbin.rds")
+saveRDS(list_kn_rarefaction_negbin, "unbounded_features_simulation/unb_poly_0_8/unb_poly_0_8_ci_insample_negbin.rds")
 # Gamma IBP
-saveRDS(list_kn_rarefaction_ibp, "unbounded_features_scenario/unb_poly_0_8_ci_insample_ibp.rds")
+saveRDS(list_kn_rarefaction_ibp, "unbounded_features_simulation/unb_poly_0_8/unb_poly_0_8_ci_insample_ibp.rds")

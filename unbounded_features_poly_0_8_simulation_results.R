@@ -11,21 +11,21 @@ library(scales)
 ##### Single dataset -> Ntilde (Poiss/NB) and extrapolation (Poiss/NB/Gamma) #####
 
 ###### 1) Read results:  MCMC convergence ####################
-load(file = "unbounded_features_scenario/unb_poly_0_8_params_poiss.Rda")
-load(file =  "unbounded_features_scenario/unb_poly_0_8_params_negbin.Rda")
-load(file =  "unbounded_features_scenario/unb_poly_0_8_params_ibp.Rda", )
+load(file = "unbounded_features_simulation/unb_poly_0_8/unb_poly_0_8_params_poiss.Rda")
+load(file =  "unbounded_features_simulation/unb_poly_0_8/unb_poly_0_8_params_negbin.Rda")
+load(file =  "unbounded_features_simulation/unb_poly_0_8/unb_poly_0_8_params_ibp.Rda", )
 
 ###### 2) Read results: samples from limiting distributions (Poiss/NB) ##############
-load(file = "unbounded_features_scenario/unb_poly_0_8_ntilde_poiss.Rda")
-load(file = "unbounded_features_scenario/unb_poly_0_8_ntilde_negbin.Rda")
+load(file = "unbounded_features_simulation/unb_poly_0_8/unb_poly_0_8_ntilde_poiss.Rda")
+load(file = "unbounded_features_simulation/unb_poly_0_8/unb_poly_0_8_ntilde_negbin.Rda")
 
 ###### 3) Read results: CI for extrapolation (Poiss/NB/Gamma) ################
-list_kmn_pred_test_poiss <- readRDS(file = "unbounded_features_scenario/unb_poly_0_8_ci_poiss.rds")
-list_kmn_pred_test_negbin <- readRDS(file = "unbounded_features_scenario/unb_poly_0_8_ci_negbin.rds")
-list_kmn_pred_test_ibp <- readRDS(file = "unbounded_features_scenario/unb_poly_0_8_ci_ibp.rds")
+list_kmn_pred_test_poiss <- readRDS(file = "unbounded_features_simulation/unb_poly_0_8/unb_poly_0_8_ci_poiss.rds")
+list_kmn_pred_test_negbin <- readRDS(file = "unbounded_features_simulation/unb_poly_0_8/unb_poly_0_8_ci_negbin.rds")
+list_kmn_pred_test_ibp <- readRDS(file = "unbounded_features_simulation/unb_poly_0_8/unb_poly_0_8_ci_ibp.rds")
 
 ###### 4) Read the data ###############################
-data_mat <- readRDS(file = "unbounded_features_scenario/unb_poly_0_8_data_mat.rds")
+data_mat <- readRDS(file = "unbounded_features_simulation/unb_poly_0_8/unb_poly_0_8_data_mat.rds")
 L <- nrow(data_mat)
 Ms <- sapply(list_kmn_pred_test_poiss, function(l) length(l$medians))
 Ns <- L - Ms
@@ -107,15 +107,15 @@ for (j in 1:length(Ns)){
 
 # Poisson
 ggarrange(plotlist = gg_kmn_pred_test_poiss)
-ggsave("unbounded_features_scenario/unb_poly_0_8_poiss_extr.pdf", width = 16, height = 8, units = "in")
+ggsave("unbounded_features_simulation/unb_poly_0_8/unb_poly_0_8_poiss_extr.pdf", width = 16, height = 8, units = "in")
 
 # Negative Binomial
 ggarrange(plotlist = gg_kmn_pred_test_negbin)
-ggsave("unbounded_features_scenario/unb_poly_0_8_negbin_extr.pdf", width = 16, height = 8, units = "in")
+ggsave("unbounded_features_simulation/unb_poly_0_8/unb_poly_0_8_negbin_extr.pdf", width = 16, height = 8, units = "in")
 
 # Gamma IBP
 ggarrange(plotlist = gg_kmn_pred_test_ibp)
-ggsave("unbounded_features_scenario/unb_poly_0_8_ibp_extr.pdf", width = 16, height = 8, units = "in")
+ggsave("unbounded_features_simulation/unb_poly_0_8/unb_poly_0_8_ibp_extr.pdf", width = 16, height = 8, units = "in")
 
 
 
@@ -124,16 +124,16 @@ ggsave("unbounded_features_scenario/unb_poly_0_8_ibp_extr.pdf", width = 16, heig
 ##### Accuracy on multiple datasets #####
 
 ###### 1) Read results: limit distribution estimates #####
-load(file = "unbounded_features_scenario/unb_poly_0_8_avg_ntilde_poiss.Rda")
-load(file = "unbounded_features_scenario/unb_poly_0_8_avg_ntilde_negbin.Rda")
+load(file = "unbounded_features_simulation/unb_poly_0_8/unb_poly_0_8_avg_ntilde_poiss.Rda")
+load(file = "unbounded_features_simulation/unb_poly_0_8/unb_poly_0_8_avg_ntilde_negbin.Rda")
 
 ###### 2) Read results: quantities on accuracy #####
-load(file = "unbounded_features_scenario/unb_poly_0_8_obs_train.Rda")
-load(file = "unbounded_features_scenario/unb_poly_0_8_obs_new.Rda")
+load(file = "unbounded_features_simulation/unb_poly_0_8/unb_poly_0_8_obs_train.Rda")
+load(file = "unbounded_features_simulation/unb_poly_0_8/unb_poly_0_8_obs_new.Rda")
 
-load(file = "unbounded_features_scenario/unb_poly_0_8_est_new_poiss.Rda")
-load(file = "unbounded_features_scenario/unb_poly_0_8_est_new_negbin.Rda")
-load(file = "unbounded_features_scenario/unb_poly_0_8_est_new_ibp.Rda")
+load(file = "unbounded_features_simulation/unb_poly_0_8/unb_poly_0_8_est_new_poiss.Rda")
+load(file = "unbounded_features_simulation/unb_poly_0_8/unb_poly_0_8_est_new_negbin.Rda")
+load(file = "unbounded_features_simulation/unb_poly_0_8/unb_poly_0_8_est_new_ibp.Rda")
 
 D <- nrow(avg_ntilde_poiss)
 
