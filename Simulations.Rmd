@@ -29,6 +29,15 @@ where $\tilde{K}_m^{(n)}$ is the observed number of unseen features in the test 
 Moreover, for the mixtures of Beta-Bernoulli, we also report (iii) the posterior distribution of the total number of features (on a single dataset), (iv) the expected value of the posterior distribution of the total number of features, over $D=50$ replicated datasets.
 
 \newpage
+
+
+```{r, include=FALSE, eval=TRUE}
+compute_accuracy <- function(obs_new, est_new, obs_train){
+  return (abs(obs_new - est_new)/obs_train)
+}
+
+```
+
 ### Scenario 1: the homogeneous model
 
 ```{r, include=FALSE, eval=TRUE}
@@ -50,7 +59,8 @@ library(grid)
 ###### 1) Read results:  MCMC convergence ####################
 load(file = "chao_model_simulation/m1/m1_params_poiss.Rda")
 load(file =  "chao_model_simulation/m1/m1_params_negbin.Rda")
-load(file =  "chao_model_simulation/m1/m1_params_ibp.Rda", )
+load(file =  "chao_model_simulation/m1/m1_params_ibp.Rda" )
+load(file =  "chao_model_simulation/m1/m1_params_sp.Rda" )
 
 ###### 2) Read results: samples from limiting distributions (Poiss/NB) ##############
 load(file = "chao_model_simulation/m1/m1_ntilde_poiss.Rda")
@@ -60,11 +70,14 @@ load(file = "chao_model_simulation/m1/m1_ntilde_negbin.Rda")
 list_kmn_pred_test_poiss <- readRDS(file = "chao_model_simulation/m1/m1_ci_poiss.rds")
 list_kmn_pred_test_negbin <- readRDS(file = "chao_model_simulation/m1/m1_ci_negbin.rds")
 list_kmn_pred_test_ibp <- readRDS(file = "chao_model_simulation/m1/m1_ci_ibp.rds")
+list_kmn_pred_test_sp <- readRDS(file = "chao_model_simulation/m1/m1_ci_sp.rds")
 
 ###### 3.b) Read results: CI for insample (Poiss/NB/Gamma) ################
 list_kn_rarefaction_poiss <- readRDS(file = "chao_model_simulation/m1/m1_ci_insample_poiss.rds")
 list_kn_rarefaction_negbin <- readRDS(file = "chao_model_simulation/m1/m1_ci_insample_negbin.rds")
 list_kn_rarefaction_ibp <- readRDS(file = "chao_model_simulation/m1/m1_ci_insample_ibp.rds")
+list_kn_rarefaction_sp <- readRDS(file = "chao_model_simulation/m1/m1_ci_insample_sp.rds")
+
 
 ###### 4) Read the data ###############################
 data_mat <- readRDS(file = "chao_model_simulation/m1/m1_data_mat.rds")
@@ -87,6 +100,7 @@ load(file = "chao_model_simulation/m1/m1_obs_new.Rda")
 load(file = "chao_model_simulation/m1/m1_est_new_poiss.Rda")
 load(file = "chao_model_simulation/m1/m1_est_new_negbin.Rda")
 load(file = "chao_model_simulation/m1/m1_est_new_ibp.Rda")
+load(file = "chao_model_simulation/m1/m1_est_new_sp.Rda")
 
 D <- nrow(avg_ntilde_poiss)
 
@@ -128,6 +142,7 @@ for (j in 1:length(Ns)){
     ci_poiss = list_kn_rarefaction_poiss[[paste0("N.",N)]], 
     ci_negbin = list_kn_rarefaction_negbin[[paste0("N.",N)]],
     ci_ibp = list_kn_rarefaction_ibp[[paste0("N.",N)]],
+    ci_sp = list_kn_rarefaction_sp[[paste0("N.",N)]],
     n_avg = 100) +
     ggtitle(paste0("n = ", N))
   
@@ -162,6 +177,7 @@ for (j in 1:length(Ns)){
     ci_poiss = list_kmn_pred_test_poiss[[paste0("N.",N)]], 
     ci_negbin = list_kmn_pred_test_negbin[[paste0("N.",N)]],
     ci_ibp = list_kmn_pred_test_ibp[[paste0("N.",N)]],
+    ci_sp = list_kmn_pred_test_sp[[paste0("N.",N)]],
     n_avg = 100) +
     ggtitle(paste0("n = ", N))
   
@@ -180,25 +196,33 @@ Here, we report (ii) the accuracy of the estimated number of unseen features in 
 
 ```{r, echo=FALSE, fig.align = "center"}
 # Print plots
-acc_alt_poiss <- 1/(1 + abs(obs_new - est_new_poiss)/obs_train)
+acc_alt_poiss <- compute_accuracy(obs_new, est_new_poiss, obs_train)
 
-acc_alt_negbin <- 1/(1 + abs(obs_new - est_new_negbin)/obs_train)
+acc_alt_negbin <- compute_accuracy(obs_new, est_new_negbin, obs_train)
 
-acc_alt_ibp <- 1/(1 + abs(obs_new - est_new_ibp)/obs_train)
+acc_alt_ibp <- compute_accuracy(obs_new, est_new_ibp, obs_train)
+
+acc_alt_sp <- compute_accuracy(obs_new, est_new_sp, obs_train)
+
 
 acc_alt_poiss_long <- gather(acc_alt_poiss, training, accuracy, 
-                                paste0("N.",Ns[1]):paste0("N.",Ns[length(Ns)]), factor_key=TRUE) %>%
+                             paste0("N.",Ns[1]):paste0("N.",Ns[length(Ns)]), factor_key=TRUE) %>%
   add_column(model = "Poiss", N = rep(Ns, each = D))
 
 acc_alt_negbin_long <- gather(acc_alt_negbin, training , accuracy, 
-                                 paste0("N.",Ns[1]):paste0("N.",Ns[length(Ns)]), factor_key=TRUE) %>%
+                              paste0("N.",Ns[1]):paste0("N.",Ns[length(Ns)]), factor_key=TRUE) %>%
   add_column(model = "Neg-Bin", N = rep(Ns, each = D))
 
 acc_alt_ibp_long <- gather(acc_alt_ibp, training , accuracy, 
-                              paste0("N.",Ns[1]):paste0("N.",Ns[length(Ns)]), factor_key=TRUE) %>%
+                           paste0("N.",Ns[1]):paste0("N.",Ns[length(Ns)]), factor_key=TRUE) %>%
   add_column(model = "Gamma IBP", N = rep(Ns, each = D))
 
-joint_alt_long <- bind_rows(acc_alt_poiss_long, acc_alt_negbin_long, acc_alt_ibp_long)
+acc_alt_sp_long <- gather(acc_alt_sp, training , accuracy, 
+                           paste0("N.",Ns[1]):paste0("N.",Ns[length(Ns)]), factor_key=TRUE) %>%
+  add_column(model = "SB-SP", N = rep(Ns, each = D))
+
+joint_alt_long <- bind_rows(acc_alt_poiss_long, acc_alt_negbin_long, 
+                            acc_alt_ibp_long, acc_alt_sp_long)
 
 # plots
 ggplot(joint_alt_long, aes( y=accuracy, fill=model)) + 
@@ -294,7 +318,8 @@ library(grid)
 ###### 1) Read results:  MCMC convergence ####################
 load(file = "chao_model_simulation/m2/m2_params_poiss.Rda")
 load(file =  "chao_model_simulation/m2/m2_params_negbin.Rda")
-load(file =  "chao_model_simulation/m2/m2_params_ibp.Rda", )
+load(file =  "chao_model_simulation/m2/m2_params_ibp.Rda" )
+load(file =  "chao_model_simulation/m2/m2_params_sp.Rda" )
 
 ###### 2) Read results: samples from limiting distributions (Poiss/NB) ##############
 load(file = "chao_model_simulation/m2/m2_ntilde_poiss.Rda")
@@ -304,11 +329,13 @@ load(file = "chao_model_simulation/m2/m2_ntilde_negbin.Rda")
 list_kmn_pred_test_poiss <- readRDS(file = "chao_model_simulation/m2/m2_ci_poiss.rds")
 list_kmn_pred_test_negbin <- readRDS(file = "chao_model_simulation/m2/m2_ci_negbin.rds")
 list_kmn_pred_test_ibp <- readRDS(file = "chao_model_simulation/m2/m2_ci_ibp.rds")
+list_kmn_pred_test_sp <- readRDS(file = "chao_model_simulation/m2/m2_ci_sp.rds")
 
 ###### 3.b) Read results: CI for insample (Poiss/NB/Gamma) ################
 list_kn_rarefaction_poiss <- readRDS(file = "chao_model_simulation/m2/m2_ci_insample_poiss.rds")
 list_kn_rarefaction_negbin <- readRDS(file = "chao_model_simulation/m2/m2_ci_insample_negbin.rds")
 list_kn_rarefaction_ibp <- readRDS(file = "chao_model_simulation/m2/m2_ci_insample_ibp.rds")
+list_kn_rarefaction_sp <- readRDS(file = "chao_model_simulation/m2/m2_ci_insample_sp.rds")
 
 ###### 4) Read the data ###############################
 data_mat <- readRDS(file = "chao_model_simulation/m2/m2_data_mat.rds")
@@ -331,6 +358,7 @@ load(file = "chao_model_simulation/m2/m2_obs_new.Rda")
 load(file = "chao_model_simulation/m2/m2_est_new_poiss.Rda")
 load(file = "chao_model_simulation/m2/m2_est_new_negbin.Rda")
 load(file = "chao_model_simulation/m2/m2_est_new_ibp.Rda")
+load(file = "chao_model_simulation/m2/m2_est_new_sp.Rda")
 
 D <- nrow(avg_ntilde_poiss)
 
@@ -372,6 +400,7 @@ for (j in 1:length(Ns)){
     ci_poiss = list_kn_rarefaction_poiss[[paste0("N.",N)]], 
     ci_negbin = list_kn_rarefaction_negbin[[paste0("N.",N)]],
     ci_ibp = list_kn_rarefaction_ibp[[paste0("N.",N)]],
+    ci_sp = list_kn_rarefaction_sp[[paste0("N.",N)]],
     n_avg = 100) +
     ggtitle(paste0("n = ", N))
   
@@ -406,6 +435,7 @@ for (j in 1:length(Ns)){
     ci_poiss = list_kmn_pred_test_poiss[[paste0("N.",N)]], 
     ci_negbin = list_kmn_pred_test_negbin[[paste0("N.",N)]],
     ci_ibp = list_kmn_pred_test_ibp[[paste0("N.",N)]],
+    ci_sp = list_kmn_pred_test_sp[[paste0("N.",N)]],
     n_avg = 100) +
     ggtitle(paste0("n = ", N))
   
@@ -424,25 +454,33 @@ Here, we report (ii) the accuracy of the estimated number of unseen features in 
 
 ```{r, echo=FALSE, fig.align = "center"}
 # Print plots
-acc_alt_poiss <- 1/(1 + abs(obs_new - est_new_poiss)/obs_train)
+acc_alt_poiss <- compute_accuracy(obs_new, est_new_poiss, obs_train)
 
-acc_alt_negbin <- 1/(1 + abs(obs_new - est_new_negbin)/obs_train)
+acc_alt_negbin <- compute_accuracy(obs_new, est_new_negbin, obs_train)
 
-acc_alt_ibp <- 1/(1 + abs(obs_new - est_new_ibp)/obs_train)
+acc_alt_ibp <- compute_accuracy(obs_new, est_new_ibp, obs_train)
+
+acc_alt_sp <- compute_accuracy(obs_new, est_new_sp, obs_train)
+
 
 acc_alt_poiss_long <- gather(acc_alt_poiss, training, accuracy, 
-                                paste0("N.",Ns[1]):paste0("N.",Ns[length(Ns)]), factor_key=TRUE) %>%
+                             paste0("N.",Ns[1]):paste0("N.",Ns[length(Ns)]), factor_key=TRUE) %>%
   add_column(model = "Poiss", N = rep(Ns, each = D))
 
 acc_alt_negbin_long <- gather(acc_alt_negbin, training , accuracy, 
-                                 paste0("N.",Ns[1]):paste0("N.",Ns[length(Ns)]), factor_key=TRUE) %>%
+                              paste0("N.",Ns[1]):paste0("N.",Ns[length(Ns)]), factor_key=TRUE) %>%
   add_column(model = "Neg-Bin", N = rep(Ns, each = D))
 
 acc_alt_ibp_long <- gather(acc_alt_ibp, training , accuracy, 
-                              paste0("N.",Ns[1]):paste0("N.",Ns[length(Ns)]), factor_key=TRUE) %>%
+                           paste0("N.",Ns[1]):paste0("N.",Ns[length(Ns)]), factor_key=TRUE) %>%
   add_column(model = "Gamma IBP", N = rep(Ns, each = D))
 
-joint_alt_long <- bind_rows(acc_alt_poiss_long, acc_alt_negbin_long, acc_alt_ibp_long)
+acc_alt_sp_long <- gather(acc_alt_sp, training , accuracy, 
+                           paste0("N.",Ns[1]):paste0("N.",Ns[length(Ns)]), factor_key=TRUE) %>%
+  add_column(model = "SB-SP", N = rep(Ns, each = D))
+
+joint_alt_long <- bind_rows(acc_alt_poiss_long, acc_alt_negbin_long, 
+                            acc_alt_ibp_long, acc_alt_sp_long)
 
 # plots
 ggplot(joint_alt_long, aes( y=accuracy, fill=model)) + 
@@ -455,7 +493,7 @@ ggplot(joint_alt_long, aes( y=accuracy, fill=model)) +
 
 
 ```
-Even if the Mixture of IBP seems to reach better performance when the training set increases, this is just due to the fact the test set dimension is reducing: see the behaviour of the extrapolated rarefaction curve to get the behaviour of the model on larger test sets.
+Even if the Mixture of IBP seems to reach better performance when the training set increases, this is just due to the fact the test set dimension is reducing: see the behavior of the extrapolated rarefaction curve to get the behavior of the model on larger test sets.
 
 \newpage
 For the mixtures of Beta-Bernoulli, we report (iii) the posterior distribution of the total number of features (on a single dataset).
@@ -538,7 +576,8 @@ library(grid)
 ###### 1) Read results:  MCMC convergence ####################
 load(file = "chao_model_simulation/m3/m3_params_poiss.Rda")
 load(file =  "chao_model_simulation/m3/m3_params_negbin.Rda")
-load(file =  "chao_model_simulation/m3/m3_params_ibp.Rda", )
+load(file =  "chao_model_simulation/m3/m3_params_ibp.Rda" )
+load(file =  "chao_model_simulation/m3/m3_params_sp.Rda" )
 
 ###### 2) Read results: samples from limiting distributions (Poiss/NB) ##############
 load(file = "chao_model_simulation/m3/m3_ntilde_poiss.Rda")
@@ -548,11 +587,13 @@ load(file = "chao_model_simulation/m3/m3_ntilde_negbin.Rda")
 list_kmn_pred_test_poiss <- readRDS(file = "chao_model_simulation/m3/m3_ci_poiss.rds")
 list_kmn_pred_test_negbin <- readRDS(file = "chao_model_simulation/m3/m3_ci_negbin.rds")
 list_kmn_pred_test_ibp <- readRDS(file = "chao_model_simulation/m3/m3_ci_ibp.rds")
+list_kmn_pred_test_sp <- readRDS(file = "chao_model_simulation/m3/m3_ci_sp.rds")
 
 ###### 3.b) Read results: CI for insample (Poiss/NB/Gamma) ################
 list_kn_rarefaction_poiss <- readRDS(file = "chao_model_simulation/m3/m3_ci_insample_poiss.rds")
 list_kn_rarefaction_negbin <- readRDS(file = "chao_model_simulation/m3/m3_ci_insample_negbin.rds")
 list_kn_rarefaction_ibp <- readRDS(file = "chao_model_simulation/m3/m3_ci_insample_ibp.rds")
+list_kn_rarefaction_sp <- readRDS(file = "chao_model_simulation/m3/m3_ci_insample_sp.rds")
 
 ###### 4) Read the data ###############################
 data_mat <- readRDS(file = "chao_model_simulation/m3/m3_data_mat.rds")
@@ -575,6 +616,7 @@ load(file = "chao_model_simulation/m3/m3_obs_new.Rda")
 load(file = "chao_model_simulation/m3/m3_est_new_poiss.Rda")
 load(file = "chao_model_simulation/m3/m3_est_new_negbin.Rda")
 load(file = "chao_model_simulation/m3/m3_est_new_ibp.Rda")
+load(file = "chao_model_simulation/m3/m3_est_new_sp.Rda")
 
 D <- nrow(avg_ntilde_poiss)
 
@@ -617,6 +659,7 @@ for (j in 1:length(Ns)){
     ci_poiss = list_kn_rarefaction_poiss[[paste0("N.",N)]], 
     ci_negbin = list_kn_rarefaction_negbin[[paste0("N.",N)]],
     ci_ibp = list_kn_rarefaction_ibp[[paste0("N.",N)]],
+    ci_sp = list_kn_rarefaction_sp[[paste0("N.",N)]],
     n_avg = 100) +
     ggtitle(paste0("n = ", N))
   
@@ -651,6 +694,7 @@ for (j in 1:length(Ns)){
     ci_poiss = list_kmn_pred_test_poiss[[paste0("N.",N)]], 
     ci_negbin = list_kmn_pred_test_negbin[[paste0("N.",N)]],
     ci_ibp = list_kmn_pred_test_ibp[[paste0("N.",N)]],
+    ci_sp = list_kmn_pred_test_sp[[paste0("N.",N)]],
     n_avg = 100) +
     ggtitle(paste0("n = ", N))
   
@@ -669,26 +713,33 @@ Here, we report (ii) the accuracy of the estimated number of unseen features in 
 
 ```{r, echo=FALSE, fig.align = "center"}
 # Print plots
-acc_alt_poiss <- 1/(1 + abs(obs_new - est_new_poiss)/obs_train)
+acc_alt_poiss <- compute_accuracy(obs_new, est_new_poiss, obs_train)
 
-acc_alt_negbin <- 1/(1 + abs(obs_new - est_new_negbin)/obs_train)
+acc_alt_negbin <- compute_accuracy(obs_new, est_new_negbin, obs_train)
 
-acc_alt_ibp <- 1/(1 + abs(obs_new - est_new_ibp)/obs_train)
+acc_alt_ibp <- compute_accuracy(obs_new, est_new_ibp, obs_train)
+
+acc_alt_sp <- compute_accuracy(obs_new, est_new_sp, obs_train)
+
 
 acc_alt_poiss_long <- gather(acc_alt_poiss, training, accuracy, 
-                                paste0("N.",Ns[1]):paste0("N.",Ns[length(Ns)]), factor_key=TRUE) %>%
+                             paste0("N.",Ns[1]):paste0("N.",Ns[length(Ns)]), factor_key=TRUE) %>%
   add_column(model = "Poiss", N = rep(Ns, each = D))
 
 acc_alt_negbin_long <- gather(acc_alt_negbin, training , accuracy, 
-                                 paste0("N.",Ns[1]):paste0("N.",Ns[length(Ns)]), factor_key=TRUE) %>%
+                              paste0("N.",Ns[1]):paste0("N.",Ns[length(Ns)]), factor_key=TRUE) %>%
   add_column(model = "Neg-Bin", N = rep(Ns, each = D))
 
 acc_alt_ibp_long <- gather(acc_alt_ibp, training , accuracy, 
-                              paste0("N.",Ns[1]):paste0("N.",Ns[length(Ns)]), factor_key=TRUE) %>%
+                           paste0("N.",Ns[1]):paste0("N.",Ns[length(Ns)]), factor_key=TRUE) %>%
   add_column(model = "Gamma IBP", N = rep(Ns, each = D))
 
-joint_alt_long <- bind_rows(acc_alt_poiss_long, acc_alt_negbin_long, acc_alt_ibp_long)
+acc_alt_sp_long <- gather(acc_alt_sp, training , accuracy, 
+                           paste0("N.",Ns[1]):paste0("N.",Ns[length(Ns)]), factor_key=TRUE) %>%
+  add_column(model = "SB-SP", N = rep(Ns, each = D))
 
+joint_alt_long <- bind_rows(acc_alt_poiss_long, acc_alt_negbin_long, 
+                            acc_alt_ibp_long, acc_alt_sp_long)
 # plots
 ggplot(joint_alt_long, aes( y=accuracy, fill=model)) + 
   geom_boxplot() + 
@@ -864,6 +915,7 @@ for (j in 1:length(Ns)){
     ci_poiss = list_kn_rarefaction_poiss[[paste0("N.",N)]], 
     ci_negbin = list_kn_rarefaction_negbin[[paste0("N.",N)]],
     ci_ibp = list_kn_rarefaction_ibp[[paste0("N.",N)]],
+    ci_sp = list_kn_rarefaction_sp[[paste0("N.",N)]],
     n_avg = 100) +
     ggtitle(paste0("n = ", N))
   
@@ -898,6 +950,7 @@ for (j in 1:length(Ns)){
     ci_poiss = list_kmn_pred_test_poiss[[paste0("N.",N)]], 
     ci_negbin = list_kmn_pred_test_negbin[[paste0("N.",N)]],
     ci_ibp = list_kmn_pred_test_ibp[[paste0("N.",N)]],
+    ci_sp = list_kmn_pred_test_sp[[paste0("N.",N)]],
     n_avg = 100) +
     ggtitle(paste0("n = ", N))
   
@@ -916,26 +969,33 @@ Here, we report (ii) the accuracy of the estimated number of unseen features in 
 
 ```{r, echo=FALSE, fig.align = "center"}
 # Print plots
-acc_alt_poiss <- 1/(1 + abs(obs_new - est_new_poiss)/obs_train)
+acc_alt_poiss <- compute_accuracy(obs_new, est_new_poiss, obs_train)
 
-acc_alt_negbin <- 1/(1 + abs(obs_new - est_new_negbin)/obs_train)
+acc_alt_negbin <- compute_accuracy(obs_new, est_new_negbin, obs_train)
 
-acc_alt_ibp <- 1/(1 + abs(obs_new - est_new_ibp)/obs_train)
+acc_alt_ibp <- compute_accuracy(obs_new, est_new_ibp, obs_train)
+
+acc_alt_sp <- compute_accuracy(obs_new, est_new_sp, obs_train)
+
 
 acc_alt_poiss_long <- gather(acc_alt_poiss, training, accuracy, 
-                                paste0("N.",Ns[1]):paste0("N.",Ns[length(Ns)]), factor_key=TRUE) %>%
+                             paste0("N.",Ns[1]):paste0("N.",Ns[length(Ns)]), factor_key=TRUE) %>%
   add_column(model = "Poiss", N = rep(Ns, each = D))
 
 acc_alt_negbin_long <- gather(acc_alt_negbin, training , accuracy, 
-                                 paste0("N.",Ns[1]):paste0("N.",Ns[length(Ns)]), factor_key=TRUE) %>%
+                              paste0("N.",Ns[1]):paste0("N.",Ns[length(Ns)]), factor_key=TRUE) %>%
   add_column(model = "Neg-Bin", N = rep(Ns, each = D))
 
 acc_alt_ibp_long <- gather(acc_alt_ibp, training , accuracy, 
-                              paste0("N.",Ns[1]):paste0("N.",Ns[length(Ns)]), factor_key=TRUE) %>%
+                           paste0("N.",Ns[1]):paste0("N.",Ns[length(Ns)]), factor_key=TRUE) %>%
   add_column(model = "Gamma IBP", N = rep(Ns, each = D))
 
-joint_alt_long <- bind_rows(acc_alt_poiss_long, acc_alt_negbin_long, acc_alt_ibp_long)
+acc_alt_sp_long <- gather(acc_alt_sp, training , accuracy, 
+                           paste0("N.",Ns[1]):paste0("N.",Ns[length(Ns)]), factor_key=TRUE) %>%
+  add_column(model = "SB-SP", N = rep(Ns, each = D))
 
+joint_alt_long <- bind_rows(acc_alt_poiss_long, acc_alt_negbin_long, 
+                            acc_alt_ibp_long, acc_alt_sp_long)
 # plots
 ggplot(joint_alt_long, aes( y=accuracy, fill=model)) + 
   geom_boxplot() + 
@@ -1111,6 +1171,7 @@ for (j in 1:length(Ns)){
     ci_poiss = list_kn_rarefaction_poiss[[paste0("N.",N)]], 
     ci_negbin = list_kn_rarefaction_negbin[[paste0("N.",N)]],
     ci_ibp = list_kn_rarefaction_ibp[[paste0("N.",N)]],
+    ci_sp = list_kn_rarefaction_sp[[paste0("N.",N)]],
     n_avg = 100) +
     ggtitle(paste0("n = ", N))
   
@@ -1145,6 +1206,7 @@ for (j in 1:length(Ns)){
     ci_poiss = list_kmn_pred_test_poiss[[paste0("N.",N)]], 
     ci_negbin = list_kmn_pred_test_negbin[[paste0("N.",N)]],
     ci_ibp = list_kmn_pred_test_ibp[[paste0("N.",N)]],
+    ci_sp = list_kmn_pred_test_sp[[paste0("N.",N)]],
     n_avg = 100) +
     ggtitle(paste0("n = ", N))
   
@@ -1163,26 +1225,33 @@ Here, we report (ii) the accuracy of the estimated number of unseen features in 
 
 ```{r, echo=FALSE, fig.align = "center"}
 # Print plots
-acc_alt_poiss <- 1/(1 + abs(obs_new - est_new_poiss)/obs_train)
+acc_alt_poiss <- compute_accuracy(obs_new, est_new_poiss, obs_train)
 
-acc_alt_negbin <- 1/(1 + abs(obs_new - est_new_negbin)/obs_train)
+acc_alt_negbin <- compute_accuracy(obs_new, est_new_negbin, obs_train)
 
-acc_alt_ibp <- 1/(1 + abs(obs_new - est_new_ibp)/obs_train)
+acc_alt_ibp <- compute_accuracy(obs_new, est_new_ibp, obs_train)
+
+acc_alt_sp <- compute_accuracy(obs_new, est_new_sp, obs_train)
+
 
 acc_alt_poiss_long <- gather(acc_alt_poiss, training, accuracy, 
-                                paste0("N.",Ns[1]):paste0("N.",Ns[length(Ns)]), factor_key=TRUE) %>%
+                             paste0("N.",Ns[1]):paste0("N.",Ns[length(Ns)]), factor_key=TRUE) %>%
   add_column(model = "Poiss", N = rep(Ns, each = D))
 
 acc_alt_negbin_long <- gather(acc_alt_negbin, training , accuracy, 
-                                 paste0("N.",Ns[1]):paste0("N.",Ns[length(Ns)]), factor_key=TRUE) %>%
+                              paste0("N.",Ns[1]):paste0("N.",Ns[length(Ns)]), factor_key=TRUE) %>%
   add_column(model = "Neg-Bin", N = rep(Ns, each = D))
 
 acc_alt_ibp_long <- gather(acc_alt_ibp, training , accuracy, 
-                              paste0("N.",Ns[1]):paste0("N.",Ns[length(Ns)]), factor_key=TRUE) %>%
+                           paste0("N.",Ns[1]):paste0("N.",Ns[length(Ns)]), factor_key=TRUE) %>%
   add_column(model = "Gamma IBP", N = rep(Ns, each = D))
 
-joint_alt_long <- bind_rows(acc_alt_poiss_long, acc_alt_negbin_long, acc_alt_ibp_long)
+acc_alt_sp_long <- gather(acc_alt_sp, training , accuracy, 
+                           paste0("N.",Ns[1]):paste0("N.",Ns[length(Ns)]), factor_key=TRUE) %>%
+  add_column(model = "SB-SP", N = rep(Ns, each = D))
 
+joint_alt_long <- bind_rows(acc_alt_poiss_long, acc_alt_negbin_long, 
+                            acc_alt_ibp_long, acc_alt_sp_long)
 # plots
 ggplot(joint_alt_long, aes( y=accuracy, fill=model)) + 
   geom_boxplot() + 
@@ -1359,6 +1428,7 @@ for (j in 1:length(Ns)){
     ci_poiss = list_kn_rarefaction_poiss[[paste0("N.",N)]], 
     ci_negbin = list_kn_rarefaction_negbin[[paste0("N.",N)]],
     ci_ibp = list_kn_rarefaction_ibp[[paste0("N.",N)]],
+    ci_sp = list_kn_rarefaction_sp[[paste0("N.",N)]],
     n_avg = 100) +
     ggtitle(paste0("n = ", N))
   
@@ -1393,6 +1463,7 @@ for (j in 1:length(Ns)){
     ci_poiss = list_kmn_pred_test_poiss[[paste0("N.",N)]], 
     ci_negbin = list_kmn_pred_test_negbin[[paste0("N.",N)]],
     ci_ibp = list_kmn_pred_test_ibp[[paste0("N.",N)]],
+    ci_sp = list_kmn_pred_test_sp[[paste0("N.",N)]],
     n_avg = 100) +
     ggtitle(paste0("n = ", N))
   
@@ -1411,26 +1482,33 @@ Here, we report (ii) the accuracy of the estimated number of unseen features in 
 
 ```{r, echo=FALSE, fig.align = "center"}
 # Print plots
-acc_alt_poiss <- 1/(1 + abs(obs_new - est_new_poiss)/obs_train)
+acc_alt_poiss <- compute_accuracy(obs_new, est_new_poiss, obs_train)
 
-acc_alt_negbin <- 1/(1 + abs(obs_new - est_new_negbin)/obs_train)
+acc_alt_negbin <- compute_accuracy(obs_new, est_new_negbin, obs_train)
 
-acc_alt_ibp <- 1/(1 + abs(obs_new - est_new_ibp)/obs_train)
+acc_alt_ibp <- compute_accuracy(obs_new, est_new_ibp, obs_train)
+
+acc_alt_sp <- compute_accuracy(obs_new, est_new_sp, obs_train)
+
 
 acc_alt_poiss_long <- gather(acc_alt_poiss, training, accuracy, 
-                                paste0("N.",Ns[1]):paste0("N.",Ns[length(Ns)]), factor_key=TRUE) %>%
+                             paste0("N.",Ns[1]):paste0("N.",Ns[length(Ns)]), factor_key=TRUE) %>%
   add_column(model = "Poiss", N = rep(Ns, each = D))
 
 acc_alt_negbin_long <- gather(acc_alt_negbin, training , accuracy, 
-                                 paste0("N.",Ns[1]):paste0("N.",Ns[length(Ns)]), factor_key=TRUE) %>%
+                              paste0("N.",Ns[1]):paste0("N.",Ns[length(Ns)]), factor_key=TRUE) %>%
   add_column(model = "Neg-Bin", N = rep(Ns, each = D))
 
 acc_alt_ibp_long <- gather(acc_alt_ibp, training , accuracy, 
-                              paste0("N.",Ns[1]):paste0("N.",Ns[length(Ns)]), factor_key=TRUE) %>%
+                           paste0("N.",Ns[1]):paste0("N.",Ns[length(Ns)]), factor_key=TRUE) %>%
   add_column(model = "Gamma IBP", N = rep(Ns, each = D))
 
-joint_alt_long <- bind_rows(acc_alt_poiss_long, acc_alt_negbin_long, acc_alt_ibp_long)
+acc_alt_sp_long <- gather(acc_alt_sp, training , accuracy, 
+                           paste0("N.",Ns[1]):paste0("N.",Ns[length(Ns)]), factor_key=TRUE) %>%
+  add_column(model = "SB-SP", N = rep(Ns, each = D))
 
+joint_alt_long <- bind_rows(acc_alt_poiss_long, acc_alt_negbin_long, 
+                            acc_alt_ibp_long, acc_alt_sp_long)
 # plots
 ggplot(joint_alt_long, aes( y=accuracy, fill=model)) + 
   geom_boxplot() + 
@@ -1543,6 +1621,7 @@ for (j in 1:length(Ns)){
     ci_poiss = list_kn_rarefaction_poiss[[paste0("N.",N)]], 
     ci_negbin = list_kn_rarefaction_negbin[[paste0("N.",N)]],
     ci_ibp = list_kn_rarefaction_ibp[[paste0("N.",N)]],
+    ci_sp = list_kn_rarefaction_sp[[paste0("N.",N)]],
     n_avg = 100) +
     ggtitle(paste0("n = ", N))
   
@@ -1577,6 +1656,7 @@ for (j in 1:length(Ns)){
     ci_poiss = list_kmn_pred_test_poiss[[paste0("N.",N)]], 
     ci_negbin = list_kmn_pred_test_negbin[[paste0("N.",N)]],
     ci_ibp = list_kmn_pred_test_ibp[[paste0("N.",N)]],
+    ci_sp = list_kmn_pred_test_sp[[paste0("N.",N)]],
     n_avg = 100) +
     ggtitle(paste0("n = ", N))
   
@@ -1595,26 +1675,33 @@ Here, we report (ii) the accuracy of the estimated number of unseen features in 
 
 ```{r, echo=FALSE, fig.align = "center"}
 # Print plots
-acc_alt_poiss <- 1/(1 + abs(obs_new - est_new_poiss)/obs_train)
+acc_alt_poiss <- compute_accuracy(obs_new, est_new_poiss, obs_train)
 
-acc_alt_negbin <- 1/(1 + abs(obs_new - est_new_negbin)/obs_train)
+acc_alt_negbin <- compute_accuracy(obs_new, est_new_negbin, obs_train)
 
-acc_alt_ibp <- 1/(1 + abs(obs_new - est_new_ibp)/obs_train)
+acc_alt_ibp <- compute_accuracy(obs_new, est_new_ibp, obs_train)
+
+acc_alt_sp <- compute_accuracy(obs_new, est_new_sp, obs_train)
+
 
 acc_alt_poiss_long <- gather(acc_alt_poiss, training, accuracy, 
-                                paste0("N.",Ns[1]):paste0("N.",Ns[length(Ns)]), factor_key=TRUE) %>%
+                             paste0("N.",Ns[1]):paste0("N.",Ns[length(Ns)]), factor_key=TRUE) %>%
   add_column(model = "Poiss", N = rep(Ns, each = D))
 
 acc_alt_negbin_long <- gather(acc_alt_negbin, training , accuracy, 
-                                 paste0("N.",Ns[1]):paste0("N.",Ns[length(Ns)]), factor_key=TRUE) %>%
+                              paste0("N.",Ns[1]):paste0("N.",Ns[length(Ns)]), factor_key=TRUE) %>%
   add_column(model = "Neg-Bin", N = rep(Ns, each = D))
 
 acc_alt_ibp_long <- gather(acc_alt_ibp, training , accuracy, 
-                              paste0("N.",Ns[1]):paste0("N.",Ns[length(Ns)]), factor_key=TRUE) %>%
+                           paste0("N.",Ns[1]):paste0("N.",Ns[length(Ns)]), factor_key=TRUE) %>%
   add_column(model = "Gamma IBP", N = rep(Ns, each = D))
 
-joint_alt_long <- bind_rows(acc_alt_poiss_long, acc_alt_negbin_long, acc_alt_ibp_long)
+acc_alt_sp_long <- gather(acc_alt_sp, training , accuracy, 
+                           paste0("N.",Ns[1]):paste0("N.",Ns[length(Ns)]), factor_key=TRUE) %>%
+  add_column(model = "SB-SP", N = rep(Ns, each = D))
 
+joint_alt_long <- bind_rows(acc_alt_poiss_long, acc_alt_negbin_long, 
+                            acc_alt_ibp_long, acc_alt_sp_long)
 # plots
 ggplot(joint_alt_long, aes( y=accuracy, fill=model)) + 
   geom_boxplot() + 
@@ -1728,6 +1815,7 @@ for (j in 1:length(Ns)){
     ci_poiss = list_kn_rarefaction_poiss[[paste0("N.",N)]], 
     ci_negbin = list_kn_rarefaction_negbin[[paste0("N.",N)]],
     ci_ibp = list_kn_rarefaction_ibp[[paste0("N.",N)]],
+    ci_sp = list_kn_rarefaction_sp[[paste0("N.",N)]],
     n_avg = 100) +
     ggtitle(paste0("n = ", N))
   
@@ -1762,6 +1850,7 @@ for (j in 1:length(Ns)){
     ci_poiss = list_kmn_pred_test_poiss[[paste0("N.",N)]], 
     ci_negbin = list_kmn_pred_test_negbin[[paste0("N.",N)]],
     ci_ibp = list_kmn_pred_test_ibp[[paste0("N.",N)]],
+    ci_sp = list_kmn_pred_test_sp[[paste0("N.",N)]],
     n_avg = 100) +
     ggtitle(paste0("n = ", N))
   
@@ -1780,26 +1869,33 @@ Here, we report (ii) the accuracy of the estimated number of unseen features in 
 
 ```{r, echo=FALSE, fig.align = "center"}
 # Print plots
-acc_alt_poiss <- 1/(1 + abs(obs_new - est_new_poiss)/obs_train)
+acc_alt_poiss <- compute_accuracy(obs_new, est_new_poiss, obs_train)
 
-acc_alt_negbin <- 1/(1 + abs(obs_new - est_new_negbin)/obs_train)
+acc_alt_negbin <- compute_accuracy(obs_new, est_new_negbin, obs_train)
 
-acc_alt_ibp <- 1/(1 + abs(obs_new - est_new_ibp)/obs_train)
+acc_alt_ibp <- compute_accuracy(obs_new, est_new_ibp, obs_train)
+
+acc_alt_sp <- compute_accuracy(obs_new, est_new_sp, obs_train)
+
 
 acc_alt_poiss_long <- gather(acc_alt_poiss, training, accuracy, 
-                                paste0("N.",Ns[1]):paste0("N.",Ns[length(Ns)]), factor_key=TRUE) %>%
+                             paste0("N.",Ns[1]):paste0("N.",Ns[length(Ns)]), factor_key=TRUE) %>%
   add_column(model = "Poiss", N = rep(Ns, each = D))
 
 acc_alt_negbin_long <- gather(acc_alt_negbin, training , accuracy, 
-                                 paste0("N.",Ns[1]):paste0("N.",Ns[length(Ns)]), factor_key=TRUE) %>%
+                              paste0("N.",Ns[1]):paste0("N.",Ns[length(Ns)]), factor_key=TRUE) %>%
   add_column(model = "Neg-Bin", N = rep(Ns, each = D))
 
 acc_alt_ibp_long <- gather(acc_alt_ibp, training , accuracy, 
-                              paste0("N.",Ns[1]):paste0("N.",Ns[length(Ns)]), factor_key=TRUE) %>%
+                           paste0("N.",Ns[1]):paste0("N.",Ns[length(Ns)]), factor_key=TRUE) %>%
   add_column(model = "Gamma IBP", N = rep(Ns, each = D))
 
-joint_alt_long <- bind_rows(acc_alt_poiss_long, acc_alt_negbin_long, acc_alt_ibp_long)
+acc_alt_sp_long <- gather(acc_alt_sp, training , accuracy, 
+                           paste0("N.",Ns[1]):paste0("N.",Ns[length(Ns)]), factor_key=TRUE) %>%
+  add_column(model = "SB-SP", N = rep(Ns, each = D))
 
+joint_alt_long <- bind_rows(acc_alt_poiss_long, acc_alt_negbin_long, 
+                            acc_alt_ibp_long, acc_alt_sp_long)
 # plots
 ggplot(joint_alt_long, aes( y=accuracy, fill=model)) + 
   geom_boxplot() + 

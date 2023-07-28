@@ -13,7 +13,8 @@ library(scales)
 ###### 1) Read results:  MCMC convergence ####################
 load(file = "unbounded_features_simulation/unb_poly_1/unb_poly_1_params_poiss.Rda")
 load(file =  "unbounded_features_simulation/unb_poly_1/unb_poly_1_params_negbin.Rda")
-load(file =  "unbounded_features_simulation/unb_poly_1/unb_poly_1_params_ibp.Rda", )
+load(file =  "unbounded_features_simulation/unb_poly_1/unb_poly_1_params_ibp.Rda" )
+load(file =  "unbounded_features_simulation/unb_poly_1/unb_poly_1_params_sp.Rda" )
 
 ###### 2) Read results: samples from limiting distributions (Poiss/NB) ##############
 load(file = "unbounded_features_simulation/unb_poly_1/unb_poly_1_ntilde_poiss.Rda")
@@ -23,6 +24,7 @@ load(file = "unbounded_features_simulation/unb_poly_1/unb_poly_1_ntilde_negbin.R
 list_kmn_pred_test_poiss <- readRDS(file = "unbounded_features_simulation/unb_poly_1/unb_poly_1_ci_poiss.rds")
 list_kmn_pred_test_negbin <- readRDS(file = "unbounded_features_simulation/unb_poly_1/unb_poly_1_ci_negbin.rds")
 list_kmn_pred_test_ibp <- readRDS(file = "unbounded_features_simulation/unb_poly_1/unb_poly_1_ci_ibp.rds")
+list_kmn_pred_test_sp <- readRDS(file = "unbounded_features_simulation/unb_poly_1/unb_poly_1_ci_sp.rds")
 
 ###### 4) Read the data ###############################
 data_mat <- readRDS(file = "unbounded_features_simulation/unb_poly_1/unb_poly_1_data_mat.rds")
@@ -49,6 +51,12 @@ ggs_traceplot(samples_ggs_negbin) +
 samples_ibp <- mcmc.list(mcmc(params_ibp))
 samples_ggs_ibp <- ggs(samples_ibp, keep_original_order = TRUE)
 ggs_traceplot(samples_ggs_ibp) + 
+  facet_wrap(~Parameter, nrow = length(Ns), scales = "free")
+
+###### check mcmc mixing SB-SP
+samples_sp <- mcmc.list(mcmc(params_sp))
+samples_ggs_sp <- ggs(samples_sp, keep_original_order = TRUE)
+ggs_traceplot(samples_ggs_sp) + 
   facet_wrap(~Parameter, nrow = length(Ns), scales = "free")
 
 
@@ -79,6 +87,7 @@ ggplot(gg_ntilde_negbin_long, aes(x = estimate, fill = training)) +
 gg_kmn_pred_test_poiss  <- vector(mode="list", length = length(Ns))
 gg_kmn_pred_test_negbin  <- vector(mode="list", length = length(Ns))
 gg_kmn_pred_test_ibp  <- vector(mode="list", length = length(Ns))
+gg_kmn_pred_test_sp  <- vector(mode="list", length = length(Ns))
 
 for (j in 1:length(Ns)){
   N <- Ns[j]
@@ -103,6 +112,10 @@ for (j in 1:length(Ns)){
                                                          ci = list_kmn_pred_test_ibp[[paste0("N.",N)]], n_avg = 100)
   gg_kmn_pred_test_ibp[[j]] <- gg_kmn_pred_test_ibp_ + ggtitle(paste0("Gamma IBP, N = ", N))
   
+  gg_kmn_pred_test_sp_ <- plot_Kmn_median_pred_and_test(train_list = train_list, test_list = test_list,
+                                                        ci = list_kmn_pred_test_sp[[paste0("N.",N)]], n_avg = 100)
+  gg_kmn_pred_test_sp[[j]] <- gg_kmn_pred_test_sp_ + ggtitle(paste0("SB-SP, N = ", N))
+  
 }
 
 # Poisson
@@ -117,6 +130,9 @@ ggsave("unbounded_features_simulation/unb_poly_1/unb_poly_1_negbin_extr.pdf", wi
 ggarrange(plotlist = gg_kmn_pred_test_ibp)
 ggsave("unbounded_features_simulation/unb_poly_1/unb_poly_1_ibp_extr.pdf", width = 16, height = 8, units = "in")
 
+# SB-SP
+ggarrange(plotlist = gg_kmn_pred_test_sp)
+ggsave("unbounded_features_simulation/unb_poly_1/unb_poly_1_sp_extr.pdf", width = 16, height = 8, units = "in")
 
 
 
@@ -134,6 +150,7 @@ load(file = "unbounded_features_simulation/unb_poly_1/unb_poly_1_obs_new.Rda")
 load(file = "unbounded_features_simulation/unb_poly_1/unb_poly_1_est_new_poiss.Rda")
 load(file = "unbounded_features_simulation/unb_poly_1/unb_poly_1_est_new_negbin.Rda")
 load(file = "unbounded_features_simulation/unb_poly_1/unb_poly_1_est_new_ibp.Rda")
+load(file = "unbounded_features_simulation/unb_poly_1/unb_poly_1_est_new_sp.Rda")
 
 D <- nrow(avg_ntilde_poiss)
 
@@ -200,6 +217,9 @@ acc_alt_negbin <- 1/(1 + abs(obs_new - est_new_negbin))
 
 acc_alt_ibp <- 1/(1 + abs(obs_new - est_new_ibp))
 
+acc_alt_sp <- 1/(1 + abs(obs_new - est_new_sp))
+
+
 acc_alt_poiss_long <- gather(acc_alt_poiss, training, accuracy, 
                              paste0("N.",Ns[1]):paste0("N.",Ns[length(Ns)]), factor_key=TRUE) %>%
   add_column(model = "Poiss", N = rep(Ns, each = D))
@@ -212,7 +232,12 @@ acc_alt_ibp_long <- gather(acc_alt_ibp, training , accuracy,
                            paste0("N.",Ns[1]):paste0("N.",Ns[length(Ns)]), factor_key=TRUE) %>%
   add_column(model = "Gamma IBP", N = rep(Ns, each = D))
 
-joint_alt_long <- bind_rows(acc_alt_poiss_long, acc_alt_negbin_long, acc_alt_ibp_long)
+acc_alt_sp_long <- gather(acc_alt_sp, training , accuracy, 
+                          paste0("N.",Ns[1]):paste0("N.",Ns[length(Ns)]), factor_key=TRUE) %>%
+  add_column(model = "SB-SP", N = rep(Ns, each = D))
+
+joint_alt_long <- bind_rows(acc_alt_poiss_long, acc_alt_negbin_long, 
+                            acc_alt_ibp_long, acc_alt_sp_long)
 
 # plots
 ggplot(joint_alt_long, aes( y=accuracy, fill=model)) + 

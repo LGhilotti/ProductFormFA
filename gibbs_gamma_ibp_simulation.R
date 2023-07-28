@@ -25,6 +25,8 @@ plot_trajectory(data_list)
 
 
 ##########################################################################
+###### Gamma-IBP #########################################################
+##########################################################################
 
 # Set prior hyperparameters
 p <- 0.05
@@ -119,6 +121,89 @@ for (m in 1:M){
 est_ci_gamma_ibp <- list("medians" = est_ci_gamma_ibp[,2],
                       "lbs" = est_ci_gamma_ibp[,1],
                       "ubs" = est_ci_gamma_ibp[,3])
+
+plot_Kn_median_and_sample(data_list = data_list, est_ci_gamma_ibp)
+
+
+##########################################################################
+###### SB-SP #########################################################
+##########################################################################
+
+# Set prior hyperparameters
+p <- 0.08
+print(paste0("E(c) = ", (1-p)/ p))
+print(paste0("Var(c) = ", (1-p)/ (p^2)) )
+r <- 0.1
+t <- 0.01
+print(paste0("E(beta) = ", r/ t))
+print(paste0("Var(beta) = ", r/ (t^2)))
+a_alpha <- 0.1
+b_alpha <- 0.1
+print(paste0("E(alpha) = ", a_alpha/ (a_alpha + b_alpha)))
+print(paste0("Var(alpha) = ", a_alpha*b_alpha/ (a_alpha + b_alpha)^2 /(a_alpha+b_alpha+1)))
+
+
+# Set initial values for the parameters
+c_0 <- 10
+beta_0 <- 10
+alpha_0 <- 0.5
+
+# Set tau for MALA
+tau <- 0.00001
+
+# Set MCMC parameters
+S <- 10^4
+n_burnin <- 5*10^3
+thin <- 5
+seed <- 1234
+
+output_sb_sp <- gibbs_sampler_sb_sp(Z = data_mat,
+                                  c_0 = c_0, beta_0 = beta_0, alpha_0 = alpha_0,
+                                  p, r, t, a_alpha, b_alpha,
+                                  tau, fixed = c(F,F,F),
+                                  S, n_burnin, thin, seed)
+
+n_saved_iter_sb_sp <- length(output_sb_sp$c_vec)
+c_chain <- output_sb_sp$c_vec
+beta_chain <- output_sb_sp$beta_vec
+alpha_chain <- output_sb_sp$alpha_vec
+
+################################################################
+############# Processing outputs ##############################
+################################################################
+
+# Mixing checks for (c, beta, alpha)
+plot(c_chain, type="l") # mixing of a in prior number of features
+# Running mean
+plot(cumsum(c_chain)/(1:n_saved_iter_sb_sp), type="l")
+
+plot(beta_chain, type="l") # mixing of b in prior number of features
+# Running mean
+plot(cumsum(beta_chain)/(1:n_saved_iter_sb_sp), type="l")
+
+plot(alpha_chain, type="l") # mixing of "alpha" 
+# Running mean
+plot(cumsum(alpha_chain)/(1:n_saved_iter_sb_sp), type="l")
+
+##############################################################
+######## Model-checking on Kn within sample ##################
+##############################################################
+M <- nrow(data_mat)
+kmn_chain <- generate_Kmn_chain_gamma_ibp(a_chain = c_chain +1,
+                                          b_chain = beta_chain*(1-alpha_chain)/alpha_chain,
+                                          alpha_chain = alpha_chain, 
+                                          theta_chain = 1 - alpha_chain, M, n=0)
+
+est_ci_gamma_ibp <- matrix(NA, nrow = M, ncol = 3)
+# first column = lower bound
+# second columns = medians
+# third columns = upper bound
+for (m in 1:M){
+  est_ci_gamma_ibp[m,] <- quantile(kmn_chain[m,], probs = c(0.025,0.5,0.975))
+}
+est_ci_gamma_ibp <- list("medians" = est_ci_gamma_ibp[,2],
+                         "lbs" = est_ci_gamma_ibp[,1],
+                         "ubs" = est_ci_gamma_ibp[,3])
 
 plot_Kn_median_and_sample(data_list = data_list, est_ci_gamma_ibp)
 
