@@ -3,7 +3,7 @@
 \name{plot_Kmn_median_pred_and_test_all}
 \alias{plot_Kmn_median_pred_and_test_all}
 \title{Plot function for the credible intervals of Kmn, given initial sample, and the observed,
-for all the 3 models}
+for all the 3 Models}
 \usage{
 plot_Kmn_median_pred_and_test_all(
   train_list,

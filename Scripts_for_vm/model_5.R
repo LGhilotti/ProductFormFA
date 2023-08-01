@@ -1108,8 +1108,8 @@ print(paste0("E(p) = ", alpha_p_nb/(alpha_p_nb + beta_p_nb)))
 print(paste0("Var(p) = ",(alpha_p_nb*beta_p_nb)/((alpha_p_nb + beta_p_nb)^2 *(alpha_p_nb+beta_p_nb+1)) ))
 
 # Set other hyperparameters
-a_alpha_bb <- 5
-b_alpha_bb <- 0.5
+a_alpha_bb <- 5 # different than all other scenarios
+b_alpha_bb <- 0.5 # different than all other scenarios
 print(paste0("E(alpha_bar) = ", a_alpha_bb/ b_alpha_bb))
 print(paste0("Var(alpha_bar) = ", a_alpha_bb/ (b_alpha_bb^2)))
 a_s_bb <- 2

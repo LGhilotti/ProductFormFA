@@ -3,7 +3,7 @@
 \name{plot_Kn_median_and_rarefaction_all}
 \alias{plot_Kn_median_and_rarefaction_all}
 \title{Plot function for the credible intervals IN-SAMPLE of Kn, and the observed,
-for all the 3 models}
+for all the 3 Models}
 \usage{
 plot_Kn_median_and_rarefaction_all(
   train_list,

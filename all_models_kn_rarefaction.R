@@ -15,6 +15,7 @@ library(tidyverse)
 load(file = "chao_model_simulation/m1/m1_params_poiss.Rda")
 load(file =  "chao_model_simulation/m1/m1_params_negbin.Rda")
 load(file =  "chao_model_simulation/m1/m1_params_ibp.Rda" )
+load(file =  "chao_model_simulation/m1/m1_params_sp.Rda" )
 list_kmn_pred_test_poiss <- readRDS(file = "chao_model_simulation/m1/m1_ci_poiss.rds")
 
 ###### 4) Read the data ###############################
@@ -29,6 +30,8 @@ list_kn_rarefaction_negbin <- vector(mode="list", length = length(Ns))
 names(list_kn_rarefaction_negbin) <- paste("N", Ns, sep = ".")
 list_kn_rarefaction_ibp <- vector(mode="list", length = length(Ns))
 names(list_kn_rarefaction_ibp) <- paste("N", Ns, sep = ".")
+list_kn_rarefaction_sp <- vector(mode="list", length = length(Ns))
+names(list_kn_rarefaction_sp) <- paste("N", Ns, sep = ".")
 
 for (j in 1:length(Ns)){
   N <- Ns[j]
@@ -106,6 +109,30 @@ for (j in 1:length(Ns)){
   
   list_kn_rarefaction_ibp[[paste0("N.",N)]] <- est_ci_ibp
   
+  # SB-SP
+  c_chain_sp <- params_sp[[paste0("c.",N)]]
+  beta_chain_sp <- params_sp[[paste0("beta.",N)]] 
+  alpha_chain_sp <- params_sp[[paste0("alpha.",N)]] 
+
+  kn_chain_sp <- generate_Kmn_chain_gamma_ibp(a_chain = c_chain_sp + 1,
+                                              b_chain = beta_chain_sp*(1-alpha_chain_sp)/alpha_chain_sp, 
+                                              alpha_chain = alpha_chain_sp,
+                                              theta_chain = 1 - alpha_chain_sp,
+                                              M = N, n = 0)
+  
+  est_ci_sp <- matrix(NA, nrow = N, ncol = 3)
+  # first column = lower bound
+  # second columns = medians
+  # third columns = upper bound
+  for (m in 1:N){
+    est_ci_sp[m,] <- quantile(kn_chain_sp[m,], probs = c(0.025,0.5,0.975))
+  }
+  est_ci_sp <- list("medians" = est_ci_sp[,2],
+                     "lbs" = est_ci_sp[,1],
+                     "ubs" = est_ci_sp[,3])
+  
+  list_kn_rarefaction_sp[[paste0("N.",N)]] <- est_ci_sp
+  
  
 }
   
@@ -116,6 +143,9 @@ saveRDS(list_kn_rarefaction_poiss, "chao_model_simulation/m1/m1_ci_insample_pois
 saveRDS(list_kn_rarefaction_negbin, "chao_model_simulation/m1/m1_ci_insample_negbin.rds")
 # Gamma IBP
 saveRDS(list_kn_rarefaction_ibp, "chao_model_simulation/m1/m1_ci_insample_ibp.rds")
+# SB-SP
+saveRDS(list_kn_rarefaction_sp, "chao_model_simulation/m1/m1_ci_insample_sp.rds")
+
 
   
 
@@ -134,7 +164,9 @@ library(scales)
 ###### 1) Read results ####################
 load(file = "chao_model_simulation/m2/m2_params_poiss.Rda")
 load(file =  "chao_model_simulation/m2/m2_params_negbin.Rda")
-load(file =  "chao_model_simulation/m2/m2_params_ibp.Rda", )
+load(file =  "chao_model_simulation/m2/m2_params_ibp.Rda" )
+load(file =  "chao_model_simulation/m2/m2_params_sp.Rda" )
+
 list_kmn_pred_test_poiss <- readRDS(file = "chao_model_simulation/m2/m2_ci_poiss.rds")
 
 ###### 4) Read the data ###############################
@@ -149,6 +181,8 @@ list_kn_rarefaction_negbin <- vector(mode="list", length = length(Ns))
 names(list_kn_rarefaction_negbin) <- paste("N", Ns, sep = ".")
 list_kn_rarefaction_ibp <- vector(mode="list", length = length(Ns))
 names(list_kn_rarefaction_ibp) <- paste("N", Ns, sep = ".")
+list_kn_rarefaction_sp <- vector(mode="list", length = length(Ns))
+names(list_kn_rarefaction_sp) <- paste("N", Ns, sep = ".")
 
 for (j in 1:length(Ns)){
   N <- Ns[j]
@@ -226,6 +260,30 @@ for (j in 1:length(Ns)){
   
   list_kn_rarefaction_ibp[[paste0("N.",N)]] <- est_ci_ibp
   
+  # SB-SP
+  c_chain_sp <- params_sp[[paste0("c.",N)]]
+  beta_chain_sp <- params_sp[[paste0("beta.",N)]] 
+  alpha_chain_sp <- params_sp[[paste0("alpha.",N)]] 
+  
+  kn_chain_sp <- generate_Kmn_chain_gamma_ibp(a_chain = c_chain_sp + 1,
+                                              b_chain = beta_chain_sp*(1-alpha_chain_sp)/alpha_chain_sp, 
+                                              alpha_chain = alpha_chain_sp,
+                                              theta_chain = 1 - alpha_chain_sp,
+                                              M = N, n = 0)
+  
+  est_ci_sp <- matrix(NA, nrow = N, ncol = 3)
+  # first column = lower bound
+  # second columns = medians
+  # third columns = upper bound
+  for (m in 1:N){
+    est_ci_sp[m,] <- quantile(kn_chain_sp[m,], probs = c(0.025,0.5,0.975))
+  }
+  est_ci_sp <- list("medians" = est_ci_sp[,2],
+                    "lbs" = est_ci_sp[,1],
+                    "ubs" = est_ci_sp[,3])
+  
+  list_kn_rarefaction_sp[[paste0("N.",N)]] <- est_ci_sp
+  
   
 }
 
@@ -236,6 +294,8 @@ saveRDS(list_kn_rarefaction_poiss, "chao_model_simulation/m2/m2_ci_insample_pois
 saveRDS(list_kn_rarefaction_negbin, "chao_model_simulation/m2/m2_ci_insample_negbin.rds")
 # Gamma IBP
 saveRDS(list_kn_rarefaction_ibp, "chao_model_simulation/m2/m2_ci_insample_ibp.rds")
+# SB-SP
+saveRDS(list_kn_rarefaction_sp, "chao_model_simulation/m2/m2_ci_insample_sp.rds")
 
 
 
@@ -254,7 +314,9 @@ library(scales)
 ###### 1) Read results ####################
 load(file = "chao_model_simulation/m3/m3_params_poiss.Rda")
 load(file =  "chao_model_simulation/m3/m3_params_negbin.Rda")
-load(file =  "chao_model_simulation/m3/m3_params_ibp.Rda", )
+load(file =  "chao_model_simulation/m3/m3_params_ibp.Rda" )
+load(file =  "chao_model_simulation/m3/m3_params_sp.Rda" )
+
 list_kmn_pred_test_poiss <- readRDS(file = "chao_model_simulation/m3/m3_ci_poiss.rds")
 
 ###### 4) Read the data ###############################
@@ -269,6 +331,8 @@ list_kn_rarefaction_negbin <- vector(mode="list", length = length(Ns))
 names(list_kn_rarefaction_negbin) <- paste("N", Ns, sep = ".")
 list_kn_rarefaction_ibp <- vector(mode="list", length = length(Ns))
 names(list_kn_rarefaction_ibp) <- paste("N", Ns, sep = ".")
+list_kn_rarefaction_sp <- vector(mode="list", length = length(Ns))
+names(list_kn_rarefaction_sp) <- paste("N", Ns, sep = ".")
 
 for (j in 1:length(Ns)){
   N <- Ns[j]
@@ -346,6 +410,29 @@ for (j in 1:length(Ns)){
   
   list_kn_rarefaction_ibp[[paste0("N.",N)]] <- est_ci_ibp
   
+  # SB-SP
+  c_chain_sp <- params_sp[[paste0("c.",N)]]
+  beta_chain_sp <- params_sp[[paste0("beta.",N)]] 
+  alpha_chain_sp <- params_sp[[paste0("alpha.",N)]] 
+  
+  kn_chain_sp <- generate_Kmn_chain_gamma_ibp(a_chain = c_chain_sp + 1,
+                                              b_chain = beta_chain_sp*(1-alpha_chain_sp)/alpha_chain_sp, 
+                                              alpha_chain = alpha_chain_sp,
+                                              theta_chain = 1 - alpha_chain_sp,
+                                              M = N, n = 0)
+  
+  est_ci_sp <- matrix(NA, nrow = N, ncol = 3)
+  # first column = lower bound
+  # second columns = medians
+  # third columns = upper bound
+  for (m in 1:N){
+    est_ci_sp[m,] <- quantile(kn_chain_sp[m,], probs = c(0.025,0.5,0.975))
+  }
+  est_ci_sp <- list("medians" = est_ci_sp[,2],
+                    "lbs" = est_ci_sp[,1],
+                    "ubs" = est_ci_sp[,3])
+  
+  list_kn_rarefaction_sp[[paste0("N.",N)]] <- est_ci_sp
   
 }
 
@@ -356,6 +443,8 @@ saveRDS(list_kn_rarefaction_poiss, "chao_model_simulation/m3/m3_ci_insample_pois
 saveRDS(list_kn_rarefaction_negbin, "chao_model_simulation/m3/m3_ci_insample_negbin.rds")
 # Gamma IBP
 saveRDS(list_kn_rarefaction_ibp, "chao_model_simulation/m3/m3_ci_insample_ibp.rds")
+# SB-SP
+saveRDS(list_kn_rarefaction_sp, "chao_model_simulation/m3/m3_ci_insample_sp.rds")
 
 
 ####
@@ -373,7 +462,9 @@ library(scales)
 ###### 1) Read results ####################
 load(file = "chao_model_simulation/m4/m4_params_poiss.Rda")
 load(file =  "chao_model_simulation/m4/m4_params_negbin.Rda")
-load(file =  "chao_model_simulation/m4/m4_params_ibp.Rda", )
+load(file =  "chao_model_simulation/m4/m4_params_ibp.Rda" )
+load(file =  "chao_model_simulation/m4/m4_params_sp.Rda" )
+
 list_kmn_pred_test_poiss <- readRDS(file = "chao_model_simulation/m4/m4_ci_poiss.rds")
 
 ###### 4) Read the data ###############################
@@ -388,6 +479,8 @@ list_kn_rarefaction_negbin <- vector(mode="list", length = length(Ns))
 names(list_kn_rarefaction_negbin) <- paste("N", Ns, sep = ".")
 list_kn_rarefaction_ibp <- vector(mode="list", length = length(Ns))
 names(list_kn_rarefaction_ibp) <- paste("N", Ns, sep = ".")
+list_kn_rarefaction_sp <- vector(mode="list", length = length(Ns))
+names(list_kn_rarefaction_sp) <- paste("N", Ns, sep = ".")
 
 for (j in 1:length(Ns)){
   N <- Ns[j]
@@ -466,6 +559,31 @@ for (j in 1:length(Ns)){
   list_kn_rarefaction_ibp[[paste0("N.",N)]] <- est_ci_ibp
   
   
+  # SB-SP
+  c_chain_sp <- params_sp[[paste0("c.",N)]]
+  beta_chain_sp <- params_sp[[paste0("beta.",N)]] 
+  alpha_chain_sp <- params_sp[[paste0("alpha.",N)]] 
+  
+  kn_chain_sp <- generate_Kmn_chain_gamma_ibp(a_chain = c_chain_sp + 1,
+                                              b_chain = beta_chain_sp*(1-alpha_chain_sp)/alpha_chain_sp, 
+                                              alpha_chain = alpha_chain_sp,
+                                              theta_chain = 1 - alpha_chain_sp,
+                                              M = N, n = 0)
+  
+  est_ci_sp <- matrix(NA, nrow = N, ncol = 3)
+  # first column = lower bound
+  # second columns = medians
+  # third columns = upper bound
+  for (m in 1:N){
+    est_ci_sp[m,] <- quantile(kn_chain_sp[m,], probs = c(0.025,0.5,0.975))
+  }
+  est_ci_sp <- list("medians" = est_ci_sp[,2],
+                    "lbs" = est_ci_sp[,1],
+                    "ubs" = est_ci_sp[,3])
+  
+  list_kn_rarefaction_sp[[paste0("N.",N)]] <- est_ci_sp
+  
+  
 }
 
 
@@ -475,6 +593,8 @@ saveRDS(list_kn_rarefaction_poiss, "chao_model_simulation/m4/m4_ci_insample_pois
 saveRDS(list_kn_rarefaction_negbin, "chao_model_simulation/m4/m4_ci_insample_negbin.rds")
 # Gamma IBP
 saveRDS(list_kn_rarefaction_ibp, "chao_model_simulation/m4/m4_ci_insample_ibp.rds")
+# SB-SP
+saveRDS(list_kn_rarefaction_sp, "chao_model_simulation/m4/m4_ci_insample_sp.rds")
 
 
 
@@ -494,6 +614,8 @@ library(scales)
 load(file = "chao_model_simulation/m5/m5_params_poiss.Rda")
 load(file =  "chao_model_simulation/m5/m5_params_negbin.Rda")
 load(file =  "chao_model_simulation/m5/m5_params_ibp.Rda" )
+load(file =  "chao_model_simulation/m5/m5_params_sp.Rda" )
+
 list_kmn_pred_test_poiss <- readRDS(file = "chao_model_simulation/m5/m5_ci_poiss.rds")
 
 ###### 4) Read the data ###############################
@@ -508,6 +630,8 @@ list_kn_rarefaction_negbin <- vector(mode="list", length = length(Ns))
 names(list_kn_rarefaction_negbin) <- paste("N", Ns, sep = ".")
 list_kn_rarefaction_ibp <- vector(mode="list", length = length(Ns))
 names(list_kn_rarefaction_ibp) <- paste("N", Ns, sep = ".")
+list_kn_rarefaction_sp <- vector(mode="list", length = length(Ns))
+names(list_kn_rarefaction_sp) <- paste("N", Ns, sep = ".")
 
 for (j in 1:length(Ns)){
   N <- Ns[j]
@@ -586,6 +710,30 @@ for (j in 1:length(Ns)){
   list_kn_rarefaction_ibp[[paste0("N.",N)]] <- est_ci_ibp
   
   
+  # SB-SP
+  c_chain_sp <- params_sp[[paste0("c.",N)]]
+  beta_chain_sp <- params_sp[[paste0("beta.",N)]] 
+  alpha_chain_sp <- params_sp[[paste0("alpha.",N)]] 
+  
+  kn_chain_sp <- generate_Kmn_chain_gamma_ibp(a_chain = c_chain_sp + 1,
+                                              b_chain = beta_chain_sp*(1-alpha_chain_sp)/alpha_chain_sp, 
+                                              alpha_chain = alpha_chain_sp,
+                                              theta_chain = 1 - alpha_chain_sp,
+                                              M = N, n = 0)
+  
+  est_ci_sp <- matrix(NA, nrow = N, ncol = 3)
+  # first column = lower bound
+  # second columns = medians
+  # third columns = upper bound
+  for (m in 1:N){
+    est_ci_sp[m,] <- quantile(kn_chain_sp[m,], probs = c(0.025,0.5,0.975))
+  }
+  est_ci_sp <- list("medians" = est_ci_sp[,2],
+                    "lbs" = est_ci_sp[,1],
+                    "ubs" = est_ci_sp[,3])
+  
+  list_kn_rarefaction_sp[[paste0("N.",N)]] <- est_ci_sp
+  
 }
 
 
@@ -595,6 +743,8 @@ saveRDS(list_kn_rarefaction_poiss, "chao_model_simulation/m5/m5_ci_insample_pois
 saveRDS(list_kn_rarefaction_negbin, "chao_model_simulation/m5/m5_ci_insample_negbin.rds")
 # Gamma IBP
 saveRDS(list_kn_rarefaction_ibp, "chao_model_simulation/m5/m5_ci_insample_ibp.rds")
+# SB-SP
+saveRDS(list_kn_rarefaction_sp, "chao_model_simulation/m5/m5_ci_insample_sp.rds")
 
 
 
@@ -614,7 +764,9 @@ library(scales)
 ###### 1) Read results ####################
 load(file = "unbounded_features_simulation/unb_poly_1/unb_poly_1_params_poiss.Rda")
 load(file =  "unbounded_features_simulation/unb_poly_1/unb_poly_1_params_negbin.Rda")
-load(file =  "unbounded_features_simulation/unb_poly_1/unb_poly_1_params_ibp.Rda", )
+load(file =  "unbounded_features_simulation/unb_poly_1/unb_poly_1_params_ibp.Rda" )
+load(file =  "unbounded_features_simulation/unb_poly_1/unb_poly_1_params_sp.Rda" )
+
 list_kmn_pred_test_poiss <- readRDS(file = "unbounded_features_simulation/unb_poly_1/unb_poly_1_ci_poiss.rds")
 
 ###### 4) Read the data ###############################
@@ -629,6 +781,8 @@ list_kn_rarefaction_negbin <- vector(mode="list", length = length(Ns))
 names(list_kn_rarefaction_negbin) <- paste("N", Ns, sep = ".")
 list_kn_rarefaction_ibp <- vector(mode="list", length = length(Ns))
 names(list_kn_rarefaction_ibp) <- paste("N", Ns, sep = ".")
+list_kn_rarefaction_sp <- vector(mode="list", length = length(Ns))
+names(list_kn_rarefaction_sp) <- paste("N", Ns, sep = ".")
 
 for (j in 1:length(Ns)){
   N <- Ns[j]
@@ -706,6 +860,29 @@ for (j in 1:length(Ns)){
   
   list_kn_rarefaction_ibp[[paste0("N.",N)]] <- est_ci_ibp
   
+  # SB-SP
+  c_chain_sp <- params_sp[[paste0("c.",N)]]
+  beta_chain_sp <- params_sp[[paste0("beta.",N)]] 
+  alpha_chain_sp <- params_sp[[paste0("alpha.",N)]] 
+  
+  kn_chain_sp <- generate_Kmn_chain_gamma_ibp(a_chain = c_chain_sp + 1,
+                                              b_chain = beta_chain_sp*(1-alpha_chain_sp)/alpha_chain_sp, 
+                                              alpha_chain = alpha_chain_sp,
+                                              theta_chain = 1 - alpha_chain_sp,
+                                              M = N, n = 0)
+  
+  est_ci_sp <- matrix(NA, nrow = N, ncol = 3)
+  # first column = lower bound
+  # second columns = medians
+  # third columns = upper bound
+  for (m in 1:N){
+    est_ci_sp[m,] <- quantile(kn_chain_sp[m,], probs = c(0.025,0.5,0.975))
+  }
+  est_ci_sp <- list("medians" = est_ci_sp[,2],
+                    "lbs" = est_ci_sp[,1],
+                    "ubs" = est_ci_sp[,3])
+  
+  list_kn_rarefaction_sp[[paste0("N.",N)]] <- est_ci_sp
   
 }
 
@@ -716,6 +893,8 @@ saveRDS(list_kn_rarefaction_poiss, "unbounded_features_simulation/unb_poly_1/unb
 saveRDS(list_kn_rarefaction_negbin, "unbounded_features_simulation/unb_poly_1/unb_poly_1_ci_insample_negbin.rds")
 # Gamma IBP
 saveRDS(list_kn_rarefaction_ibp, "unbounded_features_simulation/unb_poly_1/unb_poly_1_ci_insample_ibp.rds")
+# SB-SP
+saveRDS(list_kn_rarefaction_sp, "unbounded_features_simulation/unb_poly_1/unb_poly_1_ci_insample_sp.rds")
 
 
 ####
@@ -733,7 +912,9 @@ library(scales)
 ###### 1) Read results ####################
 load(file = "unbounded_features_simulation/unb_poly_1_2/unb_poly_1_2_params_poiss.Rda")
 load(file =  "unbounded_features_simulation/unb_poly_1_2/unb_poly_1_2_params_negbin.Rda")
-load(file =  "unbounded_features_simulation/unb_poly_1_2/unb_poly_1_2_params_ibp.Rda", )
+load(file =  "unbounded_features_simulation/unb_poly_1_2/unb_poly_1_2_params_ibp.Rda" )
+load(file =  "unbounded_features_simulation/unb_poly_1_2/unb_poly_1_2_params_sp.Rda" )
+
 list_kmn_pred_test_poiss <- readRDS(file = "unbounded_features_simulation/unb_poly_1_2/unb_poly_1_2_ci_poiss.rds")
 
 ###### 4) Read the data ###############################
@@ -748,6 +929,8 @@ list_kn_rarefaction_negbin <- vector(mode="list", length = length(Ns))
 names(list_kn_rarefaction_negbin) <- paste("N", Ns, sep = ".")
 list_kn_rarefaction_ibp <- vector(mode="list", length = length(Ns))
 names(list_kn_rarefaction_ibp) <- paste("N", Ns, sep = ".")
+list_kn_rarefaction_sp <- vector(mode="list", length = length(Ns))
+names(list_kn_rarefaction_sp) <- paste("N", Ns, sep = ".")
 
 for (j in 1:length(Ns)){
   N <- Ns[j]
@@ -825,6 +1008,29 @@ for (j in 1:length(Ns)){
   
   list_kn_rarefaction_ibp[[paste0("N.",N)]] <- est_ci_ibp
   
+  # SB-SP
+  c_chain_sp <- params_sp[[paste0("c.",N)]]
+  beta_chain_sp <- params_sp[[paste0("beta.",N)]] 
+  alpha_chain_sp <- params_sp[[paste0("alpha.",N)]] 
+  
+  kn_chain_sp <- generate_Kmn_chain_gamma_ibp(a_chain = c_chain_sp + 1,
+                                              b_chain = beta_chain_sp*(1-alpha_chain_sp)/alpha_chain_sp, 
+                                              alpha_chain = alpha_chain_sp,
+                                              theta_chain = 1 - alpha_chain_sp,
+                                              M = N, n = 0)
+  
+  est_ci_sp <- matrix(NA, nrow = N, ncol = 3)
+  # first column = lower bound
+  # second columns = medians
+  # third columns = upper bound
+  for (m in 1:N){
+    est_ci_sp[m,] <- quantile(kn_chain_sp[m,], probs = c(0.025,0.5,0.975))
+  }
+  est_ci_sp <- list("medians" = est_ci_sp[,2],
+                    "lbs" = est_ci_sp[,1],
+                    "ubs" = est_ci_sp[,3])
+  
+  list_kn_rarefaction_sp[[paste0("N.",N)]] <- est_ci_sp
   
 }
 
@@ -835,6 +1041,8 @@ saveRDS(list_kn_rarefaction_poiss, "unbounded_features_simulation/unb_poly_1_2/u
 saveRDS(list_kn_rarefaction_negbin, "unbounded_features_simulation/unb_poly_1_2/unb_poly_1_2_ci_insample_negbin.rds")
 # Gamma IBP
 saveRDS(list_kn_rarefaction_ibp, "unbounded_features_simulation/unb_poly_1_2/unb_poly_1_2_ci_insample_ibp.rds")
+# SB-SP
+saveRDS(list_kn_rarefaction_sp, "unbounded_features_simulation/unb_poly_1_2/unb_poly_1_2_ci_insample_sp.rds")
 
 
 ####
@@ -852,7 +1060,9 @@ library(scales)
 ###### 1) Read results ####################
 load(file = "unbounded_features_simulation/unb_poly_0_8/unb_poly_0_8_params_poiss.Rda")
 load(file =  "unbounded_features_simulation/unb_poly_0_8/unb_poly_0_8_params_negbin.Rda")
-load(file =  "unbounded_features_simulation/unb_poly_0_8/unb_poly_0_8_params_ibp.Rda", )
+load(file =  "unbounded_features_simulation/unb_poly_0_8/unb_poly_0_8_params_ibp.Rda" )
+load(file =  "unbounded_features_simulation/unb_poly_0_8/unb_poly_0_8_params_sp.Rda" )
+
 list_kmn_pred_test_poiss <- readRDS(file = "unbounded_features_simulation/unb_poly_0_8/unb_poly_0_8_ci_poiss.rds")
 
 ###### 4) Read the data ###############################
@@ -867,6 +1077,8 @@ list_kn_rarefaction_negbin <- vector(mode="list", length = length(Ns))
 names(list_kn_rarefaction_negbin) <- paste("N", Ns, sep = ".")
 list_kn_rarefaction_ibp <- vector(mode="list", length = length(Ns))
 names(list_kn_rarefaction_ibp) <- paste("N", Ns, sep = ".")
+list_kn_rarefaction_sp <- vector(mode="list", length = length(Ns))
+names(list_kn_rarefaction_sp) <- paste("N", Ns, sep = ".")
 
 for (j in 1:length(Ns)){
   N <- Ns[j]
@@ -944,6 +1156,29 @@ for (j in 1:length(Ns)){
   
   list_kn_rarefaction_ibp[[paste0("N.",N)]] <- est_ci_ibp
   
+  # SB-SP
+  c_chain_sp <- params_sp[[paste0("c.",N)]]
+  beta_chain_sp <- params_sp[[paste0("beta.",N)]] 
+  alpha_chain_sp <- params_sp[[paste0("alpha.",N)]] 
+  
+  kn_chain_sp <- generate_Kmn_chain_gamma_ibp(a_chain = c_chain_sp + 1,
+                                              b_chain = beta_chain_sp*(1-alpha_chain_sp)/alpha_chain_sp, 
+                                              alpha_chain = alpha_chain_sp,
+                                              theta_chain = 1 - alpha_chain_sp,
+                                              M = N, n = 0)
+  
+  est_ci_sp <- matrix(NA, nrow = N, ncol = 3)
+  # first column = lower bound
+  # second columns = medians
+  # third columns = upper bound
+  for (m in 1:N){
+    est_ci_sp[m,] <- quantile(kn_chain_sp[m,], probs = c(0.025,0.5,0.975))
+  }
+  est_ci_sp <- list("medians" = est_ci_sp[,2],
+                    "lbs" = est_ci_sp[,1],
+                    "ubs" = est_ci_sp[,3])
+  
+  list_kn_rarefaction_sp[[paste0("N.",N)]] <- est_ci_sp
   
 }
 
@@ -954,3 +1189,5 @@ saveRDS(list_kn_rarefaction_poiss, "unbounded_features_simulation/unb_poly_0_8/u
 saveRDS(list_kn_rarefaction_negbin, "unbounded_features_simulation/unb_poly_0_8/unb_poly_0_8_ci_insample_negbin.rds")
 # Gamma IBP
 saveRDS(list_kn_rarefaction_ibp, "unbounded_features_simulation/unb_poly_0_8/unb_poly_0_8_ci_insample_ibp.rds")
+# SB-SP
+saveRDS(list_kn_rarefaction_sp, "unbounded_features_simulation/unb_poly_0_8/unb_poly_0_8_ci_insample_sp.rds")

@@ -30,14 +30,6 @@ Moreover, for the mixtures of Beta-Bernoulli, we also report (iii) the posterior
 
 \newpage
 
-
-```{r, include=FALSE, eval=TRUE}
-compute_accuracy <- function(obs_new, est_new, obs_train){
-  return (abs(obs_new - est_new)/obs_train)
-}
-
-```
-
 ### Scenario 1: the homogeneous model
 
 ```{r, include=FALSE, eval=TRUE}
@@ -142,7 +134,7 @@ for (j in 1:length(Ns)){
     ci_poiss = list_kn_rarefaction_poiss[[paste0("N.",N)]], 
     ci_negbin = list_kn_rarefaction_negbin[[paste0("N.",N)]],
     ci_ibp = list_kn_rarefaction_ibp[[paste0("N.",N)]],
-    ci_sp = list_kn_rarefaction_sp[[paste0("N.",N)]],
+    #ci_sp = list_kn_rarefaction_sp[[paste0("N.",N)]],
     n_avg = 100) +
     ggtitle(paste0("n = ", N))
   
@@ -177,7 +169,7 @@ for (j in 1:length(Ns)){
     ci_poiss = list_kmn_pred_test_poiss[[paste0("N.",N)]], 
     ci_negbin = list_kmn_pred_test_negbin[[paste0("N.",N)]],
     ci_ibp = list_kmn_pred_test_ibp[[paste0("N.",N)]],
-    ci_sp = list_kmn_pred_test_sp[[paste0("N.",N)]],
+    #ci_sp = list_kmn_pred_test_sp[[paste0("N.",N)]],
     n_avg = 100) +
     ggtitle(paste0("n = ", N))
   
@@ -400,7 +392,7 @@ for (j in 1:length(Ns)){
     ci_poiss = list_kn_rarefaction_poiss[[paste0("N.",N)]], 
     ci_negbin = list_kn_rarefaction_negbin[[paste0("N.",N)]],
     ci_ibp = list_kn_rarefaction_ibp[[paste0("N.",N)]],
-    ci_sp = list_kn_rarefaction_sp[[paste0("N.",N)]],
+    #ci_sp = list_kn_rarefaction_sp[[paste0("N.",N)]],
     n_avg = 100) +
     ggtitle(paste0("n = ", N))
   
@@ -435,7 +427,7 @@ for (j in 1:length(Ns)){
     ci_poiss = list_kmn_pred_test_poiss[[paste0("N.",N)]], 
     ci_negbin = list_kmn_pred_test_negbin[[paste0("N.",N)]],
     ci_ibp = list_kmn_pred_test_ibp[[paste0("N.",N)]],
-    ci_sp = list_kmn_pred_test_sp[[paste0("N.",N)]],
+    #ci_sp = list_kmn_pred_test_sp[[paste0("N.",N)]],
     n_avg = 100) +
     ggtitle(paste0("n = ", N))
   
@@ -659,7 +651,7 @@ for (j in 1:length(Ns)){
     ci_poiss = list_kn_rarefaction_poiss[[paste0("N.",N)]], 
     ci_negbin = list_kn_rarefaction_negbin[[paste0("N.",N)]],
     ci_ibp = list_kn_rarefaction_ibp[[paste0("N.",N)]],
-    ci_sp = list_kn_rarefaction_sp[[paste0("N.",N)]],
+    #ci_sp = list_kn_rarefaction_sp[[paste0("N.",N)]],
     n_avg = 100) +
     ggtitle(paste0("n = ", N))
   
@@ -694,7 +686,7 @@ for (j in 1:length(Ns)){
     ci_poiss = list_kmn_pred_test_poiss[[paste0("N.",N)]], 
     ci_negbin = list_kmn_pred_test_negbin[[paste0("N.",N)]],
     ci_ibp = list_kmn_pred_test_ibp[[paste0("N.",N)]],
-    ci_sp = list_kmn_pred_test_sp[[paste0("N.",N)]],
+    #ci_sp = list_kmn_pred_test_sp[[paste0("N.",N)]],
     n_avg = 100) +
     ggtitle(paste0("n = ", N))
   
@@ -836,7 +828,8 @@ library(grid)
 ###### 1) Read results:  MCMC convergence ####################
 load(file = "chao_model_simulation/m4/m4_params_poiss.Rda")
 load(file =  "chao_model_simulation/m4/m4_params_negbin.Rda")
-load(file =  "chao_model_simulation/m4/m4_params_ibp.Rda", )
+load(file =  "chao_model_simulation/m4/m4_params_ibp.Rda" )
+load(file =  "chao_model_simulation/m4/m4_params_sp.Rda" )
 
 ###### 2) Read results: samples from limiting distributions (Poiss/NB) ##############
 load(file = "chao_model_simulation/m4/m4_ntilde_poiss.Rda")
@@ -846,11 +839,13 @@ load(file = "chao_model_simulation/m4/m4_ntilde_negbin.Rda")
 list_kmn_pred_test_poiss <- readRDS(file = "chao_model_simulation/m4/m4_ci_poiss.rds")
 list_kmn_pred_test_negbin <- readRDS(file = "chao_model_simulation/m4/m4_ci_negbin.rds")
 list_kmn_pred_test_ibp <- readRDS(file = "chao_model_simulation/m4/m4_ci_ibp.rds")
+list_kmn_pred_test_sp <- readRDS(file = "chao_model_simulation/m4/m4_ci_sp.rds")
 
 ###### 3.b) Read results: CI for insample (Poiss/NB/Gamma) ################
 list_kn_rarefaction_poiss <- readRDS(file = "chao_model_simulation/m4/m4_ci_insample_poiss.rds")
 list_kn_rarefaction_negbin <- readRDS(file = "chao_model_simulation/m4/m4_ci_insample_negbin.rds")
 list_kn_rarefaction_ibp <- readRDS(file = "chao_model_simulation/m4/m4_ci_insample_ibp.rds")
+list_kn_rarefaction_sp <- readRDS(file = "chao_model_simulation/m4/m4_ci_insample_sp.rds")
 
 ###### 4) Read the data ###############################
 data_mat <- readRDS(file = "chao_model_simulation/m4/m4_data_mat.rds")
@@ -874,6 +869,7 @@ load(file = "chao_model_simulation/m4/m4_obs_new.Rda")
 load(file = "chao_model_simulation/m4/m4_est_new_poiss.Rda")
 load(file = "chao_model_simulation/m4/m4_est_new_negbin.Rda")
 load(file = "chao_model_simulation/m4/m4_est_new_ibp.Rda")
+load(file = "chao_model_simulation/m4/m4_est_new_sp.Rda")
 
 D <- nrow(avg_ntilde_poiss)
 
@@ -915,7 +911,7 @@ for (j in 1:length(Ns)){
     ci_poiss = list_kn_rarefaction_poiss[[paste0("N.",N)]], 
     ci_negbin = list_kn_rarefaction_negbin[[paste0("N.",N)]],
     ci_ibp = list_kn_rarefaction_ibp[[paste0("N.",N)]],
-    ci_sp = list_kn_rarefaction_sp[[paste0("N.",N)]],
+    #ci_sp = list_kn_rarefaction_sp[[paste0("N.",N)]],
     n_avg = 100) +
     ggtitle(paste0("n = ", N))
   
@@ -950,7 +946,7 @@ for (j in 1:length(Ns)){
     ci_poiss = list_kmn_pred_test_poiss[[paste0("N.",N)]], 
     ci_negbin = list_kmn_pred_test_negbin[[paste0("N.",N)]],
     ci_ibp = list_kmn_pred_test_ibp[[paste0("N.",N)]],
-    ci_sp = list_kmn_pred_test_sp[[paste0("N.",N)]],
+    #ci_sp = list_kmn_pred_test_sp[[paste0("N.",N)]],
     n_avg = 100) +
     ggtitle(paste0("n = ", N))
   
@@ -1092,7 +1088,8 @@ library(grid)
 ###### 1) Read results:  MCMC convergence ####################
 load(file = "chao_model_simulation/m5/m5_params_poiss.Rda")
 load(file =  "chao_model_simulation/m5/m5_params_negbin.Rda")
-load(file =  "chao_model_simulation/m5/m5_params_ibp.Rda", )
+load(file =  "chao_model_simulation/m5/m5_params_ibp.Rda" )
+load(file =  "chao_model_simulation/m5/m5_params_sp.Rda" )
 
 ###### 2) Read results: samples from limiting distributions (Poiss/NB) ##############
 load(file = "chao_model_simulation/m5/m5_ntilde_poiss.Rda")
@@ -1102,11 +1099,13 @@ load(file = "chao_model_simulation/m5/m5_ntilde_negbin.Rda")
 list_kmn_pred_test_poiss <- readRDS(file = "chao_model_simulation/m5/m5_ci_poiss.rds")
 list_kmn_pred_test_negbin <- readRDS(file = "chao_model_simulation/m5/m5_ci_negbin.rds")
 list_kmn_pred_test_ibp <- readRDS(file = "chao_model_simulation/m5/m5_ci_ibp.rds")
+list_kmn_pred_test_sp <- readRDS(file = "chao_model_simulation/m5/m5_ci_sp.rds")
 
 ###### 3.b) Read results: CI for insample (Poiss/NB/Gamma) ################
 list_kn_rarefaction_poiss <- readRDS(file = "chao_model_simulation/m5/m5_ci_insample_poiss.rds")
 list_kn_rarefaction_negbin <- readRDS(file = "chao_model_simulation/m5/m5_ci_insample_negbin.rds")
 list_kn_rarefaction_ibp <- readRDS(file = "chao_model_simulation/m5/m5_ci_insample_ibp.rds")
+list_kn_rarefaction_sp <- readRDS(file = "chao_model_simulation/m5/m5_ci_insample_sp.rds")
 
 ###### 4) Read the data ###############################
 data_mat <- readRDS(file = "chao_model_simulation/m5/m5_data_mat.rds")
@@ -1130,6 +1129,7 @@ load(file = "chao_model_simulation/m5/m5_obs_new.Rda")
 load(file = "chao_model_simulation/m5/m5_est_new_poiss.Rda")
 load(file = "chao_model_simulation/m5/m5_est_new_negbin.Rda")
 load(file = "chao_model_simulation/m5/m5_est_new_ibp.Rda")
+load(file = "chao_model_simulation/m5/m5_est_new_sp.Rda")
 
 D <- nrow(avg_ntilde_poiss)
 
@@ -1171,7 +1171,7 @@ for (j in 1:length(Ns)){
     ci_poiss = list_kn_rarefaction_poiss[[paste0("N.",N)]], 
     ci_negbin = list_kn_rarefaction_negbin[[paste0("N.",N)]],
     ci_ibp = list_kn_rarefaction_ibp[[paste0("N.",N)]],
-    ci_sp = list_kn_rarefaction_sp[[paste0("N.",N)]],
+    #ci_sp = list_kn_rarefaction_sp[[paste0("N.",N)]],
     n_avg = 100) +
     ggtitle(paste0("n = ", N))
   
@@ -1206,7 +1206,7 @@ for (j in 1:length(Ns)){
     ci_poiss = list_kmn_pred_test_poiss[[paste0("N.",N)]], 
     ci_negbin = list_kmn_pred_test_negbin[[paste0("N.",N)]],
     ci_ibp = list_kmn_pred_test_ibp[[paste0("N.",N)]],
-    ci_sp = list_kmn_pred_test_sp[[paste0("N.",N)]],
+    #ci_sp = list_kmn_pred_test_sp[[paste0("N.",N)]],
     n_avg = 100) +
     ggtitle(paste0("n = ", N))
   
@@ -1348,7 +1348,8 @@ library(scales)
 ###### 1) Read results:  MCMC convergence ####################
 load(file = "unbounded_features_simulation/unb_poly_0_8/unb_poly_0_8_params_poiss.Rda")
 load(file =  "unbounded_features_simulation/unb_poly_0_8/unb_poly_0_8_params_negbin.Rda")
-load(file =  "unbounded_features_simulation/unb_poly_0_8/unb_poly_0_8_params_ibp.Rda", )
+load(file =  "unbounded_features_simulation/unb_poly_0_8/unb_poly_0_8_params_ibp.Rda" )
+load(file =  "unbounded_features_simulation/unb_poly_0_8/unb_poly_0_8_params_sp.Rda" )
 
 ###### 2) Read results: samples from limiting distributions (Poiss/NB) ##############
 load(file = "unbounded_features_simulation/unb_poly_0_8/unb_poly_0_8_ntilde_poiss.Rda")
@@ -1358,11 +1359,14 @@ load(file = "unbounded_features_simulation/unb_poly_0_8/unb_poly_0_8_ntilde_negb
 list_kmn_pred_test_poiss <- readRDS(file = "unbounded_features_simulation/unb_poly_0_8/unb_poly_0_8_ci_poiss.rds")
 list_kmn_pred_test_negbin <- readRDS(file = "unbounded_features_simulation/unb_poly_0_8/unb_poly_0_8_ci_negbin.rds")
 list_kmn_pred_test_ibp <- readRDS(file = "unbounded_features_simulation/unb_poly_0_8/unb_poly_0_8_ci_ibp.rds")
+list_kmn_pred_test_sp <- readRDS(file = "unbounded_features_simulation/unb_poly_0_8/unb_poly_0_8_ci_sp.rds")
+
 
 ###### 3.b) Read results: CI for insample (Poiss/NB/Gamma) ################
 list_kn_rarefaction_poiss <- readRDS(file = "unbounded_features_simulation/unb_poly_0_8/unb_poly_0_8_ci_insample_poiss.rds")
 list_kn_rarefaction_negbin <- readRDS(file = "unbounded_features_simulation/unb_poly_0_8/unb_poly_0_8_ci_insample_negbin.rds")
 list_kn_rarefaction_ibp <- readRDS(file = "unbounded_features_simulation/unb_poly_0_8/unb_poly_0_8_ci_insample_ibp.rds")
+list_kn_rarefaction_sp <- readRDS(file = "unbounded_features_simulation/unb_poly_0_8/unb_poly_0_8_ci_insample_sp.rds")
 
 ###### 4) Read the data ###############################
 data_mat <- readRDS(file = "unbounded_features_simulation/unb_poly_0_8/unb_poly_0_8_data_mat.rds")
@@ -1386,6 +1390,7 @@ load(file = "unbounded_features_simulation/unb_poly_0_8/unb_poly_0_8_obs_new.Rda
 load(file = "unbounded_features_simulation/unb_poly_0_8/unb_poly_0_8_est_new_poiss.Rda")
 load(file = "unbounded_features_simulation/unb_poly_0_8/unb_poly_0_8_est_new_negbin.Rda")
 load(file = "unbounded_features_simulation/unb_poly_0_8/unb_poly_0_8_est_new_ibp.Rda")
+load(file = "unbounded_features_simulation/unb_poly_0_8/unb_poly_0_8_est_new_sp.Rda")
 
 D <- nrow(avg_ntilde_poiss)
 
@@ -1423,7 +1428,7 @@ for (j in 1:length(Ns)){
   # convert the binary matrix into list of features
   train_list <- create_features_list(train_mat)
 
-  gg_kn_rarefaction_all[[j]] <- plot_Kn_median_and_rarefaction_all(
+  gg_kn_rarefaction_all[[j]] <- plot_Kn_median_and_rarefaction_all_sp(
     train_list = train_list,
     ci_poiss = list_kn_rarefaction_poiss[[paste0("N.",N)]], 
     ci_negbin = list_kn_rarefaction_negbin[[paste0("N.",N)]],
@@ -1457,7 +1462,7 @@ for (j in 1:length(Ns)){
   test_list <- create_features_list(test_mat)
   
   
-  gg_kmn_pred_test_all[[j]] <- plot_Kmn_median_pred_and_test_all(
+  gg_kmn_pred_test_all[[j]] <- plot_Kmn_median_pred_and_test_all_sp(
     train_list = train_list,
     test_list = test_list,
     ci_poiss = list_kmn_pred_test_poiss[[paste0("N.",N)]], 
@@ -1541,7 +1546,8 @@ library(scales)
 ###### 1) Read results:  MCMC convergence ####################
 load(file = "unbounded_features_simulation/unb_poly_1/unb_poly_1_params_poiss.Rda")
 load(file =  "unbounded_features_simulation/unb_poly_1/unb_poly_1_params_negbin.Rda")
-load(file =  "unbounded_features_simulation/unb_poly_1/unb_poly_1_params_ibp.Rda", )
+load(file =  "unbounded_features_simulation/unb_poly_1/unb_poly_1_params_ibp.Rda" )
+load(file =  "unbounded_features_simulation/unb_poly_1/unb_poly_1_params_sp.Rda" )
 
 ###### 2) Read results: samples from limiting distributions (Poiss/NB) ##############
 load(file = "unbounded_features_simulation/unb_poly_1/unb_poly_1_ntilde_poiss.Rda")
@@ -1551,11 +1557,13 @@ load(file = "unbounded_features_simulation/unb_poly_1/unb_poly_1_ntilde_negbin.R
 list_kmn_pred_test_poiss <- readRDS(file = "unbounded_features_simulation/unb_poly_1/unb_poly_1_ci_poiss.rds")
 list_kmn_pred_test_negbin <- readRDS(file = "unbounded_features_simulation/unb_poly_1/unb_poly_1_ci_negbin.rds")
 list_kmn_pred_test_ibp <- readRDS(file = "unbounded_features_simulation/unb_poly_1/unb_poly_1_ci_ibp.rds")
+list_kmn_pred_test_sp <- readRDS(file = "unbounded_features_simulation/unb_poly_1/unb_poly_1_ci_sp.rds")
 
 ###### 3.b) Read results: CI for insample (Poiss/NB/Gamma) ################
 list_kn_rarefaction_poiss <- readRDS(file = "unbounded_features_simulation/unb_poly_1/unb_poly_1_ci_insample_poiss.rds")
 list_kn_rarefaction_negbin <- readRDS(file = "unbounded_features_simulation/unb_poly_1/unb_poly_1_ci_insample_negbin.rds")
 list_kn_rarefaction_ibp <- readRDS(file = "unbounded_features_simulation/unb_poly_1/unb_poly_1_ci_insample_ibp.rds")
+list_kn_rarefaction_sp <- readRDS(file = "unbounded_features_simulation/unb_poly_1/unb_poly_1_ci_insample_sp.rds")
 
 ###### 4) Read the data ###############################
 data_mat <- readRDS(file = "unbounded_features_simulation/unb_poly_1/unb_poly_1_data_mat.rds")
@@ -1579,6 +1587,7 @@ load(file = "unbounded_features_simulation/unb_poly_1/unb_poly_1_obs_new.Rda")
 load(file = "unbounded_features_simulation/unb_poly_1/unb_poly_1_est_new_poiss.Rda")
 load(file = "unbounded_features_simulation/unb_poly_1/unb_poly_1_est_new_negbin.Rda")
 load(file = "unbounded_features_simulation/unb_poly_1/unb_poly_1_est_new_ibp.Rda")
+load(file = "unbounded_features_simulation/unb_poly_1/unb_poly_1_est_new_sp.Rda")
 
 D <- nrow(avg_ntilde_poiss)
 
@@ -1616,7 +1625,7 @@ for (j in 1:length(Ns)){
   # convert the binary matrix into list of features
   train_list <- create_features_list(train_mat)
 
-  gg_kn_rarefaction_all[[j]] <- plot_Kn_median_and_rarefaction_all(
+  gg_kn_rarefaction_all[[j]] <- plot_Kn_median_and_rarefaction_all_sp(
     train_list = train_list,
     ci_poiss = list_kn_rarefaction_poiss[[paste0("N.",N)]], 
     ci_negbin = list_kn_rarefaction_negbin[[paste0("N.",N)]],
@@ -1650,7 +1659,7 @@ for (j in 1:length(Ns)){
   test_list <- create_features_list(test_mat)
   
   
-  gg_kmn_pred_test_all[[j]] <- plot_Kmn_median_pred_and_test_all(
+  gg_kmn_pred_test_all[[j]] <- plot_Kmn_median_pred_and_test_all_sp(
     train_list = train_list,
     test_list = test_list,
     ci_poiss = list_kmn_pred_test_poiss[[paste0("N.",N)]], 
@@ -1735,7 +1744,8 @@ library(scales)
 ###### 1) Read results:  MCMC convergence ####################
 load(file = "unbounded_features_simulation/unb_poly_1_2/unb_poly_1_2_params_poiss.Rda")
 load(file =  "unbounded_features_simulation/unb_poly_1_2/unb_poly_1_2_params_negbin.Rda")
-load(file =  "unbounded_features_simulation/unb_poly_1_2/unb_poly_1_2_params_ibp.Rda", )
+load(file =  "unbounded_features_simulation/unb_poly_1_2/unb_poly_1_2_params_ibp.Rda" )
+load(file =  "unbounded_features_simulation/unb_poly_1_2/unb_poly_1_2_params_sp.Rda" )
 
 ###### 2) Read results: samples from limiting distributions (Poiss/NB) ##############
 load(file = "unbounded_features_simulation/unb_poly_1_2/unb_poly_1_2_ntilde_poiss.Rda")
@@ -1745,11 +1755,13 @@ load(file = "unbounded_features_simulation/unb_poly_1_2/unb_poly_1_2_ntilde_negb
 list_kmn_pred_test_poiss <- readRDS(file = "unbounded_features_simulation/unb_poly_1_2/unb_poly_1_2_ci_poiss.rds")
 list_kmn_pred_test_negbin <- readRDS(file = "unbounded_features_simulation/unb_poly_1_2/unb_poly_1_2_ci_negbin.rds")
 list_kmn_pred_test_ibp <- readRDS(file = "unbounded_features_simulation/unb_poly_1_2/unb_poly_1_2_ci_ibp.rds")
+list_kmn_pred_test_sp <- readRDS(file = "unbounded_features_simulation/unb_poly_1_2/unb_poly_1_2_ci_sp.rds")
 
 ###### 3.b) Read results: CI for insample (Poiss/NB/Gamma) ################
 list_kn_rarefaction_poiss <- readRDS(file = "unbounded_features_simulation/unb_poly_1_2/unb_poly_1_2_ci_insample_poiss.rds")
 list_kn_rarefaction_negbin <- readRDS(file = "unbounded_features_simulation/unb_poly_1_2/unb_poly_1_2_ci_insample_negbin.rds")
 list_kn_rarefaction_ibp <- readRDS(file = "unbounded_features_simulation/unb_poly_1_2/unb_poly_1_2_ci_insample_ibp.rds")
+list_kn_rarefaction_sp <- readRDS(file = "unbounded_features_simulation/unb_poly_1_2/unb_poly_1_2_ci_insample_sp.rds")
 
 ###### 4) Read the data ###############################
 data_mat <- readRDS(file = "unbounded_features_simulation/unb_poly_1_2/unb_poly_1_2_data_mat.rds")
@@ -1773,6 +1785,7 @@ load(file = "unbounded_features_simulation/unb_poly_1_2/unb_poly_1_2_obs_new.Rda
 load(file = "unbounded_features_simulation/unb_poly_1_2/unb_poly_1_2_est_new_poiss.Rda")
 load(file = "unbounded_features_simulation/unb_poly_1_2/unb_poly_1_2_est_new_negbin.Rda")
 load(file = "unbounded_features_simulation/unb_poly_1_2/unb_poly_1_2_est_new_ibp.Rda")
+load(file = "unbounded_features_simulation/unb_poly_1_2/unb_poly_1_2_est_new_sp.Rda")
 
 D <- nrow(avg_ntilde_poiss)
 
@@ -1810,7 +1823,7 @@ for (j in 1:length(Ns)){
   # convert the binary matrix into list of features
   train_list <- create_features_list(train_mat)
 
-  gg_kn_rarefaction_all[[j]] <- plot_Kn_median_and_rarefaction_all(
+  gg_kn_rarefaction_all[[j]] <- plot_Kn_median_and_rarefaction_all_sp(
     train_list = train_list,
     ci_poiss = list_kn_rarefaction_poiss[[paste0("N.",N)]], 
     ci_negbin = list_kn_rarefaction_negbin[[paste0("N.",N)]],
@@ -1844,7 +1857,7 @@ for (j in 1:length(Ns)){
   test_list <- create_features_list(test_mat)
   
   
-  gg_kmn_pred_test_all[[j]] <- plot_Kmn_median_pred_and_test_all(
+  gg_kmn_pred_test_all[[j]] <- plot_Kmn_median_pred_and_test_all_sp(
     train_list = train_list,
     test_list = test_list,
     ci_poiss = list_kmn_pred_test_poiss[[paste0("N.",N)]], 

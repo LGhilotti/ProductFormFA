@@ -78,3 +78,18 @@ perc_accuracy <- function(train_list, test_list, est_new_features){
   }
       
 }
+
+
+
+#' Metric of accuracy in prediction
+#' 
+#' 
+#' @param obs_n [list] number of new observed
+#' @param est_n [list] number of estimated new
+#' @param obs_t [numeric] number of observed in training set
+#' 
+#' @export
+#'
+compute_accuracy <- function(obs_n, est_n, obs_t) {
+  return (abs(obs_n - est_n)/obs_t)
+}
