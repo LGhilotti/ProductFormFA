@@ -847,6 +847,105 @@ plot_Kmn_median_pred_and_test_all_sp <- function(
 }
 
 
+#####################################################
+#' Plot function for the credible intervals of Kmn, given initial sample, and the observed, 
+#' for all the 3 Models 
+#' 
+#'
+#' This function allows to plot the credible intervals of Kmn given initial sample,
+#' and the observed test as well
+#'
+#' @param train_list [list] 
+#' @param test_list [list] 
+#' @param ci_poiss [list] it contains means, upper-bounds and lower-bounds of the CI for Poisson
+#' @param ci_negbin [list] it contains means, upper-bounds and lower-bounds of the CI for NB
+#' @param ci_ibp [list] it contains means, upper-bounds and lower-bounds of the CI for IBP
+#' @param n_avg [integer] 
+#' 
+#' @export
+#' @import ggplot2
+#' @import scales
+#'
+plot_Kmn_median_pred_all <- function(
+    data_list,
+    ci_poiss, 
+    ci_negbin,
+    ci_ibp,
+    n_avg){
+  
+  m <- length(ci_poiss$median)
+  N <- length(data_list)
+  L <- m + N
+  
+  # train set
+  cum_nfeat <- rep(0, N)
+  
+  for (j in 1:n_avg){
+    ord <- sample(1:N)
+    cum_nfeat <- cum_nfeat + sapply(1:N, function(n) length(unique(unlist(data_list[ord][1:n]))))
+  }
+  
+  cum_nfeat <- cum_nfeat/n_avg
+  
+  nfeat_sample <- cum_nfeat[N]
+  
+  names_train_features <- unique(unlist(data_list))
+  
+  obs_sample <- data.frame(
+    x = 0:N,
+    nfeat = c(0, cum_nfeat)
+  )
+  
+  # credible bands Poiss
+  bands_poiss <- data.frame(
+    x = N:(N+m),
+    medians = c(nfeat_sample, ci_poiss$medians + nfeat_sample),
+    lbs = c(nfeat_sample, ci_poiss$lbs + nfeat_sample),
+    ubs = c(nfeat_sample, ci_poiss$ubs + nfeat_sample), 
+    Model = "BBmixP"
+  )
+  
+  # credible bands NegBin
+  bands_negbin <- data.frame(
+    x = N:(N+m),
+    medians = c(nfeat_sample, ci_negbin$medians + nfeat_sample),
+    lbs = c(nfeat_sample, ci_negbin$lbs + nfeat_sample),
+    ubs = c(nfeat_sample, ci_negbin$ubs + nfeat_sample), 
+    Model = "BBmixNB"
+  )
+  
+  # credible bands IBP
+  bands_ibp <- data.frame(
+    x = N:(N+m),
+    medians = c(nfeat_sample, ci_ibp$medians + nfeat_sample),
+    lbs = c(nfeat_sample, ci_ibp$lbs + nfeat_sample),
+    ubs = c(nfeat_sample, ci_ibp$ubs + nfeat_sample),
+    Model = "3IBPmix"
+  )
+  
+  
+  bands <- rbind(bands_poiss, bands_negbin, bands_ibp)  %>%
+    mutate(Model = fct_relevel(Model, c("3IBPmix", "BBmixP", "BBmixNB"))) 
+  
+  
+  ggfig <- ggplot(bands, aes(x,medians, color = Model) ) +
+    geom_line(linetype = "dashed") +
+    geom_ribbon(aes(ymin = lbs, ymax = ubs, fill = Model), alpha = 0.1) +
+    geom_line(data = obs_sample, aes(x, nfeat), color="black", linetype="solid", linewidth=0.5)  +
+    #geom_segment(aes(x = N, y = 0, xend = N, yend = max(max(ubs),nfeat_sample + cum_nfeat_test[m]) + 10), 
+    #color="grey", linetype="dashed", size=1) +
+    geom_vline(xintercept = N, color="grey", linetype="dashed", linewidth=1) +
+    xlab("# observations") + ylab("# distinct features") + theme_bw() + 
+    theme(plot.title = element_text(hjust = 0.5)) +
+    ggtitle(paste0("Extrapolated rarefaction curve, N = ", N)) +
+    scale_y_continuous(breaks = pretty_breaks()) +
+    scale_x_continuous(breaks = pretty_breaks()) +
+    scale_color_manual(values = c("3IBPmix" = "orangered1" ,
+                                  "BBmixP" = "forestgreen",
+                                  "BBmixNB" = "royalblue1")) 
+  
+  return (ggfig)
+}
 
 #####################################################
 #' Plot function for the credible intervals of Kmn, given initial sample, for 
