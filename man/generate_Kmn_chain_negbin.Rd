@@ -4,15 +4,7 @@
 \alias{generate_Kmn_chain_negbin}
 \title{Generate the chain for Kmn, from m=1 to m=M, given the output chains of the mcmc}
 \usage{
-generate_Kmn_chain_negbin(
-  nstar_chain,
-  p_chain,
-  alpha_chain,
-  theta_chain,
-  M,
-  n,
-  Kn = 0
-)
+generate_Kmn_chain_negbin(nstar, p, alpha_chain, theta_chain, M, n, Kn = 0)
 }
 \arguments{
 \item{Kn}{}

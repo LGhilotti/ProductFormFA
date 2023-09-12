@@ -9,6 +9,7 @@ plot_Kn_median_and_rarefaction_all(
   train_list,
   ci_poiss,
   ci_negbin,
+  ci_negbin_prior,
   ci_ibp,
   n_avg
 )

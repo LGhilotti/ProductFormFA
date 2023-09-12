@@ -5,7 +5,7 @@
 \title{Title}
 \usage{
 generate_Ntilde_chain_poiss(
-  lambda_chain_poiss,
+  lambda,
   alpha_chain_poiss,
   theta_chain_poiss,
   n,
@@ -13,8 +13,6 @@ generate_Ntilde_chain_poiss(
 )
 }
 \arguments{
-\item{lambda_chain_poiss}{}
-
 \item{alpha_chain_poiss}{}
 
 \item{theta_chain_poiss}{}
@@ -22,6 +20,8 @@ generate_Ntilde_chain_poiss(
 \item{n}{}
 
 \item{Kn}{}
+
+\item{lambda_chain_poiss}{}
 }
 \description{
 Title

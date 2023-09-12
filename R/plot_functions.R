@@ -216,6 +216,7 @@ plot_Kn_median_and_rarefaction_all <- function(
     train_list, 
     ci_poiss, 
     ci_negbin,
+    ci_negbin_prior,
     ci_ibp,
     n_avg){
   
@@ -252,6 +253,14 @@ plot_Kn_median_and_rarefaction_all <- function(
     Model = "BBmixNB"
   )
   
+  bands_negbin_prior <- data.frame(
+    x = 0:N,
+    medians = c(0, ci_negbin_prior$medians),
+    lbs = c(0, ci_negbin_prior$lbs),
+    ubs = c(0, ci_negbin_prior$ubs),
+    Model = "BBmixNB+prior"
+  )
+  
   bands_ibp <- data.frame(
     x = 0:N,
     medians = c(0, ci_ibp$medians),
@@ -262,7 +271,7 @@ plot_Kn_median_and_rarefaction_all <- function(
   
   
   bands <- rbind(bands_poiss, bands_negbin, bands_ibp) %>%
-    mutate(Model = fct_relevel(Model, c("3IBPmix","BBmixP", "BBmixNB"))) 
+    mutate(Model = fct_relevel(Model, c("3IBPmix","BBmixP", "BBmixNB", "BBmixNB+prior"))) 
   
   
   ggfig <- ggplot(bands, aes(x,medians, color = Model) ) +
@@ -275,7 +284,8 @@ plot_Kn_median_and_rarefaction_all <- function(
     scale_x_continuous(breaks = pretty_breaks()) +
     scale_color_manual(values = c("3IBPmix" = "orangered1" ,
                                   "BBmixP" = "forestgreen",
-                                  "BBmixNB" = "royalblue1")) 
+                                  "BBmixNB" = "royalblue1",
+                                  "BBmixNB+prior" = "orange")) 
   
   return (ggfig)
 }
@@ -369,6 +379,93 @@ plot_Kn_median_and_rarefaction_all_sp <- function(
     scale_x_continuous(breaks = pretty_breaks()) +
     scale_color_manual(values = c("3IBPmix" = "orangered1" ,
                                   "SB-SP" = "orange3",
+                                  "BBmixP" = "forestgreen",
+                                  "BBmixNB" = "royalblue1")) 
+  
+  return (ggfig)
+}
+
+
+#####################################################
+#' Plot function for the credible intervals IN-SAMPLE of Kn, and the observed, 
+#' for all the 3 Models 
+#' 
+#'
+#' This function allows to plot the credible intervals of Kn, a posteriori,
+#' and the observed data as well
+#'
+#' @param train_list [list] 
+#' @param ci_poiss [list] it contains means, upper-bounds and lower-bounds of the CI for Poisson
+#' @param ci_negbin [list] it contains means, upper-bounds and lower-bounds of the CI for NB
+#' @param ci_ibp [list] it contains means, upper-bounds and lower-bounds of the CI for IBP
+#' @param n_avg [integer] 
+#' 
+#' @export
+#' @import ggplot2
+#' @import scales
+#'
+plot_Kn_median_and_rarefaction_all_sp_noibp <- function(
+    train_list, 
+    ci_poiss, 
+    ci_negbin,
+    ci_sp,
+    n_avg){
+  
+  N <- length(ci_poiss$medians)
+  
+  cum_nfeat <- rep(0, N)
+  
+  for (j in 1:n_avg){
+    ord <- sample(1:N)
+    cum_nfeat <- cum_nfeat + sapply(1:N, function(n) length(unique(unlist(train_list[ord][1:n]))))
+  }
+  
+  cum_nfeat <- cum_nfeat/n_avg
+  
+  obs_sample <- data.frame(
+    x = 0:N,
+    nfeat = c(0,cum_nfeat)
+  )
+  
+  # bands
+  bands_poiss <- data.frame(
+    x = 0:N,
+    medians = c(0, ci_poiss$medians),
+    lbs = c(0, ci_poiss$lbs),
+    ubs = c(0, ci_poiss$ubs),
+    Model = "BBmixP"
+  )
+  
+  bands_negbin <- data.frame(
+    x = 0:N,
+    medians = c(0, ci_negbin$medians),
+    lbs = c(0, ci_negbin$lbs),
+    ubs = c(0, ci_negbin$ubs),
+    Model = "BBmixNB"
+  )
+  
+  
+  bands_sp <- data.frame(
+    x = 0:N,
+    medians = c(0, ci_sp$medians),
+    lbs = c(0, ci_sp$lbs),
+    ubs = c(0, ci_sp$ubs),
+    Model = "SB-SP"
+  )
+  
+  bands <- rbind(bands_poiss, bands_negbin, bands_sp) %>%
+    mutate(Model = fct_relevel(Model, c("SB-SP","BBmixP", "BBmixNB"))) 
+  
+  
+  ggfig <- ggplot(bands, aes(x,medians, color = Model) ) +
+    geom_line(linetype = "dashed") +
+    geom_ribbon(aes(ymin = lbs, ymax = ubs, fill = Model), alpha = 0.1) +
+    geom_line(data = obs_sample, aes(x, nfeat), color="black", linetype="solid", linewidth=0.5) +
+    xlab("# observations") + ylab("# distinct features") + theme_bw() + 
+    theme(plot.title = element_text(hjust = 0.5)) +
+    scale_y_continuous(breaks = pretty_breaks()) +
+    scale_x_continuous(breaks = pretty_breaks()) +
+    scale_color_manual(values = c("SB-SP" = "orange3",
                                   "BBmixP" = "forestgreen",
                                   "BBmixNB" = "royalblue1")) 
   
@@ -632,6 +729,7 @@ plot_Kmn_median_pred_and_test_all <- function(
   test_list,
   ci_poiss, 
   ci_negbin,
+  #ci_negbin_prior,
   ci_ibp,
   n_avg){
   
@@ -679,7 +777,7 @@ plot_Kmn_median_pred_and_test_all <- function(
     Model = "BBmixP"
   )
   
-  # credible bands NegBin
+  # credible bands NegBin (fixed)
   bands_negbin <- data.frame(
     x = N:(N+m),
     medians = c(nfeat_sample, ci_negbin$medians + nfeat_sample),
@@ -687,6 +785,15 @@ plot_Kmn_median_pred_and_test_all <- function(
     ubs = c(nfeat_sample, ci_negbin$ubs + nfeat_sample), 
     Model = "BBmixNB"
   )
+  
+  # # credible bands NegBin (prior)
+  # bands_negbin_prior <- data.frame(
+  #   x = N:(N+m),
+  #   medians = c(nfeat_sample, ci_negbin_prior$medians + nfeat_sample),
+  #   lbs = c(nfeat_sample, ci_negbin_prior$lbs + nfeat_sample),
+  #   ubs = c(nfeat_sample, ci_negbin_prior$ubs + nfeat_sample), 
+  #   Model = "BBmixNB+prior"
+  # )
   
   # credible bands IBP
   bands_ibp <- data.frame(
@@ -847,6 +954,121 @@ plot_Kmn_median_pred_and_test_all_sp <- function(
 }
 
 
+
+#####################################################
+#' Plot function for the credible intervals of Kmn, given initial sample, and the observed, 
+#' for all the 3 Models 
+#' 
+#'
+#' This function allows to plot the credible intervals of Kmn given initial sample,
+#' and the observed test as well
+#'
+#' @param train_list [list] 
+#' @param test_list [list] 
+#' @param ci_poiss [list] it contains means, upper-bounds and lower-bounds of the CI for Poisson
+#' @param ci_negbin [list] it contains means, upper-bounds and lower-bounds of the CI for NB
+#' @param ci_ibp [list] it contains means, upper-bounds and lower-bounds of the CI for IBP
+#' @param n_avg [integer] 
+#' 
+#' @export
+#' @import ggplot2
+#' @import scales
+#'
+plot_Kmn_median_pred_and_test_all_sp_noibp <- function(
+    train_list,
+    test_list,
+    ci_poiss, 
+    ci_negbin,
+    ci_sp,
+    n_avg){
+  
+  m <- length(test_list)
+  N <- length(train_list)
+  L <- m + N
+  
+  # train set
+  cum_nfeat <- rep(0, N)
+  
+  for (j in 1:n_avg){
+    ord <- sample(1:N)
+    cum_nfeat <- cum_nfeat + sapply(1:N, function(n) length(unique(unlist(train_list[ord][1:n]))))
+  }
+  
+  cum_nfeat <- cum_nfeat/n_avg
+  
+  nfeat_sample <- cum_nfeat[N]
+  
+  names_train_features <- unique(unlist(train_list))
+  
+  # test set
+  cum_nfeat_test <- rep(0, m)
+  
+  for (j in 1:n_avg){
+    ord <- sample(1:m)
+    cum_nfeat_test <- cum_nfeat_test + 
+      sapply(1:m, function(n) length(setdiff(unique(unlist(test_list[ord][1:n])), 
+                                             names_train_features))) 
+  }
+  
+  cum_nfeat_test <- cum_nfeat_test/n_avg
+  
+  obs_sample <- data.frame(
+    x = 0:L,
+    nfeat = c(0, cum_nfeat, nfeat_sample + cum_nfeat_test)
+  )
+  
+  # credible bands Poiss
+  bands_poiss <- data.frame(
+    x = N:(N+m),
+    medians = c(nfeat_sample, ci_poiss$medians + nfeat_sample),
+    lbs = c(nfeat_sample, ci_poiss$lbs + nfeat_sample),
+    ubs = c(nfeat_sample, ci_poiss$ubs + nfeat_sample), 
+    Model = "BBmixP"
+  )
+  
+  # credible bands NegBin
+  bands_negbin <- data.frame(
+    x = N:(N+m),
+    medians = c(nfeat_sample, ci_negbin$medians + nfeat_sample),
+    lbs = c(nfeat_sample, ci_negbin$lbs + nfeat_sample),
+    ubs = c(nfeat_sample, ci_negbin$ubs + nfeat_sample), 
+    Model = "BBmixNB"
+  )
+  
+  
+  # credible bands SP
+  bands_sp <- data.frame(
+    x = N:(N+m),
+    medians = c(nfeat_sample, ci_sp$medians + nfeat_sample),
+    lbs = c(nfeat_sample, ci_sp$lbs + nfeat_sample),
+    ubs = c(nfeat_sample, ci_sp$ubs + nfeat_sample),
+    Model = "SB-SP"
+  )
+  
+  
+  bands <- rbind(bands_poiss, bands_negbin, bands_sp) %>%
+    mutate(Model = fct_relevel(Model, c("SB-SP","BBmixP", "BBmixNB"))) 
+  
+  
+  ggfig <- ggplot(bands, aes(x,medians, color = Model) ) +
+    geom_line(linetype = "dashed") +
+    geom_ribbon(aes(ymin = lbs, ymax = ubs, fill = Model), alpha = 0.1) +
+    geom_line(data = obs_sample, aes(x, nfeat), color="black", linetype="solid", linewidth=0.5)  +
+    #geom_segment(aes(x = N, y = 0, xend = N, yend = max(max(ubs),nfeat_sample + cum_nfeat_test[m]) + 10), 
+    #color="grey", linetype="dashed", size=1) +
+    geom_vline(xintercept = N, color="grey", linetype="dashed", linewidth=1) +
+    xlab("# observations") + ylab("# distinct features") + theme_bw() + 
+    theme(plot.title = element_text(hjust = 0.5)) +
+    ggtitle(paste0("Extrapolated rarefaction curve, N = ", N)) +
+    scale_y_continuous(breaks = pretty_breaks()) +
+    scale_x_continuous(breaks = pretty_breaks()) +
+    scale_color_manual(values = c("SB-SP" = "orange3",
+                                  "BBmixP" = "forestgreen",
+                                  "BBmixNB" = "royalblue1")) 
+  
+  return (ggfig)
+}
+
 #####################################################
 #' Plot function for the credible intervals of Kmn, given initial sample, and the observed, 
 #' for all the 3 Models 
@@ -941,6 +1163,107 @@ plot_Kmn_median_pred_all <- function(
     scale_y_continuous(breaks = pretty_breaks()) +
     scale_x_continuous(breaks = pretty_breaks()) +
     scale_color_manual(values = c("3IBPmix" = "orangered1" ,
+                                  "BBmixP" = "forestgreen",
+                                  "BBmixNB" = "royalblue1")) 
+  
+  return (ggfig)
+}
+
+
+#####################################################
+#' Plot function for the credible intervals of Kmn, given initial sample, and the observed, 
+#' for all the 3 Models 
+#' 
+#'
+#' This function allows to plot the credible intervals of Kmn given initial sample,
+#' and the observed test as well
+#'
+#' @param train_list [list] 
+#' @param test_list [list] 
+#' @param ci_poiss [list] it contains means, upper-bounds and lower-bounds of the CI for Poisson
+#' @param ci_negbin [list] it contains means, upper-bounds and lower-bounds of the CI for NB
+#' @param ci_ibp [list] it contains means, upper-bounds and lower-bounds of the CI for IBP
+#' @param n_avg [integer] 
+#' 
+#' @export
+#' @import ggplot2
+#' @import scales
+#'
+plot_Kmn_median_pred_all_sp_noibp <- function(
+    data_list,
+    ci_poiss, 
+    ci_negbin,
+    ci_sp,
+    n_avg){
+  
+  m <- length(ci_poiss$median)
+  N <- length(data_list)
+  L <- m + N
+  
+  # train set
+  cum_nfeat <- rep(0, N)
+  
+  for (j in 1:n_avg){
+    ord <- sample(1:N)
+    cum_nfeat <- cum_nfeat + sapply(1:N, function(n) length(unique(unlist(data_list[ord][1:n]))))
+  }
+  
+  cum_nfeat <- cum_nfeat/n_avg
+  
+  nfeat_sample <- cum_nfeat[N]
+  
+  names_train_features <- unique(unlist(data_list))
+  
+  obs_sample <- data.frame(
+    x = 0:N,
+    nfeat = c(0, cum_nfeat)
+  )
+  
+  # credible bands Poiss
+  bands_poiss <- data.frame(
+    x = N:(N+m),
+    medians = c(nfeat_sample, ci_poiss$medians + nfeat_sample),
+    lbs = c(nfeat_sample, ci_poiss$lbs + nfeat_sample),
+    ubs = c(nfeat_sample, ci_poiss$ubs + nfeat_sample), 
+    Model = "BBmixP"
+  )
+  
+  # credible bands NegBin
+  bands_negbin <- data.frame(
+    x = N:(N+m),
+    medians = c(nfeat_sample, ci_negbin$medians + nfeat_sample),
+    lbs = c(nfeat_sample, ci_negbin$lbs + nfeat_sample),
+    ubs = c(nfeat_sample, ci_negbin$ubs + nfeat_sample), 
+    Model = "BBmixNB"
+  )
+  
+  # credible bands SB-SP
+  bands_sp <- data.frame(
+    x = N:(N+m),
+    medians = c(nfeat_sample, ci_sp$medians + nfeat_sample),
+    lbs = c(nfeat_sample, ci_sp$lbs + nfeat_sample),
+    ubs = c(nfeat_sample, ci_sp$ubs + nfeat_sample),
+    Model = "SB-SP"
+  )
+  
+  
+  bands <- rbind(bands_poiss, bands_negbin, bands_sp)  %>%
+    mutate(Model = fct_relevel(Model, c("SB-SP", "BBmixP", "BBmixNB"))) 
+  
+  
+  ggfig <- ggplot(bands, aes(x,medians, color = Model) ) +
+    geom_line(linetype = "dashed") +
+    geom_ribbon(aes(ymin = lbs, ymax = ubs, fill = Model), alpha = 0.1) +
+    geom_line(data = obs_sample, aes(x, nfeat), color="black", linetype="solid", linewidth=0.5)  +
+    #geom_segment(aes(x = N, y = 0, xend = N, yend = max(max(ubs),nfeat_sample + cum_nfeat_test[m]) + 10), 
+    #color="grey", linetype="dashed", size=1) +
+    geom_vline(xintercept = N, color="grey", linetype="dashed", linewidth=1) +
+    xlab("# observations") + ylab("# distinct features") + theme_bw() + 
+    theme(plot.title = element_text(hjust = 0.5)) +
+    ggtitle(paste0("Extrapolated rarefaction curve, N = ", N)) +
+    scale_y_continuous(breaks = pretty_breaks()) +
+    scale_x_continuous(breaks = pretty_breaks()) +
+    scale_color_manual(values = c("SB-SP" = "orange3" ,
                                   "BBmixP" = "forestgreen",
                                   "BBmixNB" = "royalblue1")) 
   

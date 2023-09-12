@@ -4,7 +4,7 @@
 \alias{generate_Kmn_chain_poiss}
 \title{Generate the chain for Kmn, from m=1 to m=M, given the output chains of the mcmc}
 \usage{
-generate_Kmn_chain_poiss(lambda_chain, alpha_chain, theta_chain, M, n)
+generate_Kmn_chain_poiss(lambda, alpha_chain, theta_chain, M, n)
 }
 \arguments{
 \item{n}{}

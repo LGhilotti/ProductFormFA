@@ -5,8 +5,8 @@
 \title{Title}
 \usage{
 generate_Ntilde_chain_negbin(
-  nstar_chain_negbin,
-  p_chain_negbin,
+  nstar,
+  p,
   alpha_chain_negbin,
   theta_chain_negbin,
   n,

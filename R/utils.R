@@ -93,3 +93,138 @@ perc_accuracy <- function(train_list, test_list, est_new_features){
 compute_accuracy <- function(obs_n, est_n, obs_t) {
   return (abs(obs_n - est_n)/obs_t)
 }
+
+
+
+
+#### Richness estimators in frequentist literature ############
+
+
+#' Chao2 estimator
+#' 
+#' 
+#' @param obs_n [list] number of new observed
+#' @param est_n [list] number of estimated new
+#' @param obs_t [numeric] number of observed in training set
+#' 
+#' @export
+#'
+chao2_estimator <- function(data_mat){
+  
+  # Compute total number of sites
+  n <- nrow(data_mat)
+  
+  # Delete NA
+  data_mat <- data_mat[, colSums(is.na(data_mat))==0]
+  
+  # Delete zero-columns
+  data_mat <- data_mat[, colSums(data_mat)!=0]
+  
+  # Set K to be the observed number of features
+  K <- ncol(data_mat)
+  
+  # Compute number of species contained in exactly k individuals
+  counts <- colSums(data_mat)
+  
+  Q_1 <- sum(counts == 1)
+  Q_2 <- sum(counts == 2)
+
+  
+  # Compute the statistic
+  res <- K + (n-1)/n * (Q_1^2)/(2*Q_2)
+  
+  return (res)
+  
+}
+
+
+#' Improved Chao2 estimator
+#' 
+#' 
+#' @param obs_n [list] number of new observed
+#' @param est_n [list] number of estimated new
+#' @param obs_t [numeric] number of observed in training set
+#' 
+#' @export
+#'
+improved_chao2_estimator <- function(data_mat){
+  
+  # Compute total number of sites
+  n <- nrow(data_mat)
+  
+  # Delete NA
+  data_mat <- data_mat[, colSums(is.na(data_mat))==0]
+  
+  # Delete zero-columns
+  data_mat <- data_mat[, colSums(data_mat)!=0]
+  
+  # Set K to be the observed number of features
+  K <- ncol(data_mat)
+  
+  # Compute number of species contained in exactly k individuals
+  counts <- colSums(data_mat)
+  
+  Q_1 <- sum(counts == 1)
+  Q_2 <- sum(counts == 2)
+  Q_3 <- sum(counts == 3)
+  Q_4 <- sum(counts == 4)
+  
+  # Compute the statistic
+  res <- K + (n-1)/n * (Q_1^2)/(2*Q_2) + (n-3)/(4*n) *Q_3/Q_4 * 
+    max(0, Q_1 - (n-3)/(2*(n-1)) *Q_2*Q_3/ Q_4)
+  
+  return (res)
+  
+}
+
+
+#' Beta-Binomial Chiu estimator
+#' 
+#' 
+#' @param obs_n [list] number of new observed
+#' @param est_n [list] number of estimated new
+#' @param obs_t [numeric] number of observed in training set
+#' 
+#' @export
+#'
+beta_binomial_estimator <- function(data_mat){
+  
+  # Compute total number of sites
+  n <- nrow(data_mat)
+  
+  # Delete NA
+  data_mat <- data_mat[, colSums(is.na(data_mat))==0]
+  
+  # Delete zero-columns
+  data_mat <- data_mat[, colSums(data_mat)!=0]
+  
+  # Set K to be the observed number of features
+  K <- ncol(data_mat)
+  
+  # Compute number of species contained in exactly k individuals
+  counts <- colSums(data_mat)
+  
+  Q_1 <- sum(counts == 1)
+  Q_2 <- sum(counts == 2)
+  Q_3 <- sum(counts == 3)
+  
+  # Compute Q_hat_0 
+  if (Q_2 == 0){
+    Q_hat_0 <- (n-1)/n * (Q_1*(Q_1 -1))/2
+  } else {
+    Q_hat_0 <- (n-1)/n * (Q_1^2)/(2*Q_2)
+  }
+  
+  # Compute last term
+  if (2*Q_2^2 / (3*Q_1*Q_3) <= 1){
+    last <- 2 - max(0.5, 2*Q_2^2 / (3*Q_1*Q_3))
+  } else {
+    last <- 1
+  }
+  
+  # Compute the statistic
+  res <- K + Q_hat_0 * last
+  
+  return (res)
+  
+}

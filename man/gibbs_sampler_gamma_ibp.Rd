@@ -17,7 +17,8 @@ gibbs_sampler_gamma_ibp(
   b_alpha,
   a_s,
   b_s,
-  tau,
+  sigq_s,
+  sigq_alpha,
   fixed,
   S,
   n_burnin,
@@ -50,8 +51,6 @@ gibbs_sampler_gamma_ibp(
 
 \item{b_s}{\link{numeric}}
 
-\item{tau}{\link{numeric} MALA step-size}
-
 \item{fixed}{\link{logical} vector indicating if the variable is fixed or has prior:
 if fixed, it stays equal to initial value - order: a, b, alpha, s}
 
@@ -62,6 +61,8 @@ if fixed, it stays equal to initial value - order: a, b, alpha, s}
 \item{thin}{\link{integer} thinning}
 
 \item{seed}{\link{integer} seed}
+
+\item{tau}{\link{numeric} MALA step-size}
 }
 \description{
 Metropolis-within-Gibbs sampler for BB + NegBin (Geometric prior on nstar)

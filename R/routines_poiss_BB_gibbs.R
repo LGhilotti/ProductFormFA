@@ -1,4 +1,39 @@
-
+#' Function for the log posterior density of alpha_hat and s_hat
+#' 
+#' @param nstar_hat
+#' @param s_hat 
+#' @param alpha_bar_hat 
+#' @param lambda 
+#' @param n 
+#' @param K 
+#' @param counts 
+#' @param a_s 
+#' @param b_s 
+#' @param a_alpha 
+#' @param b_alpha 
+#'
+#' @export
+#'
+neg_log_posterior_poiss <- function(pars,
+                                    n, K, counts,
+                                    lambda,
+                                    a_s, b_s, a_alpha, b_alpha){
+  
+  s_hat <- pars[1]
+  alpha_hat <- pars[2]
+  
+  es <- exp(s_hat)
+  ealpha <- exp(alpha_hat)
+  
+  res <- K*(lgamma(es +ealpha) -lgamma(es + ealpha +n) -
+              lgamma(1 + ealpha) -lgamma(es) ) +
+    lambda*exp( lgamma(es+n) +lgamma(es+ealpha) - lgamma(es) - lgamma(es+ealpha+n))  +
+    sum(lgamma(ealpha + counts) +lgamma(es+n-counts)) +
+    alpha_hat*(K+a_alpha) - b_alpha*ealpha +
+    s_hat*a_s - b_s*es
+  
+  return (-res)
+}
 
 #' Function the gradient of the log full-conditional for s_hat and alpha_bar_hat
 #'
@@ -123,6 +158,35 @@ compute_log_ratio_q_poiss <- function(s_hat_prop, alpha_bar_hat_prop,
 }
 
 
+#############################################################################
+
+#' Function computing the log of the ratio of the terms related to q in MALA
+#'
+#' @param s_hat_prop 
+#' @param alpha_bar_hat_prop 
+#' @param s_hat_curr 
+#' @param alpha_bar_hat_curr 
+#' @param tau 
+#' @param grad_log_full_curr 
+#' @param grad_log_full_prop 
+#'
+#' @export
+#'
+compute_log_ratio_q_poiss_precond <- function(params_prop, params_curr,
+                                  tau, cov_post,
+                                  grad_log_full_curr, grad_log_full_prop){
+  
+  norm_prop <- t(params_curr-params_prop-tau*cov_post%*%grad_log_full_prop)%*%
+    inv(cov_post)%*%(params_curr-params_prop-tau*cov_post%*%grad_log_full_prop)
+  
+  norm_curr <- t(params_prop-params_curr-tau*cov_post%*%grad_log_full_curr)%*%
+    inv(cov_post)%*%(params_prop-params_curr-tau*cov_post%*%grad_log_full_curr)
+  
+  res <- 1/(4*tau)*(norm_curr - norm_prop)
+  
+  return (res)
+}
+
 ############################################################################
 
 
@@ -148,7 +212,7 @@ compute_log_ratio_q_poiss <- function(s_hat_prop, alpha_bar_hat_prop,
 #' @export
 #'
 #' @examples
-gibbs_sampler_poiss <- function(Z, 
+gibbs_sampler_poiss_prior_lambda <- function(Z, 
                                 lambda_0, alpha_bar_0, s_0,
                                 a_l, b_l, a_alpha, b_alpha, a_s, b_s,
                                 tau,
@@ -269,6 +333,171 @@ gibbs_sampler_poiss <- function(Z,
 }
 
 
+############################################################################
+
+
+#' Metropolis-within-Gibbs sampler for BB + Poiss
+#'
+#' @param Z [integer] binary matrix of presence/absence (n x K- dimensional)
+#' @param lambda_0 [numeric] initial value of lambda
+#' @param alpha_bar_0 [numeric] initial value of alpha_bar 
+#' @param s_0 [numeric] initial value of s
+#' @param a_l [numeric] 
+#' @param b_l [numeric]
+#' @param a_alpha [numeric]
+#' @param b_alpha [numeric]
+#' @param a_s [numeric]
+#' @param b_s [numeric]
+#' @param tau [numeric] MALA step-size
+#' @param S [integer] number of iterations for the MCMC algorithm
+#' @param n_burnin [integer] number of iterations for the burn-in
+#' @param thin [integer] thinning
+#' @param seed [integer] seed
+#'
+#' @return
+#' @export
+#'
+#' @import numDeriv
+#' @import stats
+#' @import MASS
+#' @import matlib
+#' @examples
+#' 
+gibbs_sampler_poiss_fixed_lambda <- function(Z, 
+                                             alpha_bar_0, s_0,
+                                             lambda, a_alpha, b_alpha, a_s, b_s,
+                                             tau,
+                                             S, n_burnin, thin, seed){
+  
+  set.seed(seed)
+  
+  # Compute total number of sites
+  n <- nrow(Z)
+  
+  # Delete NA
+  Z <- Z[, colSums(is.na(Z))==0]
+  
+  # Delete zero-columns
+  Z <- Z[, colSums(Z)!=0]
+  
+  # Set K to be the observed number of features
+  K <- ncol(Z)
+  
+  # Compute vector of counts
+  counts <- colSums(Z)
+  
+  ############## Gibbs-sampler ##########################
+  
+  # Define structure to store parameters along the iterations
+  number_saved_iterations <- (S - n_burnin)/thin + 1
+  alpha_bar_vec <- vector(length = number_saved_iterations)
+  s_vec <- vector(length = number_saved_iterations)
+  
+  # Set initial values
+  alpha_bar <- alpha_bar_0
+  s <- s_0
+  
+  # Compute mode of the log-posterior density (order: s_hat, alpha_hat)
+  mode_post <- optim(par = c(0,0), fn = neg_log_posterior_poiss, n = n, K = K, counts = counts,
+                     lambda = lambda, a_s = a_s, b_s = b_s, a_alpha = a_alpha, b_alpha = b_alpha,
+                     method = "L-BFGS-B")$par
+  
+  # Compute the hessian of the neg log-posterior in the mode
+  hess_neg_log_mode <- hessian(func = neg_log_posterior_poiss, x=mode_post, 
+                               n = n, K = K, counts = counts,
+                               lambda = lambda, a_s = a_s, b_s = b_s, a_alpha = a_alpha, b_alpha = b_alpha)
+  
+  # Covariance matrix of posterior density
+  cov_post <- inv(hess_neg_log_mode)
+  
+  # index saved iterations (after burn-in and thinning satisfied)
+  l <- 1
+  
+  for (q in 1:S){
+    
+    
+    ################################################################
+    ############# Draw (s, alpha_bar) | Z ##################
+    ###############################################################
+    
+    # In order to update s, alpha_bar, we update s_hat, alpha_bar_hat, defined
+    # as the logarithm of s, alpha_bar
+    
+    ### Current values for s_hat, alpha_bar_hat
+    s_hat_curr <- log(s)
+    alpha_bar_hat_curr <- log(alpha_bar)
+    
+    ### Propose values for s_hat, alpha_bar_hat
+    # Compute the gradient of log-full conditional for MALA
+    grad_log_full_curr <- compute_grad_log_full_poiss(s_hat_curr, alpha_bar_hat_curr, lambda,
+                                                      n, K, counts, a_s, b_s, a_alpha, b_alpha)
+    
+    # s_hat_prop <- s_hat_curr + tau*grad_log_full_curr[1] + sqrt(2*tau)*rnorm(1)
+    # alpha_bar_hat_prop <- alpha_bar_hat_curr + tau*grad_log_full_curr[2] + sqrt(2*tau)*rnorm(1)
+    
+    # Propose from the bivariate normal 
+    params_curr <- c(s_hat_curr, alpha_bar_hat_curr)
+    params_prop <- mvrnorm(mu = params_curr + tau*cov_post%*%grad_log_full_curr,
+                           Sigma = 2*tau*cov_post)
+    
+    s_hat_prop <- params_prop[1]
+    alpha_bar_hat_prop <- params_prop[2]
+    
+    ### Acceptance probability 
+    # Compute the log ratio of the full-cond in prop point and curr point
+    # log_ratio_full <- compute_log_ratio_full_poiss(s_hat_prop, alpha_bar_hat_prop,
+    #                                                s_hat_curr, alpha_bar_hat_curr, lambda,
+    #                                                n, K, counts, a_s, b_s, a_alpha, b_alpha)
+    log_ratio_full <- - neg_log_posterior_poiss(params_prop, n, K, counts,
+                                                lambda, a_s, b_s, a_alpha, b_alpha) +
+      neg_log_posterior_poiss(params_curr, n, K, counts,
+                              lambda, a_s, b_s, a_alpha, b_alpha )
+    
+    # Compute the log ratio of the terms related to the proposal q
+    grad_log_full_prop <- compute_grad_log_full_poiss(s_hat_prop, alpha_bar_hat_prop, lambda,
+                                                      n, K, counts, a_s, b_s, a_alpha, b_alpha)
+    
+    # log_ratio_q <- compute_log_ratio_q_poiss(s_hat_prop, alpha_bar_hat_prop,
+    #                                          s_hat_curr, alpha_bar_hat_curr, tau,
+    #                                          grad_log_full_curr, grad_log_full_prop)
+    log_ratio_q <- compute_log_ratio_q_poiss_precond(params_prop, params_curr,
+                                                     tau, cov_post,
+                                                     grad_log_full_curr, grad_log_full_prop)
+    
+    # Compute acceptance probability
+    log_acc_prob <- log_ratio_full + log_ratio_q
+    acc_prob <- min(1, exp(log_acc_prob))
+    
+    # Decide if accept or not the new parameter vector
+    if (runif(1) < acc_prob){ # accept
+      s <- exp(s_hat_prop)
+      alpha_bar <- exp(alpha_bar_hat_prop)
+    }
+    
+    
+    #######################################################################
+    
+    # Store parameters if burn-in is over and once every "thin" iteration
+    if ((q > n_burnin) & (q %% thin == 0) ){
+      print(paste0("iteration: ", q))
+      
+      alpha_bar_vec[l] <- alpha_bar
+      s_vec[l] <- s
+      
+      l <- l+1
+    }
+    
+  }
+  
+  alpha_bar_vec <- alpha_bar_vec[1:(l-1)]
+  s_vec <- s_vec[1:(l-1)]
+  
+  return (list("alpha_bar_vec" = alpha_bar_vec, 
+               "s_vec" = s_vec))
+  
+}
+
+
 #########################################################################
 #########################################################################
 
@@ -284,9 +513,16 @@ gibbs_sampler_poiss <- function(Z,
 #'
 #' @export
 #'
-generate_Kmn_chain_poiss <- function(lambda_chain, alpha_chain, theta_chain, M, n){
+generate_Kmn_chain_poiss <- function(lambda, alpha_chain, theta_chain, M, n){
   
-  S <- length(lambda_chain)
+  S <- length(alpha_chain)
+  
+  if (length(lambda) == 1){
+    lambda_chain <- rep(lambda, S)
+  } else {
+    lambda_chain <- lambda
+  }
+  
   M_vec <- 1:M
   kmn_chain <- matrix(NA, nrow = M, ncol = S )
   for (q in 1:S){
@@ -320,9 +556,15 @@ generate_Kmn_chain_poiss <- function(lambda_chain, alpha_chain, theta_chain, M, 
 #'
 #' @export
 #'
-generate_Ntilde_chain_poiss <- function(lambda_chain_poiss, alpha_chain_poiss,
+generate_Ntilde_chain_poiss <- function(lambda, alpha_chain_poiss,
                                         theta_chain_poiss, n, Kn){
-  S <- length(lambda_chain_poiss)
+  S <- length(alpha_chain_poiss)
+  
+  if (length(lambda) == 1){
+    lambda_chain_poiss <- rep(lambda, S)
+  } else {
+    lambda_chain_poiss <- lambda
+  }  
   
   Ntilde_chain <- vector(length = S )
   for (q in 1:S){
