@@ -12,6 +12,7 @@ library(tidyverse)
 library(gridExtra)
 library(grid)
 library(patchwork)
+library(ProductFormFA)
 
 ##### Single dataset -> Ntilde (Poiss/NB) and extrapolation (Poiss/NB/Gamma) #####
 
@@ -324,6 +325,7 @@ ggplot(table_richness, aes( y=estimator, x=Model, shape = Nbar)) +
   scale_y_continuous(breaks = pretty_breaks()) +
   rremove("xlab") 
 
+ggsave(filename = "Plots_paper/plot_m4_richness.png", width = 10, height = 4, dpi = 300, units = "in", device='png')
 
 
 # plots error
@@ -340,6 +342,119 @@ ggplot(table_err_richness, aes( y=err_estimate, x=Model, color=Model_spec)) +
   #theme(legend.position = "none") +
   scale_y_continuous(breaks = pretty_breaks()) +
   rremove("xlab") 
+
+
+##### 9) Rarefaction curve and comparison with Chao bands #######
+
+## 9.a) Bayesian estimates
+
+list_kn_rarefaction_poiss <- readRDS(file = "chiu_model_simulation/m4/m4_ci_rare_poiss.rds")
+list_kn_rarefaction_negbin <- readRDS(file = "chiu_model_simulation/m4/m4_ci_rare_negbin.rds")
+list_kn_rarefaction_ibp <- readRDS(file = "chiu_model_simulation/m4/m4_ci_rare_ibp.rds")
+
+# Poisson
+list_kn_rarefaction_poiss <- lapply(list_kn_rarefaction_poiss, function(x) as_tibble(x))
+list_kn_rarefaction_poiss <- lapply(1:length(list_kn_rarefaction_poiss), 
+                                    function(x) (list_kn_rarefaction_poiss[[x]] %>%
+                                                   add_column(Setting = names(list_kn_rarefaction_poiss[x]),
+                                                              t = 1:nrow(list_kn_rarefaction_poiss[[x]])) %>%
+                                                   extract(Setting, c("N","Nbar"), "N\\.([[:digit:]]+)\\:Nbar\\.([[:alnum:]]+)") 
+                                    ) )
+
+df_rare_poiss <- bind_rows(list_kn_rarefaction_poiss) %>%
+  add_column(Model = "BBmixP")
+
+
+# Negbin
+list_kn_rarefaction_negbin <- lapply(list_kn_rarefaction_negbin, function(x) as_tibble(x))
+list_kn_rarefaction_negbin <- lapply(1:length(list_kn_rarefaction_negbin), 
+                                     function(x) (list_kn_rarefaction_negbin[[x]] %>%
+                                                    add_column(Setting = names(list_kn_rarefaction_negbin[x]),
+                                                               t = 1:nrow(list_kn_rarefaction_negbin[[x]])) %>%
+                                                    extract(Setting, c("N","Nbar"), "N\\.([[:digit:]]+)\\:Nbar\\.([[:alnum:]]+)") 
+                                     ) )
+
+df_rare_negbin <- bind_rows(list_kn_rarefaction_negbin) %>%
+  add_column(Model = "BBmixNB")
+
+# Gamma IBP
+list_kn_rarefaction_ibp <- lapply(list_kn_rarefaction_ibp, function(x) as_tibble(x))
+list_kn_rarefaction_ibp <- lapply(1:length(list_kn_rarefaction_ibp), 
+                                  function(x) (list_kn_rarefaction_ibp[[x]] %>%
+                                                 add_column(Setting = names(list_kn_rarefaction_ibp[x]),
+                                                            t = 1:nrow(list_kn_rarefaction_ibp[[x]])) %>%
+                                                 extract(Setting, c("N"), "N\\.([[:digit:]]+)") 
+                                  ) )
+
+df_rare_ibp <- bind_rows(list_kn_rarefaction_ibp) %>%
+  add_column(Model = "3IBPmix",
+             Nbar = "Not applicable")
+
+joint_df_rare_bayes <- rbind(df_rare_poiss,df_rare_negbin,df_rare_ibp)
+
+
+## 9.b) Chao estimates
+
+list_chao_rare <- readRDS(file = "chiu_model_simulation/m4/m4_chao_rare.rds")
+list_chao_rare <- lapply(list_chao_rare, function(x) as_tibble(x))
+list_chao_rare <- lapply(1:length(list_chao_rare), 
+                         function(x) (list_chao_rare[[x]] %>%
+                                        add_column(Setting = names(list_chao_rare[x])) %>%
+                                        extract(Setting, c("N"), "N\\.([[:digit:]]+)") 
+                         ) )
+
+df_rare_chao <- bind_rows(list_chao_rare) %>%
+  add_column(Model = "Chao",
+             Nbar = "Not applicable")
+
+# Joint df with bayes and chao
+joint_df_rare <- rbind(joint_df_rare_bayes, df_rare_chao)
+
+## 9.c) Observed rarefaction
+obs_rarefactions <- vector(mode="list", length = length(Ns))
+names(obs_rarefactions) <- paste0("N.",Ns)
+n_avg <- 100
+
+for (j in 1:length(Ns)){
+  N <- Ns[j]
+  train_mat <- data_mat[1:N,]
+  train_list <- create_features_list(train_mat)
+  
+  cum_nfeat <- rep(0, N)
+  
+  for (h in 1:n_avg){
+    ord <- sample(1:N)
+    cum_nfeat <- cum_nfeat + sapply(1:N, function(n) length(unique(unlist(train_list[ord][1:n]))))
+  }
+  
+  cum_nfeat <- cum_nfeat/n_avg
+  
+  obs_rarefactions[[paste0("N.",N)]] <- data.frame(t = 0:N, obs = c(0,cum_nfeat), N = N)
+}
+
+obs_rarefactions <- bind_rows(obs_rarefactions)
+
+#### 9.final) PLOT rarefaction ####
+joint_df_rare_plot <- joint_df_rare %>%
+  filter(Nbar %in% c("Not applicable", "emp"))
+temp <- tibble(N = Ns, xvalues = Ns)
+
+ggplot(joint_df_rare_plot, aes(t,medians, color = Model)) +
+  geom_line(linetype = "dashed") +
+  geom_ribbon(aes(ymin = lbs, ymax = ubs, fill = Model ), alpha = 0.1) +
+  geom_line(data = obs_rarefactions, aes(t, obs), color="black", linetype="solid", linewidth=0.5) +
+  facet_wrap(.~ N, scales = "free_x") +
+  geom_vline(data = temp, mapping =  aes(xintercept = xvalues) , linetype = "dashed", color = "grey") +
+  xlab("# observations") + ylab("# distinct features") + 
+  theme_light() + 
+  theme(legend.position = "top") +
+  scale_y_continuous(breaks = pretty_breaks()) +
+  scale_x_continuous(breaks = pretty_breaks()) +
+  scale_color_tableau()
+
+ggsave(filename = "Plots_paper/plot_m4_rarefaction.png", width = 10, height = 4, dpi = 300, units = "in", device='png')
+
+
 
 
 

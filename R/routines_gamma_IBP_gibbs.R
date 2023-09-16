@@ -900,3 +900,54 @@ generate_Kmn_chain_gamma_ibp <- function(a_chain, b_chain, alpha_chain, theta_ch
   return (kmn_chain)
 }
 
+
+#' Generate the chain for coverage probability, given the output chains of the mcmc
+#'
+#' @param nstar_chain
+#' @param p_chain
+#' @param alpha_chain
+#' @param theta_chain
+#' @param M
+#' @param n
+#' @param Kn
+#'
+#' @export
+#'
+generate_coverage_prob_chain_gamma_ibp <- function(a_chain, b_chain, alpha_chain, theta_chain, n, Kn = 0){
+  
+  if (n == 0 & Kn != 0){
+    stop("if n=0, the number of observed features Kn must be 0!")
+  }
+  
+  S <- length(a_chain)
+  M_vec <- 1:M
+  kmn_chain <- matrix(NA, nrow = M, ncol = S )
+  for (q in 1:S){
+    a <- a_chain[q]
+    b <- b_chain[q]
+    alpha <- alpha_chain[q]
+    theta <- theta_chain[q]
+    
+    if (n == 0){
+      gamma_a_t_n <- 0
+    } else {
+      gamma_a_t_n <- sum(exp(lgamma(alpha + theta + (1:n) - 1) - lgamma(alpha + theta) -
+                               lgamma(theta + (1:n)) + lgamma(theta +1) ) )
+    }
+    
+    # sum_M <- sapply(M_vec, function(m) sum(exp(lgamma(alpha + theta + n + (1:m) - 1) -
+    #                                              lgamma(alpha + theta) -
+    #                                              lgamma(theta + n + (1:m)) +
+    #                                              lgamma(theta +1) ) ) )
+    sum_M <- stable_sum_M_all_gamma_IBP(alpha, theta, M, n)
+    #print(sum_M)
+    kmn_chain[,q] <- rnbinom(M, a + Kn, (gamma_a_t_n + b)/(gamma_a_t_n + b + sum_M))
+    print(paste0("iteration: ", q))
+    # pbar <- p_kmn_all_gamma_IBP(alpha, theta, M, n, b)
+    # print(paste0("pbar: ", pbar))
+    # kmn_chain[,q] <- rnbinom(M, a + Kn, pbar)
+  }
+  
+  return (kmn_chain)
+}
+

@@ -215,6 +215,9 @@ beta_binomial_estimator <- function(data_mat){
     Q_hat_0 <- (n-1)/n * (Q_1^2)/(2*Q_2)
   }
   
+  if (Q_1 == 0) { Q_1 <- 1}
+  if (Q_3 == 0) { Q_3 <- 1}
+  
   # Compute last term
   if (2*Q_2^2 / (3*Q_1*Q_3) <= 1){
     last <- 2 - max(0.5, 2*Q_2^2 / (3*Q_1*Q_3))
