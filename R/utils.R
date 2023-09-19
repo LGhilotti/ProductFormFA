@@ -231,3 +231,67 @@ beta_binomial_estimator <- function(data_mat){
   return (res)
   
 }
+
+#####################################################
+
+#' Good-Toulmin prediction of number of features in extrapolated sample
+#' 
+#' @param sfs [numeric] number of features observed in the training sample
+#' @param cts [array] vector with cumulative number of features in the training sample (from 1 individual to N individual)
+#' 
+#' @export
+#'
+predict_good_toulmin <- function(N, M, sfs, cts, alternative = 0){
+  
+  preds <- rep(0,N+M+1)
+  vars_ <- rep(0,N+M+1)
+  preds[1:(N+1)] <- cts[1:(N+1)]
+  preds_vars <- lapply(1:M, function(m) missed_gt(N, m, sfs, alternative))
+  
+  preds[(N+2):length(preds)] = cts[N+1] + sapply(preds_vars, function(p) p[1])
+  vars_[(N+2):length(vars_)] = sapply(preds_vars, function(p) p[2])
+
+  return (list("preds" = preds, "vars" = vars_))
+  
+}
+
+
+#' Good-Toulmin prediction of number of features in extrapolated sample - missed
+#' 
+#' @param sfs [numeric] number of features observed in the training sample
+#' @param cts [array] vector with cumulative number of features in the training sample (from 1 individual to N individual)
+#' 
+#' @export
+#'
+missed_gt <- function(N, M, sfs, alternative = 0){
+  
+  if (length(sfs)>N){
+    stop('Too many entries in the sfs; 1-th entry should be # things observed once; last entry # things observed N times')
+  }
+  
+  signed_sfs = (-1)^(0:(length(sfs)-1)) * sfs
+  t = M/N
+  t_power = t^(1:length(sfs))
+  if (M <= N){
+    preds = sum(signed_sfs*t_power)
+    vars_ = sum(sfs*(t_power^2))
+  } else {
+    if (alternative == T){
+      kappa = floor(0.5 * log(N * (t^2) /(t-1), base = 2))
+      theta = 1/(t+1)
+    } else {
+        kappa = floor(0.5 * log(N * (t^2) /(t-1), base = 2)/log(3))
+        theta = 2/(t+1)
+    }
+    prob = 1-pbinom(size=kappa, prob=theta, q=0:(length(sfs)-1))
+    preds = sum(signed_sfs*t_power*prob)
+    vars_ = sum(abs(signed_sfs)*(t_power^2)*(prob^2))
+  }
+  
+  
+  return (c(preds, vars_))
+  
+}
+  
+  
+ 
