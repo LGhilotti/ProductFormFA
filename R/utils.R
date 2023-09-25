@@ -234,7 +234,8 @@ beta_binomial_estimator <- function(data_mat){
 
 #####################################################
 
-#' Good-Toulmin prediction of number of features in extrapolated sample
+#' Smoothed Good-Toulmin (Chakraborty 2019) 
+#' prediction of number of features in extrapolated sample
 #' 
 #' @param sfs [numeric] number of features observed in the training sample
 #' @param cts [array] vector with cumulative number of features in the training sample (from 1 individual to N individual)
@@ -269,7 +270,7 @@ missed_gt <- function(N, M, sfs, alternative = 0){
     stop('Too many entries in the sfs; 1-th entry should be # things observed once; last entry # things observed N times')
   }
   
-  signed_sfs = (-1)^(0:(length(sfs)-1)) * sfs
+  signed_sfs = (-1)^(2:(length(sfs)+1)) * sfs
   t = M/N
   t_power = t^(1:length(sfs))
   if (M <= N){
@@ -294,4 +295,5 @@ missed_gt <- function(N, M, sfs, alternative = 0){
 }
   
   
- 
+#########################################################
+

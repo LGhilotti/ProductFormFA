@@ -2080,6 +2080,39 @@ saveRDS(list_chao_rare, "m1_chao_rare.rds")
 saveRDS(list_chao_cov, "m1_chao_coverage.rds")
 
 
+####### 13) Compute smoothed Good-Toulmin predictions #####
+
+list_kmn_pred_test_gt <- vector(mode="list", length = length(Ns))
+names(list_kmn_pred_test_gt) <- labels_comb_ibp
+
+
+for (j in 1:length(Ns)){
+  
+  N <- Ns[j]
+  M <- L - N
+
+  train_mat <- data_mat[1:N,]
+  # convert the binary matrix into list of features
+  train_list <- create_features_list(train_mat)
+  
+  lab_comb <- paste0("N.",N)
+  
+  # Compute SFS vector and CTS vector
+  sfs <- tabulate(colSums(train_mat))
+  
+  cts <- sapply(2:N, function(n) ncol(train_mat[1:n,colSums(train_mat[1:n,]) > 0])   )
+  cts <- c(0, sum(train_mat[1,]) , cts)
+
+  list_kmn_pred_test_gt[[lab_comb]] <- predict_good_toulmin(N, M, sfs, cts, alternative = 0)$preds
+  
+}
+# Good-Toulmin predictions
+saveRDS(list_kmn_pred_test_gt, "m1_gt_prediction.rds")
+
+
+
+
+
 
 
 # ##### Accuracy on multiple datasets #####

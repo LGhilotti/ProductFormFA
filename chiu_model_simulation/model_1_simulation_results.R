@@ -28,22 +28,9 @@ load(file = "chiu_model_simulation/m1/m1_ntilde_poiss.Rda")
 load(file = "chiu_model_simulation/m1/m1_ntilde_negbin.Rda")
 #load(file = "chiu_model_simulation/m1/m1_ntilde_negbin_prior.Rda")
 
-###### 3) Read results: CI for extrapolation (Poiss/NB/Gamma) ################
 list_kmn_pred_test_poiss <- readRDS(file = "chiu_model_simulation/m1/m1_ci_poiss.rds")
-list_kmn_pred_test_negbin <- readRDS(file = "chiu_model_simulation/m1/m1_ci_negbin.rds")
-#list_kmn_pred_test_negbin_prior <- readRDS(file = "chiu_model_simulation/m1/m1_ci_negbin_prior.rds")
-list_kmn_pred_test_ibp <- readRDS(file = "chiu_model_simulation/m1/m1_ci_ibp.rds")
-#list_kmn_pred_test_sp <- readRDS(file = "chiu_model_simulation/m1/m1_ci_sp.rds")
 
-# ###### 3.b) Read results: CI for insample (Poiss/NB/Gamma) ################
-# list_kn_rarefaction_poiss <- readRDS(file = "chiu_model_simulation/m1/m1_ci_insample_poiss.rds")
-# list_kn_rarefaction_negbin <- readRDS(file = "chiu_model_simulation/m1/m1_ci_insample_negbin.rds")
-# #list_kn_rarefaction_negbin_prior <- readRDS(file = "chiu_model_simulation/m1/m1_ci_insample_negbin_prior.rds")
-# list_kn_rarefaction_ibp <- readRDS(file = "chiu_model_simulation/m1/m1_ci_insample_ibp.rds")
-# #list_kn_rarefaction_sp <- readRDS(file = "chiu_model_simulation/m1/m1_ci_insample_sp.rds")
-
-
-###### 4) Read the data ###############################
+###### 3) Read the data ###############################
 data_mat <- readRDS(file = "chiu_model_simulation/m1/m1_data_mat.rds")
 data_list <- create_features_list(data_mat)
 L <- nrow(data_mat)
@@ -53,7 +40,7 @@ Ns <- L - Ms
 Nbars <- c(200,400,600)
 c_fr <- 10
 
-###### 5) Check MCMC convergence###################
+###### 4) Check MCMC convergence###################
 
 # Poisson 
 
@@ -143,7 +130,7 @@ effectiveSize(params_ibp_)
 
 
 
-####### 6) Plot limiting distributions (Poiss/NB) ##############
+####### 5) Plot limiting distributions (Poiss/NB) ##############
 labels_comb_bb <- paste(rep(paste("N", Ns, sep = "."), each = length(Nbars)+1),
                      c(paste("Nbar", Nbars, sep = "."),"Nbar.emp"), sep=":")
 
@@ -189,72 +176,142 @@ ggplot(joint_total_long, aes(x = estimate, color = Model)) +
 ggsave(filename = "Plots_paper/plot_m1_richness.png", width = 10, height = 4, dpi = 300, units = "in", device='png')
 
 
-######## 7) Plot Extrapolation curve (Poiss/NB/Gamma) ################
+######## 6) Plot Extrapolation curve (Poiss/NB/Gamma) ###############
+list_kmn_pred_test_poiss <- readRDS(file = "chiu_model_simulation/m1/m1_ci_poiss.rds")
+list_kmn_pred_test_negbin <- readRDS(file = "chiu_model_simulation/m1/m1_ci_negbin.rds")
+list_kmn_pred_test_ibp <- readRDS(file = "chiu_model_simulation/m1/m1_ci_ibp.rds")
 
-gg_kmn_pred_test_all  <- vector(mode="list", length = length(Ns)*(length(Nbars)+1))
-names(gg_kmn_pred_test_all) <- labels_comb_bb
+# Poisson
+list_kmn_pred_test_poiss <- lapply(list_kmn_pred_test_poiss, function(x) as_tibble(x))
+list_kmn_pred_test_poiss <- lapply(1:length(list_kmn_pred_test_poiss), 
+                                    function(x) (list_kmn_pred_test_poiss[[x]] %>%
+                                                   add_column(Setting = names(list_kmn_pred_test_poiss[x]),
+                                                              t = 1:nrow(list_kmn_pred_test_poiss[[x]])) %>%
+                                                   extract(Setting, c("N","Nbar"), "N\\.([[:digit:]]+)\\:Nbar\\.([[:alnum:]]+)")
+                                    ) )
 
-for (j in 1:length(Ns)){
-  N <- Ns[j]
-  M <- L - N
-  
-  train_mat <- data_mat[1:N,]
-  test_mat <- data_mat[(N+1):L, ]
-  # convert the binary matrix into list of features
-  train_list <- create_features_list(train_mat)
-  test_list <- create_features_list(test_mat)
-  
-  for (v in 1:length(Nbars)){
-    Nbar <- Nbars[v]
-    
-    lab_comb <- paste0("N.",N,":Nbar.",Nbar)
+df_pred_poiss <- bind_rows(list_kmn_pred_test_poiss) %>%
+  add_column(Model = "BBmixP") 
 
-    gg_kmn_pred_test_all[[lab_comb]] <- plot_Kmn_median_pred_and_test_all(
-      train_list = train_list,
-      test_list = test_list,
-      ci_poiss = list_kmn_pred_test_poiss[[lab_comb]], 
-      ci_negbin = list_kmn_pred_test_negbin[[lab_comb]],
-      #ci_negbin_prior = list_kmn_pred_test_negbin_prior[[lab_comb]],
-      ci_ibp = list_kmn_pred_test_ibp[[paste0("N.",N)]],
-      n_avg = 100) +
-      ggtitle(lab_comb) + theme(plot.title = element_text(size=12))
-    
-    
-  }
-  
-  lab_comb <- paste0("N.",N,":Nbar.emp")
-  gg_kmn_pred_test_all[[lab_comb]] <- plot_Kmn_median_pred_and_test_all(
-    train_list = train_list,
-    test_list = test_list,
-    ci_poiss = list_kmn_pred_test_poiss[[lab_comb]], 
-    ci_negbin = list_kmn_pred_test_negbin[[lab_comb]],
-    #ci_negbin_prior = list_kmn_pred_test_negbin_prior[[lab_comb]],
-    ci_ibp = list_kmn_pred_test_ibp[[paste0("N.",N)]],
-    n_avg = 100) +
-    ggtitle(lab_comb) + theme(plot.title = element_text(size=12))
-  
-  
-  
-  # if (j != 1){
-  #   gg_kmn_pred_test_all[[j]] <- gg_kmn_pred_test_all[[j]] +
-  #     theme(#axis.text.y = element_blank(),
-  #       #axis.ticks.y = element_blank(),
-  #       axis.title.y = element_blank() )
-  # }
-  
-}
+df_pred_poiss$N <- as.integer(df_pred_poiss$N)
+df_pred_poiss <- df_pred_poiss %>%
+  mutate( t = t + N )
 
-# Print plots
-fig_m1_pred_ <- wrap_plots(gg_kmn_pred_test_all, nrow = 3, ncol = 4) +   plot_layout(guides = "collect") & theme(legend.position = 'right') & xlab(NULL) & theme(plot.margin = margin(5.5, 5.5, 0, 5.5))
 
-fig_m1_pred <- wrap_elements(panel = fig_m1_pred_) +
-  labs(tag = "# observations") +
-  theme(
-    plot.tag = element_text(size = rel(1)),
-    plot.tag.position = "bottom") 
+# Negbin
+list_kmn_pred_test_negbin <- lapply(list_kmn_pred_test_negbin, function(x) as_tibble(x))
+list_kmn_pred_test_negbin <- lapply(1:length(list_kmn_pred_test_negbin), 
+                                     function(x) (list_kmn_pred_test_negbin[[x]] %>%
+                                                    add_column(Setting = names(list_kmn_pred_test_negbin[x]),
+                                                               t = 1:nrow(list_kmn_pred_test_negbin[[x]])) %>%
+                                                    extract(Setting, c("N","Nbar"), "N\\.([[:digit:]]+)\\:Nbar\\.([[:alnum:]]+)")
+                                     ) )
 
-ggsave(filename = "Plots_paper/plot_m1_pred.png", width = 10, height = 4, dpi = 300, units = "in", device='png')
+df_pred_negbin <- bind_rows(list_kmn_pred_test_negbin) %>%
+  add_column(Model = "BBmixNB")
 
+df_pred_negbin$N <- as.integer(df_pred_negbin$N)
+df_pred_negbin <- df_pred_negbin %>%
+  mutate( t = t + N )
+
+# Gamma IBP
+list_kmn_pred_test_ibp <- lapply(list_kmn_pred_test_ibp, function(x) as_tibble(x))
+list_kmn_pred_test_ibp <- lapply(1:length(list_kmn_pred_test_ibp), 
+                                  function(x) (list_kmn_pred_test_ibp[[x]] %>%
+                                                 add_column(Setting = names(list_kmn_pred_test_ibp[x]),
+                                                            t = 1:nrow(list_kmn_pred_test_ibp[[x]]) ) %>%
+                                                 extract(Setting, c("N"), "N\\.([[:digit:]]+)")
+                                      ) )
+
+df_pred_ibp <- bind_rows(list_kmn_pred_test_ibp) %>%
+  add_column(Model = "3IBPmix",
+             Nbar = "Not applicable")
+
+df_pred_ibp$N <- as.integer(df_pred_ibp$N)
+df_pred_ibp <- df_pred_ibp %>%
+  mutate( t = t + N )
+
+joint_df_pred_bayes <- rbind(df_pred_poiss,df_pred_negbin,df_pred_ibp)
+
+## 9.b) Good-Toulmin prediction
+# compute
+# labels_comb_ibp <- paste("N", Ns, sep = ".")
+# 
+# list_kmn_pred_test_gt <- vector(mode="list", length = length(Ns))
+# names(list_kmn_pred_test_gt) <- labels_comb_ibp
+# 
+# for (j in 1:length(Ns)){
+#   
+#   N <- Ns[j]
+#   M <- L - N
+#   
+#   train_mat <- data_mat[1:N,]
+#   # convert the binary matrix into list of features
+#   train_list <- create_features_list(train_mat)
+#   
+#   lab_comb <- paste0("N.",N)
+#   
+#   # Compute SFS vector and CTS vector
+#   sfs <- tabulate(colSums(train_mat))
+#   
+#   cts <- sapply(2:N, function(n) ncol(train_mat[1:n,colSums(train_mat[1:n,]) > 0])   )
+#   cts <- c(0, sum(train_mat[1,]) , cts)
+#   
+#   list_kmn_pred_test_gt[[lab_comb]] <- predict_good_toulmin(N, M, sfs, cts, alternative = 0)$preds
+#   
+# }
+# # Good-Toulmin predictions
+# saveRDS(list_kmn_pred_test_gt, "chiu_model_simulation/m1/m1_gt_prediction.rds")
+
+# read
+list_kmn_pred_test_gt <- readRDS(file = "chiu_model_simulation/m1/m1_gt_prediction.rds")
+
+list_kmn_pred_test_gt <- lapply(list_kmn_pred_test_gt, function(x) as_tibble(x))
+list_kmn_pred_test_gt <- lapply(1:length(list_kmn_pred_test_gt), 
+                         function(x) (list_kmn_pred_test_gt[[x]] %>%
+                                        add_column(Setting = names(list_kmn_pred_test_gt[x]),
+                                                   t = 0:(nrow(list_kmn_pred_test_gt[[x]]) -1)) %>%
+                                        extract(Setting, c("N"), "N\\.([[:digit:]]+)") 
+                         ) )
+
+df_pred_gt <- bind_rows(list_kmn_pred_test_gt) %>%
+  add_column(Model = "GT",
+             Nbar = "Not applicable") 
+
+df_pred_gt$N <- as.integer(df_pred_gt$N)
+
+df_pred_gt <- df_pred_gt %>%
+  filter(t > N)
+
+
+## 6.c) Observed sample <-> cts on the full sample
+obs_sample <- sapply(2:L, function(n) ncol(data_mat[1:n,colSums(data_mat[1:n,]) > 0])   )
+obs_sample <- data.frame(t = 0:L, 
+                         obs = c(0, sum(data_mat[1,]) , obs_sample))
+
+joint_df_pred_bayes <- joint_df_pred_bayes %>%
+  mutate(medians = medians + obs_sample[N+1,]$obs,
+         lbs = lbs + obs_sample[N+1,]$obs,
+         ubs = ubs + obs_sample[N+1,]$obs)
+
+###### 6.final) PLOT prediction ####
+joint_df_pred_bayes_plot <- joint_df_pred_bayes %>%
+  filter(Nbar %in% c("Not applicable", "emp"))
+temp <- tibble(N = Ns, xvalues = Ns)
+
+ggplot(joint_df_pred_bayes_plot, aes(t,medians, color = Model)) +
+  geom_line(linetype = "dashed", linewidth = 0.8) +
+  geom_ribbon(aes(ymin = lbs, ymax = ubs), alpha = 0.1) +
+  geom_line(data = obs_sample, aes(t, obs), color="black", linetype="solid", linewidth=0.4) +
+  geom_line(data = df_pred_gt, aes(t, value)) +
+  facet_wrap(.~ N, scales = "free_x") +
+  geom_vline(data = temp, mapping =  aes(xintercept = xvalues) , linetype = "dashed", color = "grey") +
+  xlab("# observations") + ylab("# distinct features") + 
+  theme_light() + 
+  theme(legend.position = "top") +
+  scale_y_continuous(breaks = pretty_breaks()) +
+  scale_x_continuous(breaks = pretty_breaks()) +
+  scale_color_tableau() 
 
 ##### 8) Richness: comparison with frequentist estimators ##########
 table_richness <- joint_total_long %>% group_by(N, Nbar, Model) %>%
@@ -343,7 +400,7 @@ list_kn_rarefaction_poiss <- lapply(1:length(list_kn_rarefaction_poiss),
                                                    ) )
 
 df_rare_poiss <- bind_rows(list_kn_rarefaction_poiss) %>%
-  add_column(Model = "BBmixP")
+  add_column(Model = "BBmixP") 
 
 
 # Negbin
@@ -390,8 +447,12 @@ df_rare_chao <- bind_rows(list_chao_rare) %>%
 
 # Joint df with bayes and chao
 joint_df_rare <- rbind(joint_df_rare_bayes, df_rare_chao)
+joint_df_rare$N <- as.integer(joint_df_rare$N)
 
-## 9.c) Observed rarefaction
+joint_df_rare_plot <- joint_df_rare  %>%
+  filter((N +1)> t)
+
+## 9.c) Observed sample
 obs_rarefactions <- vector(mode="list", length = length(Ns))
 names(obs_rarefactions) <- paste0("N.",Ns)
 n_avg <- 100
@@ -416,16 +477,16 @@ for (j in 1:length(Ns)){
 obs_rarefactions <- bind_rows(obs_rarefactions)
 
 #### 9.final) PLOT rarefaction ####
-joint_df_rare_plot <- joint_df_rare %>%
+joint_df_rare_plot <- joint_df_rare_plot %>%
   filter(Nbar %in% c("Not applicable", "emp"))
 temp <- tibble(N = Ns, xvalues = Ns)
   
 ggplot(joint_df_rare_plot, aes(t,medians, color = Model)) +
-  geom_line(linetype = "dashed") +
-  geom_ribbon(aes(ymin = lbs, ymax = ubs, fill = Model ), alpha = 0.1) +
-  geom_line(data = obs_rarefactions, aes(t, obs), color="black", linetype="solid", linewidth=0.5) +
+  geom_line(linetype = "dashed", linewidth = 0.8) +
+  #geom_ribbon(aes(ymin = lbs, ymax = ubs, fill = Model ), alpha = 0.1) +
+  geom_line(data = obs_rarefactions, aes(t, obs), color="black", linetype="solid", linewidth=0.4) +
   facet_wrap(.~ N, scales = "free_x") +
-  geom_vline(data = temp, mapping =  aes(xintercept = xvalues) , linetype = "dashed", color = "grey") +
+  #geom_vline(data = temp, mapping =  aes(xintercept = xvalues) , linetype = "dashed", color = "grey") +
   xlab("# observations") + ylab("# distinct features") + 
   theme_light() + 
   theme(legend.position = "top") +
