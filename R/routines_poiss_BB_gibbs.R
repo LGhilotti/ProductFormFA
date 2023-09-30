@@ -543,6 +543,44 @@ generate_Kmn_chain_poiss <- function(lambda, alpha_chain, theta_chain, M, n){
   return (kmn_chain)
 }
 
+#' Generate the chain for Kmn, for m=M, given the output chains of the mcmc
+#'
+#' @param lambda_chain
+#' @param alpha_chain
+#' @param theta_chain
+#' @param M
+#' @param n
+#'
+#' @export
+#'
+generate_Kmn_chain_poiss_last <- function(lambda, alpha_chain, theta_chain, M, n){
+  
+  S <- length(alpha_chain)
+  
+  if (length(lambda) == 1){
+    lambda_chain <- rep(lambda, S)
+  } else {
+    lambda_chain <- lambda
+  }
+  
+  kmn_chain <- vector(length = S )
+  for (q in 1:S){
+    lambda <- lambda_chain[q]
+    alpha <- alpha_chain[q]
+    theta <- theta_chain[q]
+    
+    par_1 <- lambda*exp(lgamma(theta+alpha+n) - lgamma(theta+alpha) - 
+                          lgamma(theta+n) + lgamma(theta))
+    par_2 <- lambda*exp(lgamma(theta+alpha+n+M) - lgamma(theta+alpha+n) - 
+                          lgamma(theta+n+M) + lgamma(theta+n) +
+                          lgamma(theta+alpha+n) - lgamma(theta+alpha) - 
+                          lgamma(theta+n) + lgamma(theta) )
+    poiss_par <- par_1 - par_2
+    kmn_chain[q] <- rpois(1, poiss_par)
+  }
+  
+  return (kmn_chain)
+}
 
 ##########################################
 

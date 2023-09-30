@@ -315,7 +315,30 @@ df_pred_gt <- df_pred_gt %>%
   filter(t > N)
 
 
-## 6.c) Observed sample <-> cts on the full sample
+## 7.c) Chao estimates (for prediction)
+
+list_chao_pred <- readRDS(file = "chiu_model_simulation/m4/m4_chao_rare.rds")
+list_chao_pred <- lapply(list_chao_pred, function(x) as_tibble(x))
+list_chao_pred <- lapply(1:length(list_chao_pred), 
+                         function(x) (list_chao_pred[[x]] %>%
+                                        add_column(Setting = names(list_chao_pred[x])) %>%
+                                        extract(Setting, c("N"), "N\\.([[:digit:]]+)") 
+                         ) )
+
+df_pred_chao <- bind_rows(list_chao_pred) %>%
+  select(-c(lbs,ubs)) %>%
+  rename(value = medians) %>%
+  add_column(Model = "Chao",
+             Nbar = "Not applicable")
+
+
+df_pred_chao$N <- as.integer(df_pred_chao$N)
+
+df_pred_chao <- df_pred_chao %>%
+  filter(t <= L)
+
+
+## 7.c) Observed sample <-> cts on the full sample
 obs_sample <- sapply(2:L, function(n) ncol(data_mat[1:n,colSums(data_mat[1:n,]) > 0])   )
 obs_sample <- data.frame(t = 0:L, 
                          obs = c(0, sum(data_mat[1,]) , obs_sample))
@@ -332,9 +355,10 @@ temp <- tibble(N = Ns, xvalues = Ns)
 
 ggplot(joint_df_pred_bayes_plot, aes(t,medians, color = Model)) +
   geom_line(linetype = "dashed", linewidth = 0.8) +
-  geom_ribbon(aes(ymin = lbs, ymax = ubs ), alpha = 0.1) +
+  #geom_ribbon(aes(ymin = lbs, ymax = ubs), alpha = 0.1) +
   geom_line(data = obs_sample, aes(t, obs), color="black", linetype="solid", linewidth=0.4) +
-  geom_line(data = df_pred_gt, aes(t, value)) +
+  geom_line(data = df_pred_gt, aes(t, value), linetype = "dashed") +
+  geom_line(data = df_pred_chao, aes(t, value), linetype = "dashed") +
   facet_wrap(.~ N, scales = "free_x") +
   geom_vline(data = temp, mapping =  aes(xintercept = xvalues) , linetype = "dashed", color = "grey") +
   xlab("# observations") + ylab("# distinct features") + 
@@ -344,7 +368,7 @@ ggplot(joint_df_pred_bayes_plot, aes(t,medians, color = Model)) +
   scale_x_continuous(breaks = pretty_breaks()) +
   scale_color_tableau()
 
-
+ggsave(filename = "Plots_paper/plot_m4_prediction.png", width = 10, height = 4, dpi = 300, units = "in", device='png')
 
 ##### 8) Richness: comparison with frequentist estimators ##########
 table_richness <- joint_total_long %>% group_by(N, Nbar, Model) %>%
@@ -545,112 +569,96 @@ ggsave(filename = "Plots_paper/plot_m4_rarefaction.png", width = 10, height = 4,
 ##### Accuracy on multiple datasets #####
 
 ###### 1) Read results: limit distribution estimates #####
-load(file = "chao_model_simulation/m4/m4_avg_ntilde_poiss.Rda")
-load(file = "chao_model_simulation/m4/m4_avg_ntilde_negbin.Rda")
+load(file = "chiu_model_simulation/m4/m4_avg_ntilde_poiss.Rda")
+load(file = "chiu_model_simulation/m4/m4_avg_ntilde_negbin.Rda")
 
 ###### 2) Read results: quantities on accuracy #####
-load(file = "chao_model_simulation/m4/m4_obs_train.Rda")
-load(file = "chao_model_simulation/m4/m4_obs_new.Rda")
+load(file = "chiu_model_simulation/m4/m4_obs_train.Rda")
+load(file = "chiu_model_simulation/m4/m4_obs_new.Rda")
 
-load(file = "chao_model_simulation/m4/m4_est_new_poiss.Rda")
-load(file = "chao_model_simulation/m4/m4_est_new_negbin.Rda")
-load(file = "chao_model_simulation/m4/m4_est_new_ibp.Rda")
-load(file = "chao_model_simulation/m4/m4_est_new_sp.Rda")
+load(file = "chiu_model_simulation/m4/m4_est_new_poiss.Rda")
+load(file = "chiu_model_simulation/m4/m4_est_new_negbin.Rda")
+load(file = "chiu_model_simulation/m4/m4_est_new_ibp.Rda")
+load(file = "chiu_model_simulation/m4/m4_est_last_gt.Rda")
+load(file = "chiu_model_simulation/m4/m4_est_last_chao.Rda")
 
 D <- nrow(avg_ntilde_poiss)
 
-###### 3) Plot limit distribution estimate #####
-avg_ntilde_poiss_long <- gather(avg_ntilde_poiss, training, estimate, 
-                                paste0("N.",Ns[1]):paste0("N.",Ns[length(Ns)]), factor_key=TRUE) %>%
-  add_column(model = "Poiss", N = rep(Ns[1:length(Ns)], each = D))
+###### 3) Plot limit distribution estimates #####
+avg_ntilde_poiss_long <- avg_ntilde_poiss %>% 
+  pivot_longer(everything(), names_to = "training", values_to = "estimate") %>%
+  add_column(Model = "Poiss", N = rep(Ns[1:length(Ns)], each = D))
 
-avg_ntilde_negbin_long <- gather(avg_ntilde_negbin, training, estimate, 
-                                 paste0("N.",Ns[1]):paste0("N.",Ns[length(Ns)]), factor_key=TRUE) %>%
-  add_column(model = "Neg-Bin", N = rep(Ns[1:length(Ns)], each = D))
+avg_ntilde_negbin_long <- avg_ntilde_negbin %>%
+  pivot_longer(everything(), names_to = "training", values_to = "estimate") %>%
+  add_column(Model = "Neg-Bin", N = rep(Ns[1:length(Ns)], each = D))
 
 joint_ntilde_long <- bind_rows(avg_ntilde_poiss_long, avg_ntilde_negbin_long)
 
 # plots
-ggplot(joint_ntilde_long, aes( y=estimate, fill=model)) + 
-  geom_boxplot() + 
+ggplot(joint_ntilde_long, aes(x=Model, y=estimate)) +
+  geom_boxplot() +
   facet_wrap(~N) +
-  theme_bw() + 
-  theme(plot.title = element_text(hjust = 0.5)) +
-  ggtitle(paste0("Model 4: average on D = ", D)) +
-  scale_y_continuous(breaks = pretty_breaks()) 
+  geom_hline(aes(yintercept = 500), linetype = "dashed") +
+  theme_light() + 
+  #theme(legend.position = "top") +
+  rremove("xlab") +
+  ylab("Estimate") +
+  scale_y_continuous(breaks = pretty_breaks()) +
+  scale_color_tableau()
 
 
 
-###### 4.1) Plot boxplots on accuracy (scaled) #####
-ratio_scaled_poiss <- as.matrix(abs(obs_new - est_new_poiss)/obs_new)
-acc_scaled_poiss <- as.data.frame(1 - pmin(ratio_scaled_poiss,1))
+###### 4) Plot boxplots on accuracy #####
+# define the dataframe with estimated number of new features
+colnames(est_new_poiss) <- paste("N",Ns,sep = ".")
+colnames(est_new_negbin) <- paste("N",Ns,sep = ".")
+colnames(est_new_ibp) <- paste("N",Ns,sep = ".")
 
-ratio_scaled_negbin <- as.matrix(abs(obs_new - est_new_negbin)/obs_new)
-acc_scaled_negbin <- as.data.frame(1 - pmin(ratio_scaled_negbin,1))
+est_new_gt <- est_last_gt - obs_train
+est_new_chao <- est_last_chao - obs_train
 
-ratio_scaled_ibp <- as.matrix(abs(obs_new - est_new_ibp)/obs_new)
-acc_scaled_ibp <- as.data.frame(1 - pmin(ratio_scaled_ibp,1))
+# compute accuracy
+acc_alt_poiss <- compute_accuracy(obs_new, est_new_poiss, obs_train)
 
-acc_scaled_poiss_long <- gather(acc_scaled_poiss, training, accuracy, 
-                                paste0("N.",Ns[1]):paste0("N.",Ns[length(Ns)]), factor_key=TRUE) %>%
-  add_column(model = "Poiss", N = rep(Ns, each = D))
+acc_alt_negbin <- compute_accuracy(obs_new, est_new_negbin, obs_train)
 
-acc_scaled_negbin_long <- gather(acc_scaled_negbin, training , accuracy, 
-                                 paste0("N.",Ns[1]):paste0("N.",Ns[length(Ns)]), factor_key=TRUE) %>%
-  add_column(model = "Neg-Bin", N = rep(Ns, each = D))
+acc_alt_ibp <- compute_accuracy(obs_new, est_new_ibp, obs_train)
 
-acc_scaled_ibp_long <- gather(acc_scaled_ibp, training , accuracy, 
-                              paste0("N.",Ns[1]):paste0("N.",Ns[length(Ns)]), factor_key=TRUE) %>%
-  add_column(model = "Gamma IBP", N = rep(Ns, each = D))
+acc_alt_gt <- compute_accuracy(obs_new, est_new_gt, obs_train)
 
-joint_scaled_long <- bind_rows(acc_scaled_poiss_long, acc_scaled_negbin_long, acc_scaled_ibp_long)
+acc_alt_chao <- compute_accuracy(obs_new, est_new_chao, obs_train)
+
+# handle the dataframes
+acc_alt_poiss_long <- acc_alt_poiss %>%
+  pivot_longer( everything(), names_to = "training", values_to = "Accuracy") %>%
+  add_column(Model = "Poiss", N = rep(Ns, each = D))
+
+acc_alt_negbin_long <- acc_alt_negbin %>%
+  pivot_longer( everything(), names_to = "training", values_to = "Accuracy") %>%
+  add_column(Model = "NB", N = rep(Ns, each = D))
+
+acc_alt_ibp_long <- acc_alt_ibp %>%
+  pivot_longer( everything(), names_to = "training", values_to = "Accuracy") %>%
+  add_column(Model = "IBP", N = rep(Ns, each = D))
+
+acc_alt_gt_long <- acc_alt_gt %>%
+  pivot_longer( everything(), names_to = "training", values_to = "Accuracy") %>%
+  add_column(Model = "GT", N = rep(Ns, each = D))
+
+acc_alt_chao_long <- acc_alt_chao %>%
+  pivot_longer( everything(), names_to = "training", values_to = "Accuracy") %>%
+  add_column(Model = "Chao", N = rep(Ns, each = D))
+
+
+joint_alt_long <- bind_rows(acc_alt_poiss_long, acc_alt_negbin_long,
+                            acc_alt_ibp_long, acc_alt_gt_long, acc_alt_chao_long)
 
 # plots
-ggplot(joint_scaled_long, aes( y=accuracy, fill=model)) + 
-  geom_boxplot() + 
+ggplot(joint_alt_long, aes(x = Model, y=Accuracy)) +
+  geom_boxplot() +
   facet_wrap(~N) +
-  theme_bw() + 
-  theme(plot.title = element_text(hjust = 0.5)) +
-  ggtitle(paste0("Model 4: accuracy (scaled) on D = ", D)) +
-  scale_y_continuous(breaks = pretty_breaks()) 
-
-
-###### 4.2) Plot boxplots on accuracy (alt) #####
-acc_alt_poiss <- 1/(1 + abs(obs_new - est_new_poiss))
-
-acc_alt_negbin <- 1/(1 + abs(obs_new - est_new_negbin))
-
-acc_alt_ibp <- 1/(1 + abs(obs_new - est_new_ibp))
-
-acc_alt_sp <- 1/(1 + abs(obs_new - est_new_sp))
-
-
-acc_alt_poiss_long <- gather(acc_alt_poiss, training, accuracy, 
-                             paste0("N.",Ns[1]):paste0("N.",Ns[length(Ns)]), factor_key=TRUE) %>%
-  add_column(model = "Poiss", N = rep(Ns, each = D))
-
-acc_alt_negbin_long <- gather(acc_alt_negbin, training , accuracy, 
-                              paste0("N.",Ns[1]):paste0("N.",Ns[length(Ns)]), factor_key=TRUE) %>%
-  add_column(model = "Neg-Bin", N = rep(Ns, each = D))
-
-acc_alt_ibp_long <- gather(acc_alt_ibp, training , accuracy, 
-                           paste0("N.",Ns[1]):paste0("N.",Ns[length(Ns)]), factor_key=TRUE) %>%
-  add_column(model = "Gamma IBP", N = rep(Ns, each = D))
-
-acc_alt_sp_long <- gather(acc_alt_sp, training , accuracy, 
-                          paste0("N.",Ns[1]):paste0("N.",Ns[length(Ns)]), factor_key=TRUE) %>%
-  add_column(model = "SB-SP", N = rep(Ns, each = D))
-
-
-joint_alt_long <- bind_rows(acc_alt_poiss_long, acc_alt_negbin_long, 
-                            acc_alt_ibp_long, acc_alt_sp_long)
-
-# plots
-ggplot(joint_alt_long, aes( y=accuracy, fill=model)) + 
-  geom_boxplot() + 
-  facet_wrap(~N) +
-  theme_bw() + 
-  theme(plot.title = element_text(hjust = 0.5)) +
-  ggtitle(paste0("Model 4: accuracy (alt) on D = ", D)) +
-  scale_y_continuous(breaks = pretty_breaks()) 
-
+  theme_light() +
+  rremove("xlab") +
+  scale_y_continuous(breaks = pretty_breaks()) +
+  scale_color_tableau()

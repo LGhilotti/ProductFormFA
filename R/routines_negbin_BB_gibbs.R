@@ -933,6 +933,58 @@ generate_Kmn_chain_negbin <- function(nstar, p, alpha_chain, theta_chain, M, n, 
 
 
 
+#' Generate the chain for Kmn, for m=M, given the output chains of the mcmc
+#'
+#' @param nstar_chain
+#' @param p_chain
+#' @param alpha_chain
+#' @param theta_chain
+#' @param M
+#' @param n
+#' @param Kn
+#'
+#' @export
+#'
+generate_Kmn_chain_negbin_last <- function(nstar, p, alpha_chain, theta_chain, M, n, Kn = 0){
+  
+  if (n == 0 & Kn != 0){
+    stop("if n=0, the number of observed features Kn must be 0!")
+  }
+  
+  S <- length(alpha_chain)
+  
+  if (length(nstar) == 1){
+    nstar_chain <- rep(nstar, S)
+  } else {
+    nstar_chain <- nstar
+  }
+  
+  if (length(p) == 1){
+    p_chain <- rep(p, S)
+  } else {
+    p_chain <- p
+  }
+  
+  kmn_chain <- vector(length = S )
+  for (q in 1:S){
+    nstar <- nstar_chain[q]
+    p <- p_chain[q]
+    alpha <- alpha_chain[q]
+    theta <- theta_chain[q]
+    
+    par_0 = (1-p)*exp(lgamma(theta) - lgamma(theta+alpha))
+    par_1 = exp(lgamma( theta + alpha +n)- lgamma(theta +n))
+    par_2 = exp(lgamma(theta+alpha+n+M) - lgamma(theta+n+M))
+    
+    p_bar <- 1- par_0 *(par_1 - par_2)/(1-par_0*par_2)
+    
+    kmn_chain[q] <- rnbinom(1, nstar + Kn, p_bar)
+  }
+  
+  return (kmn_chain)
+}
+
+
 
 ##########################################
 

@@ -17,26 +17,26 @@ library(ggthemes)
 ##### Single dataset -> Ntilde (Poiss/NB) and extrapolation (Poiss/NB/Gamma) #####
 
 ###### 1) Read results:  MCMC convergence ####################
-load(file = "chiu_model_simulation/m4/m4_params_poiss.Rda")
-load(file =  "chiu_model_simulation/m4/m4_params_negbin.Rda")
-#load(file =  "chiu_model_simulation/m4/m4_params_negbin_prior.Rda")
-load(file =  "chiu_model_simulation/m4/m4_params_ibp.Rda" )
-#load(file =  "chiu_model_simulation/m4/m4_params_sp.Rda" )
+load(file = "chiu_model_simulation/m3/m3_params_poiss.Rda")
+load(file =  "chiu_model_simulation/m3/m3_params_negbin.Rda")
+#load(file =  "chiu_model_simulation/m3/m3_params_negbin_prior.Rda")
+load(file =  "chiu_model_simulation/m3/m3_params_ibp.Rda" )
+#load(file =  "chiu_model_simulation/m3/m3_params_sp.Rda" )
 
 ###### 2) Read results: samples from limiting distributions (Poiss/NB) ##############
-load(file = "chiu_model_simulation/m4/m4_ntilde_poiss.Rda")
-load(file = "chiu_model_simulation/m4/m4_ntilde_negbin.Rda")
-#load(file = "chiu_model_simulation/m4/m4_ntilde_negbin_prior.Rda")
+load(file = "chiu_model_simulation/m3/m3_ntilde_poiss.Rda")
+load(file = "chiu_model_simulation/m3/m3_ntilde_negbin.Rda")
+#load(file = "chiu_model_simulation/m3/m3_ntilde_negbin_prior.Rda")
 
 ###### 3) Read results: CI for extrapolation (Poiss/NB/Gamma) ################
-list_kmn_pred_test_poiss <- readRDS(file = "chiu_model_simulation/m4/m4_ci_poiss.rds")
-list_kmn_pred_test_negbin <- readRDS(file = "chiu_model_simulation/m4/m4_ci_negbin.rds")
-#list_kmn_pred_test_negbin_prior <- readRDS(file = "chiu_model_simulation/m4/m4_ci_negbin_prior.rds")
-list_kmn_pred_test_ibp <- readRDS(file = "chiu_model_simulation/m4/m4_ci_ibp.rds")
-#list_kmn_pred_test_sp <- readRDS(file = "chiu_model_simulation/m4/m4_ci_sp.rds")
+list_kmn_pred_test_poiss <- readRDS(file = "chiu_model_simulation/m3/m3_ci_poiss.rds")
+list_kmn_pred_test_negbin <- readRDS(file = "chiu_model_simulation/m3/m3_ci_negbin.rds")
+#list_kmn_pred_test_negbin_prior <- readRDS(file = "chiu_model_simulation/m3/m3_ci_negbin_prior.rds")
+list_kmn_pred_test_ibp <- readRDS(file = "chiu_model_simulation/m3/m3_ci_ibp.rds")
+#list_kmn_pred_test_sp <- readRDS(file = "chiu_model_simulation/m3/m3_ci_sp.rds")
 
 ###### 4) Read the data ###############################
-data_mat <- readRDS(file = "chiu_model_simulation/m4/m4_data_mat.rds")
+data_mat <- readRDS(file = "chiu_model_simulation/m3/m3_data_mat.rds")
 data_list <- create_features_list(data_mat)
 L <- nrow(data_mat)
 Ms <- unique(sapply(list_kmn_pred_test_poiss, function(l) length(l$medians)))
@@ -48,7 +48,7 @@ c_fr <- 10
 
 ##### 9) Rarefaction curve and comparison with Chao bands #######
 
-hors <- Ns*5
+hors <- rep(L, length(Ns))
 
 # Store objects
 labels_comb_bb <- paste(rep(paste("N", Ns, sep = "."), each = length(Nbars)+1),
@@ -247,12 +247,12 @@ for (j in 1:length(Ns)){
   }
 }
 
-# Poisson
-saveRDS(list_kn_rarefaction_poiss, "chiu_model_simulation/m4/m4_ci_rare_poiss.rds")
-# Negative Binomial
-saveRDS(list_kn_rarefaction_negbin, "chiu_model_simulation/m4/m4_ci_rare_negbin.rds")
-# Gamma IBP
-saveRDS(list_kn_rarefaction_ibp, "chiu_model_simulation/m4/m4_ci_rare_ibp.rds")
+# # Poisson
+# saveRDS(list_kn_rarefaction_poiss, "chiu_model_simulation/m3/m3_ci_rare_poiss.rds")
+# # Negative Binomial
+# saveRDS(list_kn_rarefaction_negbin, "chiu_model_simulation/m3/m3_ci_rare_negbin.rds")
+# # Gamma IBP
+# saveRDS(list_kn_rarefaction_ibp, "chiu_model_simulation/m3/m3_ci_rare_ibp.rds")
 
 
 #### 9.b) Chao's bands for rarefaction/extrapolation ####
@@ -288,5 +288,5 @@ for (j in 1:length(Ns)){
 
 }
 # Richness
-saveRDS(list_chao_rare, "chiu_model_simulation/m4/m4_chao_rare.rds")
+saveRDS(list_chao_rare, "chiu_model_simulation/m3/m3_chao_rare.rds")
 
