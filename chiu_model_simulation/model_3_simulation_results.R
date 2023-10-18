@@ -600,9 +600,9 @@ ggplot(joint_ntilde_long, aes(x=Model, y=estimate)) +
   #theme(legend.position = "top") +
   rremove("xlab") +
   ylab("Estimate") +
-  scale_y_continuous(breaks = pretty_breaks()) +
-  scale_color_tableau()
+  scale_y_continuous(breaks = pretty_breaks()) 
 
+ggsave(filename = "Plots_paper/plot_m3_richness_rep.png", width = 10, height = 4, dpi = 300, units = "in", device='png')
 
 
 ###### 4) Plot boxplots on accuracy #####
@@ -656,5 +656,6 @@ ggplot(joint_alt_long, aes(x = Model, y=Accuracy)) +
   facet_wrap(~N) +
   theme_light() +
   rremove("xlab") +
-  scale_y_continuous(breaks = pretty_breaks()) +
-  scale_color_tableau()
+  scale_y_continuous(breaks = pretty_breaks()) 
+
+ggsave(filename = "Plots_paper/plot_m3_accuracy_rep.png", width = 10, height = 5, dpi = 300, units = "in", device='png')

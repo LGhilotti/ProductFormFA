@@ -91,8 +91,8 @@ perc_accuracy <- function(train_list, test_list, est_new_features){
 #' @export
 #'
 compute_accuracy <- function(obs_n, est_n, obs_t) {
-  res <- 1/(1 + abs(obs_n - est_n))
-  res[est_n < 0] <- 0
+  # res <- 1/(1 + abs(obs_n - est_n))
+  res <- abs(obs_n - est_n)/obs_t
   return ( res )
 }
 

@@ -154,26 +154,26 @@ gg_ntilde_negbin_long <- gather(gg_ntilde_negbin, training, estimate,
 joint_total_long <- bind_rows(gg_ntilde_poiss_long, gg_ntilde_negbin_long) %>%
   mutate(Model = fct_relevel(Model, c("BBmixP", "BBmixNB"))) 
 
-# plot
-ggplot(joint_total_long, aes(x = estimate, color = Model)) + 
-  #geom_density(alpha = 0.5, linewidth = 0.8) +
-  stat_density(aes(x=estimate, colour=Model),
-               geom="line",position="identity") +
-  geom_vline(xintercept = 500, color="black", linetype="dashed", linewidth=0.8) +
-  facet_wrap(~N+ Nbar, labeller = labeller(N = ~ paste("n = ", .x), Nbar = ~ paste("Nbar = ", .x)), scales = "free") +
-  theme_bw() + 
-  theme(strip.text.x = element_text(size = 12))+
-  theme(#panel.grid.major = element_blank(),
-    #panel.grid.minor = element_blank(),
-    strip.background = element_blank(),
-    panel.border = element_rect(colour = "black", fill=NA)) +
-  theme(plot.title = element_text(hjust = 0.5)) +
-  scale_y_continuous(breaks = pretty_breaks()) +
-  xlab("# distinct features") + rremove("ylab") +
-  scale_color_manual(values = c("BBmixP" = "forestgreen",
-                                "BBmixNB" = "royalblue1")) 
-
-ggsave(filename = "Plots_paper/plot_m1_richness.png", width = 10, height = 4, dpi = 300, units = "in", device='png')
+# # plot
+# ggplot(joint_total_long, aes(x = estimate, color = Model)) + 
+#   #geom_density(alpha = 0.5, linewidth = 0.8) +
+#   stat_density(aes(x=estimate, colour=Model),
+#                geom="line",position="identity") +
+#   geom_vline(xintercept = 500, color="black", linetype="dashed", linewidth=0.8) +
+#   facet_wrap(~N+ Nbar, labeller = labeller(N = ~ paste("n = ", .x), Nbar = ~ paste("Nbar = ", .x)), scales = "free") +
+#   theme_bw() + 
+#   theme(strip.text.x = element_text(size = 12))+
+#   theme(#panel.grid.major = element_blank(),
+#     #panel.grid.minor = element_blank(),
+#     strip.background = element_blank(),
+#     panel.border = element_rect(colour = "black", fill=NA)) +
+#   theme(plot.title = element_text(hjust = 0.5)) +
+#   scale_y_continuous(breaks = pretty_breaks()) +
+#   xlab("# distinct features") + rremove("ylab") +
+#   scale_color_manual(values = c("BBmixP" = "forestgreen",
+#                                 "BBmixNB" = "royalblue1")) 
+# 
+# ggsave(filename = "Plots_paper/plot_m1_richness.png", width = 10, height = 4, dpi = 300, units = "in", device='png')
 
 
 ######## 6) Plot Extrapolation curve (Poiss/NB/Gamma) ###############
@@ -338,6 +338,8 @@ ggplot(joint_df_pred_bayes_plot, aes(t,medians, color = Model)) +
   scale_color_tableau() 
 
 ggsave(filename = "Plots_paper/plot_m1_prediction.png", width = 10, height = 4, dpi = 300, units = "in", device='png')
+#### NEL PAPER
+
 
 ##### 8) Richness: comparison with frequentist estimators ##########
 table_richness <- joint_total_long %>% group_by(N, Nbar, Model) %>%
@@ -390,6 +392,9 @@ ggplot(table_richness, aes( y=estimator, x=Model, shape = Nbar)) +
   rremove("xlab") 
 
 ggsave(filename = "Plots_paper/plot_m1_richness.png", width = 10, height = 4, dpi = 300, units = "in", device='png')
+### NEL PAPER
+
+
 
 # plots error
 ggplot(table_err_richness, aes( y=err_estimate, x=Model, color=Model_spec)) + 
@@ -565,8 +570,9 @@ ggplot(joint_ntilde_long, aes(x=Model, y=estimate)) +
   #theme(legend.position = "top") +
   rremove("xlab") +
   ylab("Estimate") +
-  scale_y_continuous(breaks = pretty_breaks()) +
-  scale_color_tableau()
+  scale_y_continuous(breaks = pretty_breaks())
+
+ggsave(filename = "Plots_paper/plot_m1_richness_rep.png", width = 10, height = 4, dpi = 300, units = "in", device='png')
 
 
 
@@ -621,5 +627,6 @@ ggplot(joint_alt_long, aes(x = Model, y=Accuracy)) +
   facet_wrap(~N) +
   theme_light() +
   rremove("xlab") +
-  scale_y_continuous(breaks = pretty_breaks()) +
-  scale_color_tableau()
+  scale_y_continuous(breaks = pretty_breaks())
+
+ggsave(filename = "Plots_paper/plot_m1_accuracy_rep.png", width = 10, height = 5, dpi = 300, units = "in", device='png')
