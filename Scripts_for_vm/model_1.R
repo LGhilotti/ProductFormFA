@@ -1564,15 +1564,13 @@ b_s_bb <- 0.2
 print(paste0("E(s) = ", a_s_bb/ b_s_bb))
 print(paste0("Var(s) = ", a_s_bb/ (b_s_bb^2)))
 
-# # Set initial values for NB (prior on parameters)
-# nstar_0_nb <- 100
-# p_0_nb <- 0.2
+
 # Set initial values for other parameters
 alpha_bar_0_bb <- 1
 s_0_bb <- 1
 
 
-########## 1.2) Set parameters for the Gamma IBP and SB-SP
+########## 1.2) Set parameters for the Gamma IBP 
 
 # Set prior hyperparameters for Gamma IBP
 p_ibp <- 0.05

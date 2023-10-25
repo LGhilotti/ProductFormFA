@@ -81,7 +81,8 @@ ggplot(table_richness, aes( y=estimator, x=Model, shape = Nbar)) +
   ylab("Posterior mean of N") +
   scale_y_continuous(breaks = pretty_breaks()) +
   rremove("xlab") +
-  scale_shape_discrete(name = "Prior mean of N")
+  scale_shape_discrete(name = "Prior mean of N") +
+  theme(aspect.ratio = 1)
 
 ggsave(filename = "Plots_paper/plot_m3_richness_point.png", width = 10, height = 4, dpi = 300, units = "in", device='png')
 
@@ -98,9 +99,11 @@ ggplot(joint_emp_long, aes(x = estimate, color = Model)) +
   geom_vline(aes(xintercept = 500), linetype="dashed") +
   facet_wrap(.~N, scales = "free_x") +
   theme_light() +
+  theme(legend.position = "top") +
   scale_y_continuous(breaks = pretty_breaks()) +
   xlab("# distinct features") + rremove("ylab") +
-  scale_color_tableau() 
+  scale_color_tableau() +
+  theme(aspect.ratio = 1)
 
 
 ggsave(filename = "Plots_paper/plot_m3_richness_distribution.png", width = 10, height = 4, dpi = 300, units = "in", device='png')
@@ -238,7 +241,7 @@ df_pred_chao <- df_pred_chao %>%
 
 
 ## 5.c) Observed sample <-> cts on the full sample
-obs_sample <- sapply(2:L, function(n) ncol(data_mat[1:n,colSums(data_mat[1:n,]) > 0])   )
+obs_sample <- sapply(2:L, function(n) length(unique(unlist(data_list[1:n]))) )
 obs_sample <- data.frame(t = 0:L, 
                          obs = c(0, sum(data_mat[1,]) , obs_sample))
 
@@ -268,7 +271,8 @@ ggplot(joint_df_pred_bayes_plot, aes(x = t, y = medians, color = Model)) +
   theme(legend.position = "top") +
   scale_y_continuous(breaks = pretty_breaks()) +
   scale_x_continuous(breaks = pretty_breaks()) +
-  scale_color_tableau() 
+  scale_color_tableau() +
+  theme(aspect.ratio = 1)
 
 ggsave(filename = "Plots_paper/plot_m3_prediction.png", width = 10, height = 4, dpi = 300, units = "in", device='png')
 
@@ -311,13 +315,14 @@ joint_ntilde_long <- bind_rows(avg_ntilde_poiss_long, avg_ntilde_negbin_long)
 # plots
 ggplot(joint_ntilde_long, aes(x=Model, y=estimate)) +
   geom_boxplot() +
-  facet_wrap(~N) +
+  facet_wrap(.~N, scales = "free_x", nrow = 1) +
   geom_hline(aes(yintercept = 500), linetype = "dashed") +
   theme_light() + 
   #theme(legend.position = "top") +
   rremove("xlab") +
-  ylab("Estimate") +
-  scale_y_continuous(breaks = pretty_breaks())
+  ylab("# distinct features") +
+  scale_y_continuous(breaks = pretty_breaks()) +
+  theme(aspect.ratio = 1)
 
 ggsave(filename = "Plots_paper/plot_m3_richness_rep.png", width = 10, height = 4, dpi = 300, units = "in", device='png')
 
@@ -371,10 +376,12 @@ joint_alt_long <- bind_rows(acc_alt_poiss_long, acc_alt_negbin_long,
 # plots
 ggplot(joint_alt_long, aes(x = Model, y=Accuracy)) +
   geom_boxplot() +
-  facet_wrap(~N) +
+  facet_wrap(.~N, scales = "free_x", nrow = 1) +
   theme_light() +
   rremove("xlab") +
-  scale_y_continuous(breaks = pretty_breaks())
+  ylab("Error index") +
+  scale_y_continuous(breaks = pretty_breaks())+
+  theme(aspect.ratio = 1)
 
-ggsave(filename = "Plots_paper/plot_m3_accuracy_rep.png", width = 10, height = 5, dpi = 300, units = "in", device='png')
+ggsave(filename = "Plots_paper/plot_m3_accuracy_rep.png", width = 10, height = 4, dpi = 300, units = "in", device='png')
 

@@ -11,34 +11,26 @@ library(tidyverse)
 library(gridExtra)
 library(grid)
 library(patchwork)
+library(ProductFormFA)
 
 ##### Single dataset -> Ntilde (Poiss/NB) and extrapolation (Poiss/NB/Gamma) #####
 
 ###### 1) Read results:  MCMC convergence ####################
 load(file = "unbounded_features_simulation/unb_poly_1/unb_poly_1_params_poiss.Rda")
 load(file =  "unbounded_features_simulation/unb_poly_1/unb_poly_1_params_negbin.Rda")
-#load(file =  "unbounded_features_simulation/unb_poly_1/unb_poly_1_params_negbin_prior.Rda")
 load(file =  "unbounded_features_simulation/unb_poly_1/unb_poly_1_params_ibp.Rda" )
-#load(file =  "unbounded_features_simulation/unb_poly_1/unb_poly_1_params_sp.Rda" )
+load(file =  "unbounded_features_simulation/unb_poly_1/unb_poly_1_params_sp.Rda" )
 
 ###### 2) Read results: samples from limiting distributions (Poiss/NB) ##############
 load(file = "unbounded_features_simulation/unb_poly_1/unb_poly_1_ntilde_poiss.Rda")
 load(file = "unbounded_features_simulation/unb_poly_1/unb_poly_1_ntilde_negbin.Rda")
-#load(file = "unbounded_features_simulation/unb_poly_1/unb_poly_1_ntilde_negbin_prior.Rda")
 
 ###### 3) Read results: CI for extrapolation (Poiss/NB/Gamma) ################
 list_kmn_pred_test_poiss <- readRDS(file = "unbounded_features_simulation/unb_poly_1/unb_poly_1_ci_poiss.rds")
 list_kmn_pred_test_negbin <- readRDS(file = "unbounded_features_simulation/unb_poly_1/unb_poly_1_ci_negbin.rds")
-#list_kmn_pred_test_negbin_prior <- readRDS(file = "unbounded_features_simulation/unb_poly_1/unb_poly_1_ci_negbin_prior.rds")
 list_kmn_pred_test_ibp <- readRDS(file = "unbounded_features_simulation/unb_poly_1/unb_poly_1_ci_ibp.rds")
-#list_kmn_pred_test_sp <- readRDS(file = "unbounded_features_simulation/unb_poly_1/unb_poly_1_ci_sp.rds")
+list_kmn_pred_test_sp <- readRDS(file = "unbounded_features_simulation/unb_poly_1/unb_poly_1_ci_sp.rds")
 
-# ###### 3.b) Read results: CI for insample (Poiss/NB/Gamma) ################
-# list_kn_rarefaction_poiss <- readRDS(file = "unbounded_features_simulation/unb_poly_1/unb_poly_1_ci_insample_poiss.rds")
-# list_kn_rarefaction_negbin <- readRDS(file = "unbounded_features_simulation/unb_poly_1/unb_poly_1_ci_insample_negbin.rds")
-# #list_kn_rarefaction_negbin_prior <- readRDS(file = "unbounded_features_simulation/unb_poly_1/unb_poly_1_ci_insample_negbin_prior.rds")
-# list_kn_rarefaction_ibp <- readRDS(file = "unbounded_features_simulation/unb_poly_1/unb_poly_1_ci_insample_ibp.rds")
-# #list_kn_rarefaction_sp <- readRDS(file = "unbounded_features_simulation/unb_poly_1/unb_poly_1_ci_insample_sp.rds")
 
 
 ###### 4) Read the data ###############################
@@ -48,15 +40,14 @@ L <- nrow(data_mat)
 Ms <- unique(sapply(list_kmn_pred_test_poiss, function(l) length(l$medians)))
 Ns <- L - Ms
 
-Nbars <- c(1000,5000,10000)
 
 ###### 5) Check MCMC convergence###################
 
 # Poisson 
 
-###### check mcmc mixing poisson Nbar = 1000
-params_poiss_ <- params_poiss[c(paste0("alpha:N.",Ns,":Nbar.", Nbars[1] ), 
-                                paste0("theta:N.",Ns,":Nbar.", Nbars[1])) ]
+###### check mcmc mixing poisson Nbar=emp
+params_poiss_ <- params_poiss[c(paste0("alpha:N.",Ns,":Nbar.emp" ), 
+                                paste0("theta:N.",Ns,":Nbar.emp")) ]
 samples_poiss <- mcmc.list(mcmc(params_poiss_))
 samples_ggs_poiss <- ggs(samples_poiss, keep_original_order = TRUE)
 ggs_traceplot(samples_ggs_poiss) + 
@@ -64,31 +55,13 @@ ggs_traceplot(samples_ggs_poiss) +
 
 effectiveSize(params_poiss_)
 
-###### check mcmc mixing poisson Nbar = 5000
-params_poiss_ <- params_poiss[c(paste0("alpha:N.",Ns,":Nbar.", Nbars[2]), 
-                                paste0("theta:N.",Ns,":Nbar.", Nbars[2])) ]
-samples_poiss <- mcmc.list(mcmc(params_poiss_))
-samples_ggs_poiss <- ggs(samples_poiss, keep_original_order = TRUE)
-ggs_traceplot(samples_ggs_poiss) + 
-  facet_wrap(~Parameter, nrow = length(Ns), scales = "free")
 
-effectiveSize(params_poiss_)
-
-###### check mcmc mixing poisson Nbar = 10000
-params_poiss_ <- params_poiss[c(paste0("alpha:N.",Ns,":Nbar.", Nbars[3]), 
-                                paste0("theta:N.",Ns,":Nbar.",  Nbars[3])) ]
-samples_poiss <- mcmc.list(mcmc(params_poiss_))
-samples_ggs_poiss <- ggs(samples_poiss, keep_original_order = TRUE)
-ggs_traceplot(samples_ggs_poiss) + 
-  facet_wrap(~Parameter, nrow = length(Ns), scales = "free")
-
-effectiveSize(params_poiss_)
 
 # Negative Binomial
 
-###### check mcmc mixing negbin (fixed) Nbar = 1000
-params_negbin_ <- params_negbin[c(paste0("alpha:N.",Ns,":Nbar.", Nbars[1]), 
-                                  paste0("theta:N.",Ns,":Nbar.", Nbars[1])) ]
+###### check mcmc mixing negbin (fixed) Nbar = emp
+params_negbin_ <- params_negbin[c(paste0("alpha:N.",Ns,":Nbar.emp"), 
+                                  paste0("theta:N.",Ns,":Nbar.emp")) ]
 samples_negbin <- mcmc.list(mcmc(params_negbin_))
 samples_ggs_negbin <- ggs(samples_negbin, keep_original_order = TRUE)
 ggs_traceplot(samples_ggs_negbin) + 
@@ -96,31 +69,13 @@ ggs_traceplot(samples_ggs_negbin) +
 
 effectiveSize(params_negbin_)
 
-###### check mcmc mixing negbin (fixed) Nbar = 5000
-params_negbin_ <- params_negbin[c(paste0("alpha:N.",Ns,":Nbar.", Nbars[2]), 
-                                  paste0("theta:N.",Ns,":Nbar.", Nbars[2])) ]
-samples_negbin <- mcmc.list(mcmc(params_negbin_))
-samples_ggs_negbin <- ggs(samples_negbin, keep_original_order = TRUE)
-ggs_traceplot(samples_ggs_negbin) + 
-  facet_wrap(~Parameter, nrow = length(Ns), scales = "free")
 
-effectiveSize(params_negbin_)
-
-###### check mcmc mixing negbin (fixed) Nbar = 10000
-params_negbin_ <- params_negbin[c(paste0("alpha:N.",Ns,":Nbar.", Nbars[3]), 
-                                  paste0("theta:N.",Ns,":Nbar.", Nbars[3])) ]
-samples_negbin <- mcmc.list(mcmc(params_negbin_))
-samples_ggs_negbin <- ggs(samples_negbin, keep_original_order = TRUE)
-ggs_traceplot(samples_ggs_negbin) + 
-  facet_wrap(~Parameter, nrow = length(Ns), scales = "free")
-
-effectiveSize(params_negbin_)
 
 # Gamma ibp
 
-###### check mcmc mixing Gamma ibp Nbar=1000
-params_ibp_ <- params_ibp[c(paste0("alpha:N.",Ns,":Nbar.", Nbars[1]), 
-                            paste0("theta:N.",Ns,":Nbar.", Nbars[1])) ]
+###### check mcmc mixing Gamma ibp Nbar=emp
+params_ibp_ <- params_ibp[c(paste0("alpha:N.",Ns), 
+                            paste0("theta:N.",Ns)) ]
 samples_ibp <- mcmc.list(mcmc(params_ibp_))
 samples_ggs_ibp <- ggs(samples_ibp, keep_original_order = TRUE)
 ggs_traceplot(samples_ggs_ibp) + 
@@ -128,25 +83,20 @@ ggs_traceplot(samples_ggs_ibp) +
 
 effectiveSize(params_ibp_)
 
-###### check mcmc mixing Gamma ibp Nbar=5000
-params_ibp_ <- params_ibp[c(paste0("alpha:N.",Ns,":Nbar.", Nbars[2]), 
-                            paste0("theta:N.",Ns,":Nbar.", Nbars[2])) ]
-samples_ibp <- mcmc.list(mcmc(params_ibp_))
-samples_ggs_ibp <- ggs(samples_ibp, keep_original_order = TRUE)
-ggs_traceplot(samples_ggs_ibp) + 
+
+# SB-SP
+
+###### check mcmc mixing SB_SP Nbar=emp
+params_sp_ <- params_sp[c(paste0("alpha:N.",Ns), 
+                          paste0("c:N.",Ns),
+                          paste0("beta:N.",Ns)) ]
+samples_sp <- mcmc.list(mcmc(params_sp_))
+samples_ggs_sp <- ggs(samples_sp, keep_original_order = TRUE)
+ggs_traceplot(samples_ggs_sp) + 
   facet_wrap(~Parameter, nrow = length(Ns), scales = "free")
 
-effectiveSize(params_ibp_)
+effectiveSize(params_sp_)
 
-###### check mcmc mixing Gamma ibp Nbar=10000
-params_ibp_ <- params_ibp[c(paste0("alpha:N.",Ns,":Nbar.", Nbars[3]), 
-                            paste0("theta:N.",Ns,":Nbar.", Nbars[3])) ]
-samples_ibp <- mcmc.list(mcmc(params_ibp_))
-samples_ggs_ibp <- ggs(samples_ibp, keep_original_order = TRUE)
-ggs_traceplot(samples_ggs_ibp) + 
-  facet_wrap(~Parameter, nrow = length(Ns), scales = "free")
-
-effectiveSize(params_ibp_)
 
 
 ####### 6) Plot limiting distributions (Poiss/NB) ##############
