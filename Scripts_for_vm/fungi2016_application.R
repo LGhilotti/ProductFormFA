@@ -1606,6 +1606,19 @@ print(paste0("Var(theta) = ", a_s_ibp/ (b_s_ibp^2) +
                a_alpha_ibp*b_alpha_ibp/ (a_alpha_ibp + b_alpha_ibp)^2 /(a_alpha_ibp+b_alpha_ibp+1)))
 
 
+# Set prior hyperparameters for SB-SP
+p_sp <- 0.05
+print(paste0("E(c) = ", (1-p_sp)/ p_sp))
+print(paste0("Var(c) = ", (1-p_sp)/ (p_sp^2)) )
+r_sp <- 0.1
+t_sp <- 0.01
+print(paste0("E(beta) = ", r_sp/ t_sp))
+print(paste0("Var(beta) = ", r_sp/ (t_sp^2)))
+a_alpha_sp <- 2
+b_alpha_sp <- 2
+print(paste0("E(alpha) = ", a_alpha_sp/ (a_alpha_sp + b_alpha_sp)))
+print(paste0("Var(alpha) = ", a_alpha_sp*b_alpha_sp/ (a_alpha_sp + b_alpha_sp)^2 /(a_alpha_sp+b_alpha_sp+1)))
+
 
 # Set initial values for the parameters of Gamma IBP
 a_0_ibp <- 5
@@ -1613,6 +1626,11 @@ b_0_ibp <- 1
 alpha_0_ibp <- 0.5
 s_0_ibp <- 15
 
+
+# Set initial values for the parameters of SB-SP
+c_0_sp <- 10
+beta_0_sp <- 10
+alpha_0_sp <- 0.5
 
 ########## Set MCMC parameters (common to all 3 models)
 
@@ -1989,6 +2007,8 @@ list_kmn_pred_negbin <- vector(mode="list", length = 1)
 names(list_kmn_pred_negbin) <- labels_comb
 list_kmn_pred_ibp <- vector(mode="list", length = 1)
 names(list_kmn_pred_ibp) <- labels_comb
+list_kmn_pred_sp <- vector(mode="list", length = 1)
+names(list_kmn_pred_sp) <- labels_comb
 
 params_poiss <- data.frame(matrix(nrow = number_saved_iterations_poiss, ncol = 2))
 colnames(params_poiss) <- paste(c("alpha", "theta"), rep(labels_comb, each = 2), sep = ":")
@@ -1996,6 +2016,8 @@ params_negbin <- data.frame(matrix(nrow = number_saved_iterations_negbin, ncol =
 colnames(params_negbin) <- paste(c("alpha", "theta"), rep(labels_comb, each = 2), sep = ":")
 params_ibp <- data.frame(matrix(nrow = number_saved_iterations_ibp, ncol = 4))
 colnames(params_ibp) <- paste(c("a", "b", "alpha", "theta"), rep(labels_comb, each = 4), sep = ":")
+params_sp <- data.frame(matrix(nrow = number_saved_iterations_ibp, ncol = 3))
+colnames(params_sp) <- paste(c("c", "beta", "alpha"), rep(labels_comb, each = 3), sep = ":")
 
 
 Kn = ncol(data_mat[,colSums(data_mat) > 0])
@@ -2025,161 +2047,211 @@ lab_alpha <- paste0("alpha:",labels_comb)
 lab_theta <- paste0("theta:",labels_comb)
 lab_a <- paste0("a:",labels_comb)
 lab_b <- paste0("b:",labels_comb)
+lab_c <- paste0("c:",labels_comb)
+lab_beta <- paste0("beta:",labels_comb)
 
-################# 3) Run BB + Poisson ###########
+# ################# 3) Run BB + Poisson ###########
+# 
+# # Set tau for MALA
+# tau_poiss <- 0.1
+# 
+# output_poiss <- gibbs_sampler_poiss_fixed_lambda(Z = data_mat,
+#                                                  alpha_bar_0_bb, s_0_bb,
+#                                                  lambda_poiss, a_alpha_bb, b_alpha_bb, a_s_bb, b_s_bb,
+#                                                  tau_poiss,
+#                                                  S_poiss, n_burnin_poiss, thin_poiss, seed)
+# 
+# n_saved_iter_poiss <- length(output_poiss$s_vec)
+# s_chain_poiss <- output_poiss$s_vec
+# alpha_bar_chain_poiss <- output_poiss$alpha_bar_vec
+# alpha_chain_poiss <- - alpha_bar_chain_poiss
+# theta_chain_poiss <- s_chain_poiss + alpha_bar_chain_poiss
+# 
+# params_poiss[[lab_alpha]] <- alpha_chain_poiss
+# params_poiss[[lab_theta]] <- theta_chain_poiss
+# 
+# 
+# ####### 4) Run BB + Negative-Binomial (fixed parameters) ############
+# 
+# # Set tau for MALA
+# tau_nb <- 0.1
+# 
+# output_negbin <- gibbs_sampler_negbin_geometric_fixed_pars(Z = data_mat,
+#                                                            s_0_bb, alpha_bar_0_bb,
+#                                                            nstar_nb, p_nb,
+#                                                            a_alpha_bb, b_alpha_bb, a_s_bb, b_s_bb,
+#                                                            tau_nb, 
+#                                                            S_negbin, n_burnin_negbin, thin_negbin, seed)
+# 
+# n_saved_iter_negbin <- length(output_negbin$s_vec)
+# s_chain_negbin <- output_negbin$s_vec
+# alpha_bar_chain_negbin <- output_negbin$alpha_bar_vec
+# alpha_chain_negbin <- - alpha_bar_chain_negbin
+# theta_chain_negbin <- s_chain_negbin + alpha_bar_chain_negbin
+# 
+# params_negbin[[lab_alpha]] <- alpha_chain_negbin
+# params_negbin[[lab_theta]] <- theta_chain_negbin
+# 
+# 
+# ############ 5) Run IBP + Gamma #################
+# 
+# # Set tau for MALA
+# sigq_s <- 0.1
+# sigq_alpha <- 0.1
+# 
+# output_ibp <- gibbs_sampler_gamma_ibp(Z = data_mat,
+#                                       a_0_ibp, b_0_ibp, s_0_ibp, alpha_0_ibp,
+#                                       p_ibp, r_ibp, t_ibp, a_alpha_ibp, b_alpha_ibp, a_s_ibp, b_s_ibp,
+#                                       sigq_s, sigq_alpha, fixed = c(F,F,F,F),
+#                                       S_ibp, n_burnin_ibp, thin_ibp, seed)
+# 
+# n_saved_iter_ibp <- length(output_ibp$a_vec)
+# a_chain_ibp <- output_ibp$a_vec
+# b_chain_ibp <- output_ibp$b_vec
+# s_chain_ibp <- output_ibp$s_vec
+# alpha_chain_ibp <- output_ibp$alpha_vec
+# theta_chain_ibp <- s_chain_ibp - alpha_chain_ibp
+# 
+# params_ibp[[lab_a]] <- a_chain_ibp
+# params_ibp[[lab_b]] <- b_chain_ibp
+# params_ibp[[lab_alpha]] <- alpha_chain_ibp
+# params_ibp[[lab_theta]] <- theta_chain_ibp
+# 
+
+############ 5.1) Run SB-SP #################
 
 # Set tau for MALA
-tau_poiss <- 0.1
+tau_sp <- 0.001
 
-output_poiss <- gibbs_sampler_poiss_fixed_lambda(Z = data_mat,
-                                                 alpha_bar_0_bb, s_0_bb,
-                                                 lambda_poiss, a_alpha_bb, b_alpha_bb, a_s_bb, b_s_bb,
-                                                 tau_poiss,
-                                                 S_poiss, n_burnin_poiss, thin_poiss, seed)
+output_sp <- gibbs_sampler_sb_sp(Z = data_mat,
+                                 c_0_sp, beta_0_sp, alpha_0_sp,
+                                 p_sp, r_sp, t_sp, a_alpha_sp, b_alpha_sp,
+                                 tau_sp, fixed = c(F,F,F),
+                                 S_ibp, n_burnin_ibp, thin_ibp, seed)
 
-n_saved_iter_poiss <- length(output_poiss$s_vec)
-s_chain_poiss <- output_poiss$s_vec
-alpha_bar_chain_poiss <- output_poiss$alpha_bar_vec
-alpha_chain_poiss <- - alpha_bar_chain_poiss
-theta_chain_poiss <- s_chain_poiss + alpha_bar_chain_poiss
+n_saved_iter_sp <- length(output_sp$c_vec)
+c_chain_sp <- output_sp$c_vec
+beta_chain_sp <- output_sp$beta_vec
+alpha_chain_sp <- output_sp$alpha_vec
 
-params_poiss[[lab_alpha]] <- alpha_chain_poiss
-params_poiss[[lab_theta]] <- theta_chain_poiss
+if (max(alpha_chain_sp) - min(alpha_chain_sp) == 0 ){
+  stop("SB-SP: error in mixing")
+}
 
-
-####### 4) Run BB + Negative-Binomial (fixed parameters) ############
-
-# Set tau for MALA
-tau_nb <- 0.1
-
-output_negbin <- gibbs_sampler_negbin_geometric_fixed_pars(Z = data_mat,
-                                                           s_0_bb, alpha_bar_0_bb,
-                                                           nstar_nb, p_nb,
-                                                           a_alpha_bb, b_alpha_bb, a_s_bb, b_s_bb,
-                                                           tau_nb, 
-                                                           S_negbin, n_burnin_negbin, thin_negbin, seed)
-
-n_saved_iter_negbin <- length(output_negbin$s_vec)
-s_chain_negbin <- output_negbin$s_vec
-alpha_bar_chain_negbin <- output_negbin$alpha_bar_vec
-alpha_chain_negbin <- - alpha_bar_chain_negbin
-theta_chain_negbin <- s_chain_negbin + alpha_bar_chain_negbin
-
-params_negbin[[lab_alpha]] <- alpha_chain_negbin
-params_negbin[[lab_theta]] <- theta_chain_negbin
+params_sp[[lab_c]] <- c_chain_sp
+params_sp[[lab_beta]] <- beta_chain_sp
+params_sp[[lab_alpha]] <- alpha_chain_sp
 
 
-############ 5) Run IBP + Gamma #################
+# ####### 6) Estimate limit distributions (Poiss/NB) ################
+# ntilde_chain_poiss <- generate_Ntilde_chain_poiss(lambda_poiss, alpha_chain_poiss,
+#                                                   theta_chain_poiss, n = L, Kn)
+# 
+# ntilde_chain_negbin <- generate_Ntilde_chain_negbin(nstar_nb, p_nb,
+#                                                     alpha_chain_negbin,
+#                                                     theta_chain_negbin, n = L, Kn)
+# 
+# gg_ntilde_poiss[[labels_comb]] <- ntilde_chain_poiss
+# gg_ntilde_negbin[[labels_comb]] <- ntilde_chain_negbin
+# 
+# ######## 7) Extrapolation in the test set (Poiss/NB/Gamma/SP) ##############
+# # Poisson
+# kmn_chain_poiss <- generate_Kmn_chain_poiss(lambda_poiss, alpha_chain_poiss,
+#                                             theta_chain_poiss, M = hor, n = L)
+# 
+# est_ci_pred_poiss <- matrix(NA, nrow = hor, ncol = 3)
+# # first column = lower bound
+# # second columns = medians
+# # third columns = upper bound
+# for (m in 1:hor){
+#   est_ci_pred_poiss[m,] <- quantile(kmn_chain_poiss[m,], probs = c(0.025,0.5,0.975))
+# }
+# est_ci_pred_poiss <- list("medians" = est_ci_pred_poiss[,2],
+#                           "lbs" = est_ci_pred_poiss[,1],
+#                           "ubs" = est_ci_pred_poiss[,3])
+# 
+# list_kmn_pred_poiss[[labels_comb]] <- est_ci_pred_poiss
+# 
+# # Negative Binomial (fixed params)
+# kmn_chain_negbin <- generate_Kmn_chain_negbin(nstar_nb, p_nb,
+#                                               alpha_chain_negbin, theta_chain_negbin,
+#                                               M = hor, n = L, Kn)
+# 
+# est_ci_pred_negbin <- matrix(NA, nrow = hor, ncol = 3)
+# # first column = lower bound
+# # second columns = medians
+# # third columns = upper bound
+# for (m in 1:hor){
+#   est_ci_pred_negbin[m,] <- quantile(kmn_chain_negbin[m,], probs = c(0.025,0.5,0.975))
+# }
+# est_ci_pred_negbin <- list("medians" = est_ci_pred_negbin[,2],
+#                            "lbs" = est_ci_pred_negbin[,1],
+#                            "ubs" = est_ci_pred_negbin[,3])
+# 
+# list_kmn_pred_negbin[[labels_comb]] <- est_ci_pred_negbin
+# 
+# 
+# # IBP + Gamma
+# kmn_chain_ibp <- generate_Kmn_chain_gamma_ibp(a_chain_ibp, b_chain_ibp, alpha_chain_ibp,
+#                                               theta_chain_ibp, M = hor, n = L, Kn)
+# 
+# est_ci_pred_ibp <- matrix(NA, nrow = hor, ncol = 3)
+# # first column = lower bound
+# # second columns = medians
+# # third columns = upper bound
+# for (m in 1:hor){
+#   est_ci_pred_ibp[m,] <- quantile(kmn_chain_ibp[m,], probs = c(0.025,0.5,0.975))
+# }
+# est_ci_pred_ibp <- list("medians" = est_ci_pred_ibp[,2],
+#                         "lbs" = est_ci_pred_ibp[,1],
+#                         "ubs" = est_ci_pred_ibp[,3])
+# 
+# list_kmn_pred_ibp[[labels_comb]] <- est_ci_pred_ibp
 
-# Set tau for MALA
-sigq_s <- 0.1
-sigq_alpha <- 0.1
+# SB-SP
+kmn_chain_sp <- generate_Kmn_chain_gamma_ibp(c_chain_sp + 1,
+                                             beta_chain_sp*(1-alpha_chain_sp)/alpha_chain_sp,
+                                             alpha_chain_sp,
+                                             1 - alpha_chain_sp,
+                                             M = hor, n = L, Kn)
 
-output_ibp <- gibbs_sampler_gamma_ibp(Z = data_mat,
-                                      a_0_ibp, b_0_ibp, s_0_ibp, alpha_0_ibp,
-                                      p_ibp, r_ibp, t_ibp, a_alpha_ibp, b_alpha_ibp, a_s_ibp, b_s_ibp,
-                                      sigq_s, sigq_alpha, fixed = c(F,F,F,F),
-                                      S_ibp, n_burnin_ibp, thin_ibp, seed)
-
-n_saved_iter_ibp <- length(output_ibp$a_vec)
-a_chain_ibp <- output_ibp$a_vec
-b_chain_ibp <- output_ibp$b_vec
-s_chain_ibp <- output_ibp$s_vec
-alpha_chain_ibp <- output_ibp$alpha_vec
-theta_chain_ibp <- s_chain_ibp - alpha_chain_ibp
-
-params_ibp[[lab_a]] <- a_chain_ibp
-params_ibp[[lab_b]] <- b_chain_ibp
-params_ibp[[lab_alpha]] <- alpha_chain_ibp
-params_ibp[[lab_theta]] <- theta_chain_ibp
-
-
-
-####### 6) Estimate limit distributions (Poiss/NB) ################
-ntilde_chain_poiss <- generate_Ntilde_chain_poiss(lambda_poiss, alpha_chain_poiss,
-                                                  theta_chain_poiss, n = L, Kn)
-
-ntilde_chain_negbin <- generate_Ntilde_chain_negbin(nstar_nb, p_nb,
-                                                    alpha_chain_negbin,
-                                                    theta_chain_negbin, n = L, Kn)
-
-gg_ntilde_poiss[[labels_comb]] <- ntilde_chain_poiss
-gg_ntilde_negbin[[labels_comb]] <- ntilde_chain_negbin
-
-######## 7) Extrapolation in the test set (Poiss/NB/Gamma/SP) ##############
-# Poisson
-kmn_chain_poiss <- generate_Kmn_chain_poiss(lambda_poiss, alpha_chain_poiss,
-                                            theta_chain_poiss, M = hor, n = L)
-
-est_ci_pred_poiss <- matrix(NA, nrow = hor, ncol = 3)
+est_ci_pred_sp <- matrix(NA, nrow = hor, ncol = 3)
 # first column = lower bound
 # second columns = medians
 # third columns = upper bound
 for (m in 1:hor){
-  est_ci_pred_poiss[m,] <- quantile(kmn_chain_poiss[m,], probs = c(0.025,0.5,0.975))
+  est_ci_pred_sp[m,] <- quantile(kmn_chain_sp[m,], probs = c(0.025,0.5,0.975))
 }
-est_ci_pred_poiss <- list("medians" = est_ci_pred_poiss[,2],
-                          "lbs" = est_ci_pred_poiss[,1],
-                          "ubs" = est_ci_pred_poiss[,3])
+est_ci_pred_sp <- list("medians" = est_ci_pred_sp[,2],
+                       "lbs" = est_ci_pred_sp[,1],
+                       "ubs" = est_ci_pred_sp[,3])
 
-list_kmn_pred_poiss[[labels_comb]] <- est_ci_pred_poiss
+list_kmn_pred_sp[[labels_comb]] <- est_ci_pred_sp
 
-# Negative Binomial (fixed params)
-kmn_chain_negbin <- generate_Kmn_chain_negbin(nstar_nb, p_nb,
-                                              alpha_chain_negbin, theta_chain_negbin,
-                                              M = hor, n = L, Kn)
-
-est_ci_pred_negbin <- matrix(NA, nrow = hor, ncol = 3)
-# first column = lower bound
-# second columns = medians
-# third columns = upper bound
-for (m in 1:hor){
-  est_ci_pred_negbin[m,] <- quantile(kmn_chain_negbin[m,], probs = c(0.025,0.5,0.975))
-}
-est_ci_pred_negbin <- list("medians" = est_ci_pred_negbin[,2],
-                           "lbs" = est_ci_pred_negbin[,1],
-                           "ubs" = est_ci_pred_negbin[,3])
-
-list_kmn_pred_negbin[[labels_comb]] <- est_ci_pred_negbin
-
-
-# IBP + Gamma
-kmn_chain_ibp <- generate_Kmn_chain_gamma_ibp(a_chain_ibp, b_chain_ibp, alpha_chain_ibp,
-                                              theta_chain_ibp, M = hor, n = L, Kn)
-
-est_ci_pred_ibp <- matrix(NA, nrow = hor, ncol = 3)
-# first column = lower bound
-# second columns = medians
-# third columns = upper bound
-for (m in 1:hor){
-  est_ci_pred_ibp[m,] <- quantile(kmn_chain_ibp[m,], probs = c(0.025,0.5,0.975))
-}
-est_ci_pred_ibp <- list("medians" = est_ci_pred_ibp[,2],
-                        "lbs" = est_ci_pred_ibp[,1],
-                        "ubs" = est_ci_pred_ibp[,3])
-
-list_kmn_pred_ibp[[labels_comb]] <- est_ci_pred_ibp
 
 
 ############# 8) Save results:  MCMC convergence ####################
 
-save(params_poiss, file = "mazz_fungi_op_params_poiss.Rda")
-save(params_negbin, file = "mazz_fungi_op_params_negbin.Rda")
-save(params_ibp, file = "mazz_fungi_op_params_ibp.Rda")
+# save(params_poiss, file = "mazz_fungi_op_params_poiss.Rda")
+# save(params_negbin, file = "mazz_fungi_op_params_negbin.Rda")
+# save(params_ibp, file = "mazz_fungi_op_params_ibp.Rda")
+save(params_sp, file = "mazz_fungi_op_params_sp.Rda")
 
-############ 9) Save results: samples from limiting distributions (Poiss/NB) ##############
-# Poisson
-save(gg_ntilde_poiss, file = "mazz_fungi_op_ntilde_poiss.Rda")
-# Negative Binomial
-save(gg_ntilde_negbin, file = "mazz_fungi_op_ntilde_negbin.Rda")
+# ############ 9) Save results: samples from limiting distributions (Poiss/NB) ##############
+# # Poisson
+# save(gg_ntilde_poiss, file = "mazz_fungi_op_ntilde_poiss.Rda")
+# # Negative Binomial
+# save(gg_ntilde_negbin, file = "mazz_fungi_op_ntilde_negbin.Rda")
 
 ######### 10.a) Save results: CI for prediction (Poiss/NB/Gamma/SP) ################
-# Poisson
-saveRDS(list_kmn_pred_poiss , "mazz_fungi_op_ci_pred_poiss.rds")
-# Negative Binomial
-saveRDS(list_kmn_pred_negbin, "mazz_fungi_op_ci_pred_negbin.rds")
+# # Poisson
+# saveRDS(list_kmn_pred_poiss , "mazz_fungi_op_ci_pred_poiss.rds")
+# # Negative Binomial
+# saveRDS(list_kmn_pred_negbin, "mazz_fungi_op_ci_pred_negbin.rds")
 # # Gamma IBP
-saveRDS(list_kmn_pred_ibp, "mazz_fungi_op_ci_pred_ibp.rds")
+# saveRDS(list_kmn_pred_ibp, "mazz_fungi_op_ci_pred_ibp.rds")
+# SB-SP
+saveRDS(list_kmn_pred_sp, "mazz_fungi_op_ci_pred_sp.rds")
 
 # ######### 10.b) Save results: CI for rarefaction (Poiss/NB/Gamma/SP) ################
 # # Poisson
@@ -2192,52 +2264,52 @@ saveRDS(list_kmn_pred_ibp, "mazz_fungi_op_ci_pred_ibp.rds")
 # # saveRDS(kn_rarefaction_sp, "mazz_fungi_op_ci_insample_sp.rds")
 
 ######## 11) Save the data ##############################
-saveRDS(data_mat, "mazz_fungi_data_mat.rds")
+#saveRDS(data_mat, "mazz_fungi_data_mat.rds")
 
 
-####### 12) Compute Chao's bands for rarefaction and coverage ####
-
-list_chao_rare <- vector(mode="list", length = 1)
-names(list_chao_rare) <- labels_comb
-
-# Determine the frequency vector of the training sets
-Q_vec <- colSums(data_mat)
-Q_vec <- Q_vec[Q_vec>0]
-
-# Compute the curves with confidence intervals
-chao_res <- iNEXT.Sam(Spec = Q_vec, T = L, endpoint = hor)
-
-chao_res_rare <- as_tibble(chao_res[["q=0"]]) %>%
-  select(-Cov.hat) %>%
-  rename(medians = D0.hat, lbs = Norm.CI.Low, ubs = Norm.CI.High)
-
-
-list_chao_rare[[labels_comb]] <- as.data.frame(chao_res_rare)
-
-
-# Chao rarefaction
-saveRDS(list_chao_rare, "mazz_fungi_chao_rare.rds")
-
-
-
-####### 13) Compute smoothed Good-Toulmin predictions #####
-
-list_kmn_pred_gt <- vector(mode="list", length = 1)
-names(list_kmn_pred_gt) <- labels_comb
-
-
-
-# Compute SFS vector and CTS vector
-sfs <- tabulate(colSums(data_mat))
-
-cts <- sapply(2:L, function(n) ncol(data_mat[1:n,colSums(data_mat[1:n,]) > 0])   )
-cts <- c(0, sum(data_mat[1,]) , cts)
-
-list_kmn_pred_gt[[labels_comb]] <- predict_good_toulmin(L, hor, sfs, cts, alternative = 0)$preds
-
-
-# Good-Toulmin predictions
-saveRDS(list_kmn_pred_gt, "mazz_fungi_gt_prediction.rds")
-
-
-
+# ####### 12) Compute Chao's bands for rarefaction and coverage ####
+# 
+# list_chao_rare <- vector(mode="list", length = 1)
+# names(list_chao_rare) <- labels_comb
+# 
+# # Determine the frequency vector of the training sets
+# Q_vec <- colSums(data_mat)
+# Q_vec <- Q_vec[Q_vec>0]
+# 
+# # Compute the curves with confidence intervals
+# chao_res <- iNEXT.Sam(Spec = Q_vec, T = L, endpoint = hor + L)
+# 
+# chao_res_rare <- as_tibble(chao_res[["q=0"]]) %>%
+#   select(-Cov.hat) %>%
+#   rename(medians = D0.hat, lbs = Norm.CI.Low, ubs = Norm.CI.High)
+# 
+# 
+# list_chao_rare[[labels_comb]] <- as.data.frame(chao_res_rare)
+# 
+# 
+# # Chao rarefaction
+# saveRDS(list_chao_rare, "mazz_fungi_chao_rare.rds")
+# 
+# 
+# 
+# ####### 13) Compute smoothed Good-Toulmin predictions #####
+# 
+# list_kmn_pred_gt <- vector(mode="list", length = 1)
+# names(list_kmn_pred_gt) <- labels_comb
+# 
+# 
+# 
+# # Compute SFS vector and CTS vector
+# sfs <- tabulate(colSums(data_mat))
+# 
+# cts <- sapply(2:L, function(n) ncol(data_mat[1:n,colSums(data_mat[1:n,]) > 0])   )
+# cts <- c(0, sum(data_mat[1,]) , cts)
+# 
+# list_kmn_pred_gt[[labels_comb]] <- predict_good_toulmin(L, hor, sfs, cts, alternative = 0)$preds
+# 
+# 
+# # Good-Toulmin predictions
+# saveRDS(list_kmn_pred_gt, "mazz_fungi_gt_prediction.rds")
+# 
+# 
+# 

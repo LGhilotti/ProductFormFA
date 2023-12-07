@@ -85,7 +85,7 @@ ggplot(table_richness, aes( y=estimator, x=Model, shape = Nbar)) +
   theme(aspect.ratio = 1) 
 
 
-ggsave(filename = "Plots_paper/plot_m4_richness_point.png", width = 10, height = 4, dpi = 300, units = "in", device='png')
+ggsave(filename = "Plots_paper/plot_m4_richness_point.pdf", width = 10, height = 4, dpi = 300, units = "in", device='pdf')
 
 
 ###### 4.b) Richness: asymptotic distributions for Empirical ##############
@@ -107,7 +107,7 @@ ggplot(joint_emp_long, aes(x = estimate, color = Model)) +
   theme(aspect.ratio = 1) 
 
 
-ggsave(filename = "Plots_paper/plot_m4_richness_distribution.png", width = 10, height = 4, dpi = 300, units = "in", device='png')
+ggsave(filename = "Plots_paper/plot_m4_richness_distribution.pdf", width = 10, height = 4, dpi = 300, units = "in", device='pdf')
 
 
 ######## 5) Extrapolation - Poisson, NegBin, Chao and GT ###############
@@ -275,7 +275,7 @@ ggplot(joint_df_pred_bayes_plot, aes(x = t, y = medians, color = Model)) +
   scale_color_tableau() +
   theme(aspect.ratio = 1)
 
-ggsave(filename = "Plots_paper/plot_m4_prediction.png", width = 10, height = 4, dpi = 300, units = "in", device='png')
+ggsave(filename = "Plots_paper/plot_m4_prediction.pdf", width = 10, height = 4, dpi = 300, units = "in", device='pdf')
 
 
 
@@ -325,7 +325,7 @@ ggplot(joint_ntilde_long, aes(x=Model, y=estimate)) +
   scale_y_continuous(breaks = pretty_breaks()) +
   theme(aspect.ratio = 1)
 
-ggsave(filename = "Plots_paper/plot_m4_richness_rep.png", width = 10, height = 4, dpi = 300, units = "in", device='png')
+ggsave(filename = "Plots_paper/plot_m4_richness_rep.pdf", width = 10, height = 4, dpi = 300, units = "in", device='pdf')
 
 
 
@@ -384,5 +384,5 @@ ggplot(joint_alt_long, aes(x = Model, y=Accuracy)) +
   scale_y_continuous(breaks = pretty_breaks()) +
   theme(aspect.ratio = 1)
 
-ggsave(filename = "Plots_paper/plot_m4_accuracy_rep.png", width = 10, height = 4, dpi = 300, units = "in", device='png')
+ggsave(filename = "Plots_paper/plot_m4_accuracy_rep.pdf", width = 10, height = 4, dpi = 300, units = "in", device='pdf')
 

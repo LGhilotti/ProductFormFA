@@ -255,7 +255,7 @@ ggplot(joint_df_pred_bayes_plot, aes(x = t, y = medians, color = Model)) +
   scale_color_tableau() +
   theme(aspect.ratio = 1)
 
-ggsave(filename = "Plots_paper/plot_unb_poly_1_prediction.png", width = 10, height = 4, dpi = 300, units = "in", device='png')
+ggsave(filename = "Plots_paper/plot_unb_poly_1_prediction.pdf", width = 10, height = 4, dpi = 300, units = "in", device='pdf')
 
 
 
@@ -342,7 +342,7 @@ ggplot(joint_alt_long, aes(x = Model, y=Accuracy)) +
   scale_y_continuous(breaks = pretty_breaks()) +
   theme(aspect.ratio = 1)
 
-ggsave(filename = "Plots_paper/plot_unb_poly_1_accuracy_rep.png", width = 10, height = 4, dpi = 300, units = "in", device='png')
+ggsave(filename = "Plots_paper/plot_unb_poly_1_accuracy_rep.pdf", width = 10, height = 4, dpi = 300, units = "in", device='pdf')
 
 
 ###### 5) Comparison between Gamma and SB in terms of Error index #####

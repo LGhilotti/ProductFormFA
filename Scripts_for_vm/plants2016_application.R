@@ -2204,7 +2204,7 @@ Q_vec <- colSums(data_mat)
 Q_vec <- Q_vec[Q_vec>0]
 
 # Compute the curves with confidence intervals
-chao_res <- iNEXT.Sam(Spec = Q_vec, T = L, endpoint = hor)
+chao_res <- iNEXT.Sam(Spec = Q_vec, T = L, endpoint = hor + L)
 
 chao_res_rare <- as_tibble(chao_res[["q=0"]]) %>%
   select(-Cov.hat) %>%

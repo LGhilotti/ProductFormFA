@@ -32,6 +32,7 @@ data_mat <- readRDS(file = "mazziotta2016_application/lichens/mazz_lichens_data_
 data_list <- create_features_list(data_mat)
 L <- nrow(data_mat)
 
+print(paste0("number of distinct species: ", sum(colSums(data_mat) > 0)))
 
 ###### 4) CHECK: MCMC convergence###################
 
@@ -98,7 +99,7 @@ ggplot(joint_emp_long, aes(x = estimate, color = Model)) +
   theme(aspect.ratio = 1)
 
 
-ggsave(filename = "Plots_paper/plot_lichens_op_richness_distribution.png", width = 10, height = 4, dpi = 300, units = "in", device='png')
+ggsave(filename = "Plots_paper/plot_lichens_op_richness_distribution.pdf", width = 3.5, height = 4, dpi = 300, units = "in", device='pdf')
 
 
 ######## 5) Extrapolation - Poisson, NegBin, Chao and GT ###############
@@ -190,6 +191,32 @@ df_pred_gt <- df_pred_gt %>%
 
 ## 6.c) Chao estimates (for prediction)
 
+# ####### 12) Compute Chao's bands for rarefaction and coverage ####
+# hor <- 1000
+# labels_comb <- "Nbar.emp"
+# source("Chao_code/Subroutine_for_iNEXT.R")
+# 
+# list_chao_rare <- vector(mode="list", length = 1)
+# names(list_chao_rare) <- labels_comb
+# 
+# # Determine the frequency vector of the training sets
+# Q_vec <- colSums(data_mat)
+# Q_vec <- Q_vec[Q_vec>0]
+# 
+# # Compute the curves with confidence intervals
+# chao_res <- iNEXT.Sam(Spec = Q_vec, T = L, endpoint = hor + L)
+# 
+# chao_res_rare <- as_tibble(chao_res[["q=0"]]) %>%
+#   select(-Cov.hat) %>%
+#   rename(medians = D0.hat, lbs = Norm.CI.Low, ubs = Norm.CI.High)
+# 
+# 
+# list_chao_rare[[labels_comb]] <- as.data.frame(chao_res_rare)
+# 
+# 
+# # Chao rarefaction
+# saveRDS(list_chao_rare, "mazziotta2016_application/lichens/mazz_lichens_chao_rare.rds")
+
 list_chao_pred <- readRDS(file = "mazziotta2016_application/lichens/mazz_lichens_chao_rare.rds")
 list_chao_pred <- lapply(list_chao_pred, function(x) as_tibble(x))
 
@@ -201,7 +228,7 @@ df_pred_chao <- bind_rows(list_chao_pred) %>%
 df_pred_chao$N <- as.integer(df_pred_chao$N)
 
 df_pred_chao <- df_pred_chao %>%
-  filter(t <= L, t > N)
+  filter(t > L)
 
 
 ## 5.c) Observed sample <-> cts on the full sample
@@ -227,7 +254,6 @@ ggplot(joint_df_pred_bayes_plot, aes(x = t, y = medians, color = Model)) +
   geom_line(data = df_pred_gt, aes(t, value)) +
   geom_line(data = df_pred_chao, aes(t, value)) +
   geom_vline(aes(xintercept = L), linetype="dashed", color = "grey") +
-  facet_wrap(.~ N, scales = "free_x") +
   xlab("# observations") + ylab("# distinct features") + 
   theme_light() + 
   theme(legend.position = "top") +
@@ -236,7 +262,7 @@ ggplot(joint_df_pred_bayes_plot, aes(x = t, y = medians, color = Model)) +
   scale_color_tableau() +
   theme(aspect.ratio = 1)
 
-ggsave(filename = "Plots_paper/plot_lichens_op_prediction.png", width = 10, height = 4, dpi = 300, units = "in", device='png')
+ggsave(filename = "Plots_paper/plot_lichens_op_prediction.pdf", width = 5, height = 4, dpi = 300, units = "in", device='pdf')
 
 
 

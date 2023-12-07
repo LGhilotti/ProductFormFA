@@ -297,27 +297,3 @@ missed_gt <- function(N, M, sfs, alternative = 0){
 }
   
   
-#########################################################
-
-#' LP prediction of number of features in extrapolated sample 
-#' 
-#' @param sfs [numeric] number of features observed in the training sample
-#' @param cts [array] vector with cumulative number of features in the training sample (from 1 individual to N individual)
-#' 
-#' @export
-#'
-# predict_lp <- function(sfs, kappa, N, M){
-#   
-#   # post processing of Zou algorithm to get the full histogram
-#   
-#   rare_position = int(N*kappa)    
-#   unseen_est_h, unseen_est_x = unseen_est(N, sfs, kappa)
-#   
-#   emp_h = sfs[rare_position:]
-#   emp_x = np.asarray([x/N for x in range(rare_position, len(sfs))])
-#   
-#   x_tr, h_tr = np.concatenate((unseen_est_x, emp_x)), np.concatenate((unseen_est_h, emp_h))
-#   
-#   return np.asarray([(h_tr*(1-(1-x_tr)**t)).sum() for t in range(N+M+1)])
-# 
-# }
