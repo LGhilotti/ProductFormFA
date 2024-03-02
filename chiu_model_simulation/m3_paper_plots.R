@@ -39,7 +39,7 @@ Ns <- L - Ms
 
 Nbars <- c(200,400,600)
 
-####### 4.a) Richness: Point plot asymotic mean (number of features) ##############
+####### 4.a) Richness: Point plot asymptotic mean (number of features) ##############
 labels_comb_bb <- paste(rep(paste("N", Ns, sep = "."), each = length(Nbars)+1),
                         c(paste("Nbar", Nbars, sep = "."),"Nbar.emp"), sep=":")
 
