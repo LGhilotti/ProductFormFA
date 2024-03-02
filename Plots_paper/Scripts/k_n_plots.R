@@ -192,7 +192,7 @@ n <- 40
 
 # Observed sample <-> cts on the full sample
 set.seed(1234)
-buff_poiss_bb <- buffet_poiss_BB(alpha = - 1, theta = 8, n = n, lambda = 400)
+buff_poiss_bb <- buffet_poiss_BB(alpha = - 1, theta = 8, n = n, lambda = 500)
 plot_trajectory(buff_poiss_bb$features)
 data_mat <- create_features_matrix(buff_poiss_bb$features)
 

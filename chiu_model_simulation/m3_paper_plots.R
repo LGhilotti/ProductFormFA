@@ -1,5 +1,5 @@
 ####
-##### MODEL 1: the homogeneous model ############################
+##### MODEL 3: the broken stick model ############################
 ####
 
 rm(list=ls())

@@ -20,7 +20,7 @@ library(ggthemes)
 load(file = "mazziotta2016_application/fungi/mazz_fungi_op_params_poiss.Rda")
 load(file =  "mazziotta2016_application/fungi/mazz_fungi_op_params_negbin.Rda")
 load(file =  "mazziotta2016_application/fungi/mazz_fungi_op_params_ibp.Rda" )
-load(file =  "mazziotta2016_application/fungi/mazz_fungi_op_params_sp.Rda" )
+#load(file =  "mazziotta2016_application/fungi/mazz_fungi_op_params_sp.Rda" )
 
 ###### 2) Read results: samples from limiting distributions (Poiss/NB) ##############
 load(file = "mazziotta2016_application/fungi/mazz_fungi_op_ntilde_poiss.Rda")
@@ -34,6 +34,24 @@ data_list <- create_features_list(data_mat)
 L <- nrow(data_mat)
 
 print(paste0("number of distinct species: ", sum(colSums(data_mat) > 0)))
+
+###### 3.1) Accumulation curve for the data ##############
+obs_sample <- sapply(2:L, function(n) length(unique(unlist(data_list[1:n]))) )
+obs_sample <- data.frame(t = 0:L, 
+                         obs = c(0, sum(data_mat[1,]) , obs_sample))
+
+
+# plot
+ggplot(obs_sample, aes(x = t, y = obs)) +
+  geom_line(color="black", linetype="solid") +
+  xlab("# observations") + ylab("# distinct features") + 
+  theme_light() + 
+  scale_y_continuous(breaks = pretty_breaks()) +
+  scale_x_continuous(breaks = pretty_breaks()) +
+  theme(aspect.ratio = 1)
+
+ggsave(filename = "Plots_paper/plot_fungi_accumulation_curve.pdf", width = 5, height = 4, dpi = 300, units = "in", device='pdf')
+
 
 ###### 4) CHECK: MCMC convergence###################
 
@@ -72,17 +90,18 @@ ggs_traceplot(samples_ggs_ibp) +
 effectiveSize(params_ibp)
 
 
-# SB-SP
+# # SB-SP
+# 
+# ###### check mcmc mixing Gamma ibp Nbar=emp
+# samples_sp <- mcmc.list(mcmc(params_sp))
+# samples_ggs_sp <- ggs(samples_sp, keep_original_order = TRUE)
+# ggs_traceplot(samples_ggs_sp) + 
+#   facet_wrap(~Parameter, scales = "free")
+# 
+# effectiveSize(params_sp)
 
-###### check mcmc mixing Gamma ibp Nbar=emp
-samples_sp <- mcmc.list(mcmc(params_sp))
-samples_ggs_sp <- ggs(samples_sp, keep_original_order = TRUE)
-ggs_traceplot(samples_ggs_sp) + 
-  facet_wrap(~Parameter, scales = "free")
 
-effectiveSize(params_sp)
-
-####### 0) Plot for INTRODUCTION, comparing just SB-SP and poisson mixture of BB #######
+####### 4) Plot for INTRODUCTION, comparing just SB-SP and poisson mixture of BB #######
 
 list_kmn_pred_poiss <- readRDS(file = "mazziotta2016_application/fungi/mazz_fungi_op_ci_pred_poiss.rds")
 list_kmn_pred_sp <- readRDS(file = "mazziotta2016_application/fungi/mazz_fungi_op_ci_pred_sp.rds")
@@ -151,10 +170,17 @@ gg_ntilde_poiss_long <- gg_ntilde_poiss %>%
   add_column(Model= "Poisson" ) %>%
   rename(estimate = Nbar.emp)
 
+mean(gg_ntilde_poiss$Nbar.emp)
+
+quantile(gg_ntilde_poiss$Nbar.emp, probs = c(0.025, 0.975))
 
 gg_ntilde_negbin_long <- gg_ntilde_negbin %>%
   add_column(Model= "NegBin") %>%
   rename(estimate = Nbar.emp)
+
+mean(gg_ntilde_negbin$Nbar.emp)
+
+quantile(gg_ntilde_negbin$Nbar.emp, probs = c(0.025, 0.975))
 
 
 joint_emp_long <- bind_rows(gg_ntilde_poiss_long, gg_ntilde_negbin_long) %>%
@@ -175,11 +201,76 @@ ggplot(joint_emp_long, aes(x = estimate, color = Model)) +
 
 ggsave(filename = "Plots_paper/plot_fungi_op_richness_distribution.pdf", width = 3.5, height = 4, dpi = 300, units = "in", device='pdf')
 
+######## 4.c) Rarefaction - Poisson, NegBin, Chao ###############
+list_kn_rare_poiss <- readRDS(file = "mazziotta2016_application/fungi/mazz_fungi_op_ci_rare_poiss.rds")
+list_kn_rare_negbin <- readRDS(file = "mazziotta2016_application/fungi/mazz_fungi_op_ci_rare_negbin.rds")
+list_kn_rare_ibp <- readRDS(file = "mazziotta2016_application/fungi/mazz_fungi_op_ci_rare_ibp.rds")
+
+# Poisson
+list_kn_rare_poiss <- lapply(list_kn_rare_poiss, function(x) as_tibble(x))
+
+df_rare_poiss <- bind_rows(list_kn_rare_poiss) %>%
+  add_column(t = 1:nrow(list_kn_rare_poiss[[1]]),
+             Model = "Poisson") %>%
+  add_row(means = 0, ubs = 0, lbs = 0, t=0, Model = "Poisson")
+
+# Negbin
+list_kn_rare_negbin <- lapply(list_kn_rare_negbin, function(x) as_tibble(x))
+
+df_rare_negbin <- bind_rows(list_kn_rare_negbin) %>%
+  add_column(t = 1:nrow(list_kn_rare_negbin[[1]]),
+             Model = "NegBin") %>%
+  add_row(means = 0, ubs = 0, lbs = 0, t=0, Model = "NegBin")
+
+# # Gamma IBP
+# list_kn_rare_ibp <- lapply(list_kn_rare_ibp, function(x) as_tibble(x))
+# 
+# df_rare_ibp <- bind_rows(list_kn_rare_ibp) %>%
+#   add_column(t = 1:nrow(list_kn_rare_ibp[[1]]),
+#              Model = "Gamma") %>%
+#   add_row(medians = 0, ubs = 0, lbs = 0, t=0, Model = "Gamma")
+
+
+joint_df_rare_bayes <- rbind(df_rare_poiss,df_rare_negbin)
+
+# Chao
+list_chao_rare <- readRDS(file = "mazziotta2016_application/fungi/mazz_fungi_chao_rare.rds")
+list_chao_rare <- lapply(list_chao_rare, function(x) as_tibble(x))
+
+df_rare_chao <- bind_rows(list_chao_rare) %>%
+  select(-c(lbs,ubs)) %>%
+  rename(value = medians) %>%
+  add_column(Model = "Chao")
+
+
+df_rare_chao <- df_rare_chao %>%
+  filter(t <= L) %>%
+  add_row(value = 0, t=0, Model = "Chao")
+
+
+# plot
+# joint_df_rare_bayes <- joint_df_rare_bayes %>%
+#   filter(! Model == "Gamma")
+
+ggplot(joint_df_rare_bayes, aes(x = t, y = means, color = Model)) +
+  geom_line(linetype = "dashed", linewidth = 0.8) +
+  geom_ribbon(aes(ymin = lbs, ymax = ubs), linewidth = 0.8, alpha = 0.1) +
+  geom_line(data = df_rare_chao, aes(t, value), linewidth = 0.8) +
+  xlab("# observations") + ylab("# distinct features") + 
+  theme_light() + 
+  theme(legend.position = "top") +
+  scale_y_continuous(breaks = pretty_breaks()) +
+  scale_x_continuous(breaks = pretty_breaks()) +
+  scale_color_tableau() +
+  theme(aspect.ratio = 1)
+
+ggsave(filename = "Plots_paper/plot_fungi_op_rarefaction.pdf", width = 5, height = 4, dpi = 300, units = "in", device='pdf')
+
 
 ######## 5) Extrapolation - Poisson, NegBin, Chao and GT ###############
 list_kmn_pred_poiss <- readRDS(file = "mazziotta2016_application/fungi/mazz_fungi_op_ci_pred_poiss.rds")
 list_kmn_pred_negbin <- readRDS(file = "mazziotta2016_application/fungi/mazz_fungi_op_ci_pred_negbin.rds")
-list_kmn_pred_ibp <- readRDS(file = "mazziotta2016_application/fungi/mazz_fungi_op_ci_pred_ibp.rds")
+#list_kmn_pred_ibp <- readRDS(file = "mazziotta2016_application/fungi/mazz_fungi_op_ci_pred_ibp.rds")
 
 # Poisson
 list_kmn_pred_poiss <- lapply(list_kmn_pred_poiss, function(x) as_tibble(x))
@@ -204,18 +295,20 @@ df_pred_negbin$N <- as.integer(df_pred_negbin$N)
 df_pred_negbin <- df_pred_negbin %>%
   mutate( t = t + N )
 
-# Gamma IBP
-list_kmn_pred_ibp <- lapply(list_kmn_pred_ibp, function(x) as_tibble(x))
+# # Gamma IBP
+# list_kmn_pred_ibp <- lapply(list_kmn_pred_ibp, function(x) as_tibble(x))
+# 
+# df_pred_ibp <- bind_rows(list_kmn_pred_ibp) %>%
+#   add_column(N = L, t = 1:nrow(list_kmn_pred_ibp[[1]]),
+#              Model = "Gamma")
+# 
+# df_pred_ibp$N <- as.integer(df_pred_ibp$N)
+# df_pred_ibp <- df_pred_ibp %>%
+#   mutate( t = t + N )
+# 
 
-df_pred_ibp <- bind_rows(list_kmn_pred_ibp) %>%
-  add_column(N = L, t = 1:nrow(list_kmn_pred_ibp[[1]]),
-             Model = "Gamma")
+joint_df_pred_bayes <- rbind(df_pred_poiss,df_pred_negbin)
 
-df_pred_ibp$N <- as.integer(df_pred_ibp$N)
-df_pred_ibp <- df_pred_ibp %>%
-  mutate( t = t + N )
-
-joint_df_pred_bayes <- rbind(df_pred_poiss,df_pred_negbin,df_pred_ibp)
 
 ## 5.b) Good-Toulmin prediction
 # compute
@@ -310,24 +403,25 @@ obs_sample <- data.frame(t = 0:L,
                          obs = c(0, sum(data_mat[1,]) , obs_sample))
 
 joint_df_pred_bayes <- joint_df_pred_bayes %>%
-  mutate(medians = medians + obs_sample[N+1,]$obs,
+  mutate(means = means + obs_sample[N+1,]$obs,
          lbs = lbs + obs_sample[N+1,]$obs,
          ubs = ubs + obs_sample[N+1,]$obs)
 
 
 # plot
-joint_df_pred_bayes_plot <- joint_df_pred_bayes 
-joint_df_pred_bayes_plot$Model <- factor(joint_df_pred_bayes_plot$Model, 
-                                         levels = c("Gamma","Poisson","NegBin", "Chao", "GT"))
+# joint_df_pred_bayes_plot <- joint_df_pred_bayes %>%
+#   filter(! Model == "Gamma")
 
-ggplot(joint_df_pred_bayes_plot, aes(x = t, y = medians, color = Model)) +
-  geom_line(linetype = "dashed") +
-  geom_ribbon(aes(ymin = lbs, ymax = ubs), alpha = 0.05) +
-  geom_line(data = obs_sample, aes(t, obs), color="black", linetype="solid") +
-  geom_line(data = df_pred_gt, aes(t, value)) +
-  geom_line(data = df_pred_chao, aes(t, value)) +
+#joint_df_pred_bayes_plot$Model <- factor(joint_df_pred_bayes_plot$Model, 
+                                         #levels = c("Poisson","NegBin", "Chao", "GT"))
+
+ggplot(joint_df_pred_bayes, aes(x = t, y = means, color = Model)) +
+  geom_line(linetype = "dashed", linewidth = 0.8) +
+  geom_ribbon(aes(ymin = lbs, ymax = ubs), linewidth = 0.8, alpha = 0.1) +
+  geom_line(data = obs_sample, aes(t, obs), color="black", linewidth = 0.5, linetype="solid") +
+  geom_line(data = df_pred_gt, aes(t, value), linewidth = 0.8) +
+  geom_line(data = df_pred_chao, aes(t, value),  linewidth = 0.8) +
   geom_vline(aes(xintercept = L), linetype="dashed", color = "grey") +
-  facet_wrap(.~ N, scales = "free_x") +
   xlab("# observations") + ylab("# distinct features") + 
   theme_light() + 
   theme(legend.position = "top") +
@@ -339,9 +433,35 @@ ggplot(joint_df_pred_bayes_plot, aes(x = t, y = medians, color = Model)) +
 ggsave(filename = "Plots_paper/plot_fungi_op_prediction.pdf", width = 5, height = 4, dpi = 300, units = "in", device='pdf')
 
 
+n <- 102
+# Poiss
+df_pred_poiss %>%
+  filter(t == n +1)
+
+df_pred_poiss %>%
+  filter(t == n +5)
+
+df_pred_poiss %>%
+  filter(t == n +10)
+
+df_pred_poiss %>%
+  filter(t == n +50)
+
+# NegBin
+df_pred_negbin %>%
+  filter(t == n +1)
+
+df_pred_negbin %>%
+  filter(t == n +5)
+
+df_pred_negbin %>%
+  filter(t == n +10)
+
+df_pred_negbin %>%
+  filter(t == n +50)
 
 
-
-
-
-
+# freq of freq
+spec_counts <- colSums(data_mat)
+freq_of_freq <- table(spec_counts)
+sum(freq_of_freq)
