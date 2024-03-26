@@ -94,12 +94,12 @@ List rPoissonBB(double alpha,double theta,double lambda, int n){
 }
 
 
-//' Random generation from BB with NB(nstar,p) mixture
+//' Random generation from BB with NB(n0,mu0) mixture
 //' 
 //' @param alpha value of alpha in product-form feature allocation
 //' @param theta value of theta in product-form feature allocation
-//' @param nstar Negative-Binomial hyperparameter (number of successes)
-//' @param p Negative-Binomial hyperparameter (success probability)
+//' @param n0 Negative-Binomial hyperparameter (number of successes)
+//' @param mu0 Negative-Binomial hyperparameter (success probability)
 //' @param n dimension of the sample to simulate
 //' 
 //' @return list: $features contains the simulated features for each customer,
@@ -108,8 +108,11 @@ List rPoissonBB(double alpha,double theta,double lambda, int n){
 //' 
 //' @export
 // [[Rcpp::export]]
-List rNegBinBB(double alpha,double theta,int nstar, double p, int n){
- 
+List rNegBinBB(double alpha,double theta,int n0, double mu0, int n){
+  
+  int nstar = n0;
+  double p = mu0;
+
  // vector containing the number of new dishes for each customer
  std::vector<int> vec_n_new_dishes;
  vec_n_new_dishes.reserve(n);

@@ -21,12 +21,12 @@ rPoissonBB <- function(alpha, theta, lambda, n) {
     .Call(`_ProductFormFA_rPoissonBB`, alpha, theta, lambda, n)
 }
 
-#' Random generation from BB with NB(nstar,p) mixture
+#' Random generation from BB with NB(n0,mu0) mixture
 #' 
 #' @param alpha value of alpha in product-form feature allocation
 #' @param theta value of theta in product-form feature allocation
-#' @param nstar Negative-Binomial hyperparameter (number of successes)
-#' @param p Negative-Binomial hyperparameter (success probability)
+#' @param n0 Negative-Binomial hyperparameter (number of successes)
+#' @param mu0 Negative-Binomial hyperparameter (success probability)
 #' @param n dimension of the sample to simulate
 #' 
 #' @return list: $features contains the simulated features for each customer,
@@ -34,8 +34,8 @@ rPoissonBB <- function(alpha, theta, lambda, n) {
 #' $counts contains the counts for the observed features
 #' 
 #' @export
-rNegBinBB <- function(alpha, theta, nstar, p, n) {
-    .Call(`_ProductFormFA_rNegBinBB`, alpha, theta, nstar, p, n)
+rNegBinBB <- function(alpha, theta, n0, mu0, n) {
+    .Call(`_ProductFormFA_rNegBinBB`, alpha, theta, n0, mu0, n)
 }
 
 #' Random generation from IBP with Gamma(a,b) mixture

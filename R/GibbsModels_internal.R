@@ -79,8 +79,6 @@ compute_log_ratio_q_poiss_precond <- function(params_prop, params_curr,
 #' @param thin [integer] thinning
 #' @param seed [integer] seed
 #'
-#' @return
-#'
 #' @import numDeriv
 #' @import stats
 #' @import MASS
@@ -312,7 +310,6 @@ compute_log_ratio_q_negbin_precond <- function(params_prop, params_curr,
 #' @param thin [integer] thinning
 #' @param seed [integer] seed
 #'
-#' @return
 #' 
 #' @import numDeriv
 #' @import stats
@@ -508,7 +505,6 @@ neg_log_posterior_gamma_ibp <- function(pars,
 #' @param thin [integer] thinning
 #' @param seed [integer] seed
 #'
-#' @return
 #' 
 #' @import numDeriv
 #' @import stats
@@ -555,7 +551,7 @@ sampler_GammaIBP <- function(Z,
   # index saved iterations (after burn-in and thinning satisfied)
   l <- 1
   
-  for (q in 1:S){
+  for (w in 1:S){
     
     ################################################################
     ############# Draw a, b, s, alpha | Z   ###################
@@ -638,8 +634,8 @@ sampler_GammaIBP <- function(Z,
     #######################################################################
     
     # Store parameters if burn-in is over and once every "thin" iteration
-    if ((q > n_burnin) & (q %% thin == 0) ){
-      print(paste0("iteration: ", q))
+    if ((w > n_burnin) & (w %% thin == 0) ){
+      print(paste0("iteration: ", w))
       
       a_vec[l] <- a
       b_vec[l] <- b

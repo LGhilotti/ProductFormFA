@@ -2,18 +2,18 @@
 % Please edit documentation in R/RcppExports.R
 \name{rNegBinBB}
 \alias{rNegBinBB}
-\title{Random generation from BB with NB(nstar,p) mixture}
+\title{Random generation from BB with NB(n0,mu0) mixture}
 \usage{
-rNegBinBB(alpha, theta, nstar, p, n)
+rNegBinBB(alpha, theta, n0, mu0, n)
 }
 \arguments{
 \item{alpha}{value of alpha in product-form feature allocation}
 
 \item{theta}{value of theta in product-form feature allocation}
 
-\item{nstar}{Negative-Binomial hyperparameter (number of successes)}
+\item{n0}{Negative-Binomial hyperparameter (number of successes)}
 
-\item{p}{Negative-Binomial hyperparameter (success probability)}
+\item{mu0}{Negative-Binomial hyperparameter (success probability)}
 
 \item{n}{dimension of the sample to simulate}
 }
@@ -23,5 +23,5 @@ $num_new contains the number of new features selected for each customer,
 $counts contains the counts for the observed features
 }
 \description{
-Random generation from BB with NB(nstar,p) mixture
+Random generation from BB with NB(n0,mu0) mixture
 }

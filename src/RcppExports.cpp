@@ -37,17 +37,17 @@ BEGIN_RCPP
 END_RCPP
 }
 // rNegBinBB
-List rNegBinBB(double alpha, double theta, int nstar, double p, int n);
-RcppExport SEXP _ProductFormFA_rNegBinBB(SEXP alphaSEXP, SEXP thetaSEXP, SEXP nstarSEXP, SEXP pSEXP, SEXP nSEXP) {
+List rNegBinBB(double alpha, double theta, int n0, double mu0, int n);
+RcppExport SEXP _ProductFormFA_rNegBinBB(SEXP alphaSEXP, SEXP thetaSEXP, SEXP n0SEXP, SEXP mu0SEXP, SEXP nSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< double >::type alpha(alphaSEXP);
     Rcpp::traits::input_parameter< double >::type theta(thetaSEXP);
-    Rcpp::traits::input_parameter< int >::type nstar(nstarSEXP);
-    Rcpp::traits::input_parameter< double >::type p(pSEXP);
+    Rcpp::traits::input_parameter< int >::type n0(n0SEXP);
+    Rcpp::traits::input_parameter< double >::type mu0(mu0SEXP);
     Rcpp::traits::input_parameter< int >::type n(nSEXP);
-    rcpp_result_gen = Rcpp::wrap(rNegBinBB(alpha, theta, nstar, p, n));
+    rcpp_result_gen = Rcpp::wrap(rNegBinBB(alpha, theta, n0, mu0, n));
     return rcpp_result_gen;
 END_RCPP
 }
