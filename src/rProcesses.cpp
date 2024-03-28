@@ -14,6 +14,7 @@ using namespace Rcpp;
 //' $counts contains the counts for the observed features
 //' 
 //' @export
+//' 
 // [[Rcpp::export]]
 List rPoissonBB(double alpha,double theta,double lambda, int n){
  
@@ -98,8 +99,8 @@ List rPoissonBB(double alpha,double theta,double lambda, int n){
 //' 
 //' @param alpha value of alpha in product-form feature allocation
 //' @param theta value of theta in product-form feature allocation
-//' @param n0 Negative-Binomial hyperparameter (number of successes)
-//' @param mu0 Negative-Binomial hyperparameter (success probability)
+//' @param n0 hyperparameter "n0" of NB(n0,mu0) for N
+//' @param mu0 hyperparameter "mu0" of NB(n0,mu0) for N
 //' @param n dimension of the sample to simulate
 //' 
 //' @return list: $features contains the simulated features for each customer,
@@ -107,6 +108,7 @@ List rPoissonBB(double alpha,double theta,double lambda, int n){
 //' $counts contains the counts for the observed features
 //' 
 //' @export
+//' 
 // [[Rcpp::export]]
 List rNegBinBB(double alpha,double theta,int n0, double mu0, int n){
   
@@ -199,8 +201,8 @@ List rNegBinBB(double alpha,double theta,int n0, double mu0, int n){
 //' 
 //' @param alpha value of alpha in product-form feature allocation
 //' @param theta value of theta in product-form feature allocation
-//' @param a Gamma hyperparameter (shape)
-//' @param b Gamma hyperparameter (rate)
+//' @param a hyperparameter "a" of Gamma(a,b) for gamma
+//' @param b hyperparameter "b" of Gamma(a,b) for gamma
 //' @param n dimension of the sample to simulate
 //' 
 //' @return list: $features contains the simulated features for each customer,
@@ -208,6 +210,7 @@ List rNegBinBB(double alpha,double theta,int n0, double mu0, int n){
 //' $counts contains the counts for the observed features
 //' 
 //' @export
+//' 
 // [[Rcpp::export]]
 List rGammaIBP(double alpha, double theta, double a, double b, int n){
  

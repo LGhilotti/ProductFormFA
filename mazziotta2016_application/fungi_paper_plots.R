@@ -30,7 +30,7 @@ list_kmn_pred_poiss <- readRDS(file = "mazziotta2016_application/fungi/mazz_fung
 
 ###### 3) Read the data ###############################
 data_mat <- readRDS(file = "mazziotta2016_application/fungi/mazz_fungi_data_mat.rds")
-data_list <- create_features_list(data_mat)
+data_list <- convert_features_list(data_mat)
 L <- nrow(data_mat)
 
 print(paste0("number of distinct species: ", sum(colSums(data_mat) > 0)))

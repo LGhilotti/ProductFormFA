@@ -11,9 +11,9 @@ rGammaIBP(alpha, theta, a, b, n)
 
 \item{theta}{value of theta in product-form feature allocation}
 
-\item{a}{Gamma hyperparameter (shape)}
+\item{a}{hyperparameter "a" of Gamma(a,b) for gamma}
 
-\item{b}{Gamma hyperparameter (rate)}
+\item{b}{hyperparameter "b" of Gamma(a,b) for gamma}
 
 \item{n}{dimension of the sample to simulate}
 }

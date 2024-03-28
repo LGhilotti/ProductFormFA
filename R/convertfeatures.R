@@ -1,9 +1,9 @@
-#' Create features matrix
+#' Create features matrix from features list
 #' 
 #' This function allows to create the matrix of the 
 #' observed features in order-of-appearance, with 1 if present, 0 if not
 #'
-#' @param feature_list [list] list containing the observed features
+#' @param feature_list list containing the observed features
 #'
 #' @export
 #'
@@ -22,12 +22,12 @@ convert_features_matrix <- function(feature_list){
 
 
 
-#' Convert matrix of 0/1 to list of individuals with observed features
+#' Convert matrix of 0/1 to list of subjects with observed features
 #' 
-#' This function allows to create the list of individuals with observed features 
+#' This function allows to create the list of subjects with observed features 
 #' from the matrix of 0/1
 #' 
-#' @param feature_matrix [integer] matrix of 0/1 to be converted
+#' @param feature_matrix matrix of 0/1 to be converted
 #'
 #' @export
 #'

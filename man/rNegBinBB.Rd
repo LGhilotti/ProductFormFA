@@ -11,9 +11,9 @@ rNegBinBB(alpha, theta, n0, mu0, n)
 
 \item{theta}{value of theta in product-form feature allocation}
 
-\item{n0}{Negative-Binomial hyperparameter (number of successes)}
+\item{n0}{hyperparameter "n0" of NB(n0,mu0) for N}
 
-\item{mu0}{Negative-Binomial hyperparameter (success probability)}
+\item{mu0}{hyperparameter "mu0" of NB(n0,mu0) for N}
 
 \item{n}{dimension of the sample to simulate}
 }

@@ -2,16 +2,10 @@
 % Please edit documentation in R/GibbsModels.R
 \name{GibbsFA}
 \alias{GibbsFA}
-\title{Gibbs-type feature allocation models (GibbsFA)}
+\title{Gibbs-type feature allocation models (GibbsFA): function to fit the model (choose among
+PoissonBB, NegBinBB and GammaIBP).}
 \usage{
-GibbsFA(
-  feature_matrix,
-  model,
-  hyperparams,
-  initialization,
-  mcmcparams,
-  seed = 1234
-)
+GibbsFA(feature_matrix, model, prior, initialization, mcmcparams, seed = 1234)
 }
 \arguments{
 \item{feature_matrix}{A \code{n x K}-dimensional binary matrix of features}
@@ -19,11 +13,18 @@ GibbsFA(
 \item{model}{Model to fit. Available models are \code{PoissonBB} (BB with Poisson(lambda) mixture),
 \code{NegBinBB} (BB with NB(n0, mu0) mixture), \code{GammaIBP} (IBP with Gamma(a, b) mixture)}
 
-\item{...}{Additional parameters for hyperparameter elicitation and MCMC settins}
+\item{prior}{Prior object for hyperparameter elicitation}
+
+\item{initialization}{Initialization object for parameters initialization}
+
+\item{mcmcparams}{mcmcparameters object for MCMC setting}
+
+\item{seed}{seed for fixing randomness}
 }
 \value{
-An object of class \code{GibbsFA}
+An object of class \code{GibbsFA, model}
 }
 \description{
-Gibbs-type feature allocation models (GibbsFA)
+Gibbs-type feature allocation models (GibbsFA): function to fit the model (choose among
+PoissonBB, NegBinBB and GammaIBP).
 }

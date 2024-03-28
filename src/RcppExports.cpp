@@ -22,6 +22,20 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// stable_sum_M_all_gamma_IBP
+std::vector<double> stable_sum_M_all_gamma_IBP(double alpha, double theta, int m, int n);
+RcppExport SEXP _ProductFormFA_stable_sum_M_all_gamma_IBP(SEXP alphaSEXP, SEXP thetaSEXP, SEXP mSEXP, SEXP nSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< double >::type alpha(alphaSEXP);
+    Rcpp::traits::input_parameter< double >::type theta(thetaSEXP);
+    Rcpp::traits::input_parameter< int >::type m(mSEXP);
+    Rcpp::traits::input_parameter< int >::type n(nSEXP);
+    rcpp_result_gen = Rcpp::wrap(stable_sum_M_all_gamma_IBP(alpha, theta, m, n));
+    return rcpp_result_gen;
+END_RCPP
+}
 // rPoissonBB
 List rPoissonBB(double alpha, double theta, double lambda, int n);
 RcppExport SEXP _ProductFormFA_rPoissonBB(SEXP alphaSEXP, SEXP thetaSEXP, SEXP lambdaSEXP, SEXP nSEXP) {
@@ -69,6 +83,7 @@ END_RCPP
 
 static const R_CallMethodDef CallEntries[] = {
     {"_ProductFormFA_cpp_rbern", (DL_FUNC) &_ProductFormFA_cpp_rbern, 2},
+    {"_ProductFormFA_stable_sum_M_all_gamma_IBP", (DL_FUNC) &_ProductFormFA_stable_sum_M_all_gamma_IBP, 4},
     {"_ProductFormFA_rPoissonBB", (DL_FUNC) &_ProductFormFA_rPoissonBB, 4},
     {"_ProductFormFA_rNegBinBB", (DL_FUNC) &_ProductFormFA_rNegBinBB, 5},
     {"_ProductFormFA_rGammaIBP", (DL_FUNC) &_ProductFormFA_rGammaIBP, 5},

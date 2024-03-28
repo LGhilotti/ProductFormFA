@@ -5,6 +5,10 @@ cpp_rbern <- function(n, prob) {
     .Call(`_ProductFormFA_cpp_rbern`, n, prob)
 }
 
+stable_sum_M_all_gamma_IBP <- function(alpha, theta, m, n) {
+    .Call(`_ProductFormFA_stable_sum_M_all_gamma_IBP`, alpha, theta, m, n)
+}
+
 #' Random generation from BB with Poisson(lambda) mixture
 #' 
 #' @param alpha value of alpha in product-form feature allocation
@@ -17,6 +21,7 @@ cpp_rbern <- function(n, prob) {
 #' $counts contains the counts for the observed features
 #' 
 #' @export
+#' 
 rPoissonBB <- function(alpha, theta, lambda, n) {
     .Call(`_ProductFormFA_rPoissonBB`, alpha, theta, lambda, n)
 }
@@ -25,8 +30,8 @@ rPoissonBB <- function(alpha, theta, lambda, n) {
 #' 
 #' @param alpha value of alpha in product-form feature allocation
 #' @param theta value of theta in product-form feature allocation
-#' @param n0 Negative-Binomial hyperparameter (number of successes)
-#' @param mu0 Negative-Binomial hyperparameter (success probability)
+#' @param n0 hyperparameter "n0" of NB(n0,mu0) for N
+#' @param mu0 hyperparameter "mu0" of NB(n0,mu0) for N
 #' @param n dimension of the sample to simulate
 #' 
 #' @return list: $features contains the simulated features for each customer,
@@ -34,6 +39,7 @@ rPoissonBB <- function(alpha, theta, lambda, n) {
 #' $counts contains the counts for the observed features
 #' 
 #' @export
+#' 
 rNegBinBB <- function(alpha, theta, n0, mu0, n) {
     .Call(`_ProductFormFA_rNegBinBB`, alpha, theta, n0, mu0, n)
 }
@@ -42,8 +48,8 @@ rNegBinBB <- function(alpha, theta, n0, mu0, n) {
 #' 
 #' @param alpha value of alpha in product-form feature allocation
 #' @param theta value of theta in product-form feature allocation
-#' @param a Gamma hyperparameter (shape)
-#' @param b Gamma hyperparameter (rate)
+#' @param a hyperparameter "a" of Gamma(a,b) for gamma
+#' @param b hyperparameter "b" of Gamma(a,b) for gamma
 #' @param n dimension of the sample to simulate
 #' 
 #' @return list: $features contains the simulated features for each customer,
@@ -51,6 +57,7 @@ rNegBinBB <- function(alpha, theta, n0, mu0, n) {
 #' $counts contains the counts for the observed features
 #' 
 #' @export
+#' 
 rGammaIBP <- function(alpha, theta, a, b, n) {
     .Call(`_ProductFormFA_rGammaIBP`, alpha, theta, a, b, n)
 }

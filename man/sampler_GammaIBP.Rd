@@ -27,42 +27,39 @@ sampler_GammaIBP(
 )
 }
 \arguments{
-\item{Z}{\link{integer} binary matrix of presence/absence (n x K- dimensional)}
+\item{Z}{\link{integer} binary matrix of presence/absence (\code{n x K} - dimensional)}
 
 \item{alpha_0}{\link{numeric} initial value of alpha}
 
-\item{s_0}{\link{numeric} initial value of s}
+\item{s_0}{\link{numeric} initial value of s (with s = alpha + theta)}
 
-\item{a_0}{\link{numeric} initial value of a}
+\item{a_0}{\link{numeric} initial value of a of Gamma(a,b) for gamma}
 
-\item{b_0}{\link{numeric} initial value of b}
+\item{b_0}{\link{numeric} initial value of b of Gamma(a,b) for gamma}
 
-\item{a_alpha}{\link{numeric}}
+\item{a_alpha}{\link{numeric} hyperparameter "a" of Beta(a,b) for alpha}
 
-\item{b_alpha}{\link{numeric}}
+\item{b_alpha}{\link{numeric} hyperparameter "b" of Beta(a,b) for alpha}
 
-\item{a_s}{\link{numeric}}
+\item{a_s}{\link{numeric} hyperparameter "a" of Gamma(a,b) for s}
 
-\item{b_s}{\link{numeric}}
+\item{b_s}{\link{numeric} hyperparameter "b" of Gamma(a,b) for s}
 
-\item{q}{\link{numeric} hyperparameter of Geometric prior on a}
+\item{q}{\link{numeric} hyperparameter "q" of Geo(q) for a}
 
-\item{r}{\link{numeric}}
+\item{r}{\link{numeric} hyperparameter "r" of Gamma(r,t) for b}
 
-\item{t}{\link{numeric}}
+\item{t}{\link{numeric} hyperparameter "t" of Gamma(r,t) for b}
 
 \item{S}{\link{integer} number of iterations for the MCMC algorithm}
 
-\item{n_burnin}{\link{integer} number of iterations for the burn-in}
+\item{n_burnin}{\link{integer} number of burn-in iterations}
 
 \item{thin}{\link{integer} thinning}
 
 \item{seed}{\link{integer} seed}
 
 \item{tau}{\link{numeric} MALA step-size}
-
-\item{fixed}{\link{logical} vector indicating if the variable is fixed or has prior:
-if fixed, it stays equal to initial value - order: a, b, alpha, s}
 }
 \description{
 Metropolis-within-Gibbs sampler for IBP with Gamma(a,b) mixture,

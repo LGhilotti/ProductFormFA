@@ -2,12 +2,12 @@
 % Please edit documentation in R/convertfeatures.R
 \name{convert_features_matrix}
 \alias{convert_features_matrix}
-\title{Create features matrix}
+\title{Create features matrix from features list}
 \usage{
 convert_features_matrix(feature_list)
 }
 \arguments{
-\item{feature_list}{\link{list} list containing the observed features}
+\item{feature_list}{list containing the observed features}
 }
 \description{
 This function allows to create the matrix of the

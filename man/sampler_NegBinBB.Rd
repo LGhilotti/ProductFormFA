@@ -22,29 +22,29 @@ sampler_NegBinBB(
 )
 }
 \arguments{
-\item{Z}{\link{integer} binary matrix of presence/absence (n x K- dimensional)}
+\item{Z}{\link{integer} binary matrix of presence/absence (\code{n x K} - dimensional)}
 
-\item{alpha_bar_0}{\link{numeric} initial value of alpha_bar}
+\item{alpha_bar_0}{\link{numeric} initial value of alpha_bar (with alpha_bar = - alpha)}
 
-\item{s_0}{\link{numeric} initial value of s}
+\item{s_0}{\link{numeric} initial value of s (with s = alpha + theta)}
 
-\item{a_alpha}{\link{numeric}}
+\item{a_alpha}{\link{numeric} hyperparameter "a" of Gamma(a,b) for alpha_bar}
 
-\item{b_alpha}{\link{numeric}}
+\item{b_alpha}{\link{numeric} hyperparameter "b" of Gamma(a,b) for alpha_bar}
 
-\item{a_s}{\link{numeric}}
+\item{a_s}{\link{numeric} hyperparameter "a" of Gamma(a,b) for s}
 
-\item{b_s}{\link{numeric}}
+\item{b_s}{\link{numeric} hyperparameter "b" of Gamma(a,b) for s}
 
-\item{nstar}{\link{numeric}}
+\item{nstar}{\link{numeric} hyperparameter "n0" of NB(n0,mu0) for N}
 
-\item{p}{\link{numeric}}
+\item{p}{\link{numeric} hyperparameter "mu0" of NB(n0,mu0) for N}
 
 \item{tau}{\link{numeric} MALA step-size}
 
 \item{S}{\link{integer} number of iterations for the MCMC algorithm}
 
-\item{n_burnin}{\link{integer} number of iterations for the burn-in}
+\item{n_burnin}{\link{integer} number of burn-in iterations}
 
 \item{thin}{\link{integer} thinning}
 

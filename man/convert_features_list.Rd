@@ -2,14 +2,14 @@
 % Please edit documentation in R/convertfeatures.R
 \name{convert_features_list}
 \alias{convert_features_list}
-\title{Convert matrix of 0/1 to list of individuals with observed features}
+\title{Convert matrix of 0/1 to list of subjects with observed features}
 \usage{
 convert_features_list(feature_matrix)
 }
 \arguments{
-\item{feature_matrix}{\link{integer} matrix of 0/1 to be converted}
+\item{feature_matrix}{matrix of 0/1 to be converted}
 }
 \description{
-This function allows to create the list of individuals with observed features
+This function allows to create the list of subjects with observed features
 from the matrix of 0/1
 }

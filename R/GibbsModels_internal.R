@@ -1,5 +1,26 @@
+# 
+#
+###### Functions for fitting the BB with Poisson(lambda) mixture #####
+#
+#
 
-########### BB with Poisson(lambda) mixture ###############
+# This function is common to BB with Poisson(lambda) mixture and NB(n0,mu0) mixture 
+compute_log_ratio_q_precond <- function(params_prop, params_curr,
+                                        tau, cov_post,
+                                        grad_log_full_curr, grad_log_full_prop){
+  
+  norm_prop <- t(params_curr-params_prop-tau*cov_post%*%grad_log_full_prop)%*%
+    inv(cov_post)%*%(params_curr-params_prop-tau*cov_post%*%grad_log_full_prop)
+  
+  norm_curr <- t(params_prop-params_curr-tau*cov_post%*%grad_log_full_curr)%*%
+    inv(cov_post)%*%(params_prop-params_curr-tau*cov_post%*%grad_log_full_curr)
+  
+  res <- 1/(4*tau)*(norm_curr - norm_prop)
+  
+  return (res)
+}
+
+
 
 neg_log_posterior_poiss <- function(pars,
                                     n, K, counts,
@@ -47,35 +68,20 @@ compute_grad_log_full_poiss <- function(s_hat, alpha_bar_hat, lambda,
 }
 
 
-compute_log_ratio_q_poiss_precond <- function(params_prop, params_curr,
-                                              tau, cov_post,
-                                              grad_log_full_curr, grad_log_full_prop){
-  
-  norm_prop <- t(params_curr-params_prop-tau*cov_post%*%grad_log_full_prop)%*%
-    inv(cov_post)%*%(params_curr-params_prop-tau*cov_post%*%grad_log_full_prop)
-  
-  norm_curr <- t(params_prop-params_curr-tau*cov_post%*%grad_log_full_curr)%*%
-    inv(cov_post)%*%(params_prop-params_curr-tau*cov_post%*%grad_log_full_curr)
-  
-  res <- 1/(4*tau)*(norm_curr - norm_prop)
-  
-  return (res)
-}
-
 
 #' Metropolis-within-Gibbs sampler for BB with Poisson(lambda) mixture
 #'
-#' @param Z [integer] binary matrix of presence/absence (n x K - dimensional)
-#' @param alpha_bar_0 [numeric] initial value of alpha_bar 
-#' @param s_0 [numeric] initial value of s
-#' @param a_alpha [numeric]
-#' @param b_alpha [numeric]
-#' @param a_s [numeric]
-#' @param b_s [numeric]
-#' @param lambda [numeric] 
+#' @param Z [integer] binary matrix of presence/absence (\code{n x K} - dimensional)
+#' @param alpha_bar_0 [numeric] initial value of alpha_bar (with alpha_bar = - alpha)
+#' @param s_0 [numeric] initial value of s (with s = alpha + theta)
+#' @param a_alpha [numeric] hyperparameter "a" of Gamma(a,b) for alpha_bar 
+#' @param b_alpha [numeric] hyperparameter "b" of Gamma(a,b) for alpha_bar 
+#' @param a_s [numeric] hyperparameter "a" of Gamma(a,b) for s 
+#' @param b_s [numeric] hyperparameter "b" of Gamma(a,b) for s 
+#' @param lambda [numeric] hyperparameter lambda for Poisson(lambda) for N 
 #' @param tau [numeric] MALA step-size
 #' @param S [integer] number of iterations for the MCMC algorithm
-#' @param n_burnin [integer] number of iterations for the burn-in
+#' @param n_burnin [integer] number of burn-in iterations 
 #' @param thin [integer] thinning
 #' @param seed [integer] seed
 #'
@@ -91,7 +97,7 @@ sampler_PoissonBB <- function(Z,
   
   set.seed(seed)
   
-  # Compute total number of sites
+  # Compute total number of subjects
   n <- nrow(Z)
   
   # Delete NA
@@ -152,9 +158,6 @@ sampler_PoissonBB <- function(Z,
     grad_log_full_curr <- compute_grad_log_full_poiss(s_hat_curr, alpha_bar_hat_curr, lambda,
                                                       n, K, counts, a_s, b_s, a_alpha, b_alpha)
     
-    # s_hat_prop <- s_hat_curr + tau*grad_log_full_curr[1] + sqrt(2*tau)*rnorm(1)
-    # alpha_bar_hat_prop <- alpha_bar_hat_curr + tau*grad_log_full_curr[2] + sqrt(2*tau)*rnorm(1)
-    
     # Propose from the bivariate normal 
     params_curr <- c(s_hat_curr, alpha_bar_hat_curr)
     params_prop <- mvrnorm(mu = params_curr + tau*cov_post%*%grad_log_full_curr,
@@ -164,10 +167,6 @@ sampler_PoissonBB <- function(Z,
     alpha_bar_hat_prop <- params_prop[2]
     
     ### Acceptance probability 
-    # Compute the log ratio of the full-cond in prop point and curr point
-    # log_ratio_full <- compute_log_ratio_full_poiss(s_hat_prop, alpha_bar_hat_prop,
-    #                                                s_hat_curr, alpha_bar_hat_curr, lambda,
-    #                                                n, K, counts, a_s, b_s, a_alpha, b_alpha)
     log_ratio_full <- - neg_log_posterior_poiss(params_prop, n, K, counts,
                                                 lambda, a_s, b_s, a_alpha, b_alpha) +
       neg_log_posterior_poiss(params_curr, n, K, counts,
@@ -177,10 +176,7 @@ sampler_PoissonBB <- function(Z,
     grad_log_full_prop <- compute_grad_log_full_poiss(s_hat_prop, alpha_bar_hat_prop, lambda,
                                                       n, K, counts, a_s, b_s, a_alpha, b_alpha)
     
-    # log_ratio_q <- compute_log_ratio_q_poiss(s_hat_prop, alpha_bar_hat_prop,
-    #                                          s_hat_curr, alpha_bar_hat_curr, tau,
-    #                                          grad_log_full_curr, grad_log_full_prop)
-    log_ratio_q <- compute_log_ratio_q_poiss_precond(params_prop, params_curr,
+    log_ratio_q <- compute_log_ratio_q_precond(params_prop, params_curr,
                                                      tau, cov_post,
                                                      grad_log_full_curr, grad_log_full_prop)
     
@@ -195,9 +191,7 @@ sampler_PoissonBB <- function(Z,
     }
     
     
-    #######################################################################
-    
-    # Store parameters if burn-in is over and once every "thin" iteration
+    ### Store parameters if burn-in is over and once every "thin" iteration
     if ((q > n_burnin) & (q %% thin == 0) ){
       print(paste0("iteration: ", q))
       
@@ -208,6 +202,8 @@ sampler_PoissonBB <- function(Z,
     }
     
   }
+  
+  ### End Gibbs sampler #######
   
   alpha_bar_vec <- alpha_bar_vec[1:(l-1)]
   s_vec <- s_vec[1:(l-1)]
@@ -223,9 +219,12 @@ sampler_PoissonBB <- function(Z,
 
 
 
+#
+#
+######### Functions for fitting the BB with NB(n0,mu0) mixture ############
+#
+#
 
-
-##################### BB with NB(n0,mu0) mixture #######################
 
 neg_log_posterior_negbin <- function(pars,
                                      n, K, counts,
@@ -278,35 +277,23 @@ compute_grad_log_full_negbin <- function(s_hat, alpha_bar_hat, nstar, p,
   return (c(ds_hat, dalpha_bar_hat))
 }
 
-compute_log_ratio_q_negbin_precond <- function(params_prop, params_curr,
-                                               tau, cov_post,
-                                               grad_log_full_curr, grad_log_full_prop){
-  
-  norm_prop <- t(params_curr-params_prop-tau*cov_post%*%grad_log_full_prop)%*%
-    inv(cov_post)%*%(params_curr-params_prop-tau*cov_post%*%grad_log_full_prop)
-  
-  norm_curr <- t(params_prop-params_curr-tau*cov_post%*%grad_log_full_curr)%*%
-    inv(cov_post)%*%(params_prop-params_curr-tau*cov_post%*%grad_log_full_curr)
-  
-  res <- 1/(4*tau)*(norm_curr - norm_prop)
-  
-  return (res)
-}
+
+
 
 #' Metropolis-within-Gibbs sampler for BB with NB(n0,mu0) mixture
 #'
-#' @param Z [integer] binary matrix of presence/absence (n x K- dimensional)
-#' @param alpha_bar_0 [numeric] initial value of alpha_bar 
-#' @param s_0 [numeric] initial value of s
-#' @param a_alpha [numeric]
-#' @param b_alpha [numeric]
-#' @param a_s [numeric]
-#' @param b_s [numeric]
-#' @param nstar [numeric] 
-#' @param p [numeric] 
+#' @param Z [integer] binary matrix of presence/absence (\code{n x K} - dimensional)
+#' @param alpha_bar_0 [numeric] initial value of alpha_bar (with alpha_bar = - alpha)
+#' @param s_0 [numeric] initial value of s (with s = alpha + theta)
+#' @param a_alpha [numeric] hyperparameter "a" of Gamma(a,b) for alpha_bar 
+#' @param b_alpha [numeric] hyperparameter "b" of Gamma(a,b) for alpha_bar 
+#' @param a_s [numeric] hyperparameter "a" of Gamma(a,b) for s 
+#' @param b_s [numeric] hyperparameter "b" of Gamma(a,b) for s 
+#' @param nstar [numeric] hyperparameter "n0" of NB(n0,mu0) for N 
+#' @param p [numeric] hyperparameter "mu0" of NB(n0,mu0) for N
 #' @param tau [numeric] MALA step-size
 #' @param S [integer] number of iterations for the MCMC algorithm
-#' @param n_burnin [integer] number of iterations for the burn-in
+#' @param n_burnin [integer] number of burn-in iterations 
 #' @param thin [integer] thinning
 #' @param seed [integer] seed
 #'
@@ -388,10 +375,6 @@ sampler_NegBinBB <- function(Z,
                                                             nstar, p, n, K, counts, 
                                                             a_s, b_s, a_alpha, b_alpha)
     
-    # s_hat_prop <- s_hat_curr + tau*grad_log_full_curr[1] + sqrt(2*tau)*rnorm(1)
-    # 
-    # alpha_bar_hat_prop <- alpha_bar_hat_curr + tau*grad_log_full_curr[2] + sqrt(2*tau)*rnorm(1)
-    
     # Propose from the bivariate normal 
     params_curr <- c(s_hat_curr, alpha_bar_hat_curr)
     params_prop <- mvrnorm(mu = params_curr + tau*cov_post%*%grad_log_full_curr,
@@ -402,10 +385,6 @@ sampler_NegBinBB <- function(Z,
     
     ### Acceptance probability 
     # Compute the log ratio of the full-cond in prop point and curr point
-    # log_ratio_full <- compute_log_ratio_full_negbin_geom(s_hat_prop, alpha_bar_hat_prop,
-    #                                                      s_hat_curr, alpha_bar_hat_curr, 
-    #                                                      nstar, p, n, K, counts,   
-    #                                                      a_s, b_s, a_alpha, b_alpha)
     log_ratio_full <- - neg_log_posterior_negbin(params_prop, n, K, counts,
                                                  nstar,p, a_s, b_s, a_alpha, b_alpha) +
       neg_log_posterior_negbin(params_curr, n, K, counts,
@@ -416,10 +395,7 @@ sampler_NegBinBB <- function(Z,
                                                             nstar, p, n, K, counts, 
                                                             a_s, b_s, a_alpha, b_alpha)
     
-    # log_ratio_q <- compute_log_ratio_q_negbin_geom(s_hat_prop, alpha_bar_hat_prop,
-    #                                                s_hat_curr, alpha_bar_hat_curr, tau,
-    #                                                grad_log_full_curr, grad_log_full_prop)
-    log_ratio_q <- compute_log_ratio_q_negbin_precond(params_prop, params_curr,
+    log_ratio_q <- compute_log_ratio_q_precond(params_prop, params_curr,
                                                       tau, cov_post,
                                                       grad_log_full_curr, grad_log_full_prop)
     
@@ -434,9 +410,7 @@ sampler_NegBinBB <- function(Z,
     }
     
     
-    #######################################################################
-    
-    # Store parameters if burn-in is over and once every "thin" iteration
+    #### Store parameters if burn-in is over and once every "thin" iteration
     if ((q > n_burnin) & (q %% thin == 0) ){
       print(paste0("iteration: ", q))
       
@@ -448,6 +422,8 @@ sampler_NegBinBB <- function(Z,
     
   }
   
+  ############## End Gibbs-sampler ##########################
+  
   alpha_bar_vec <- alpha_bar_vec[1:(l-1)]
   s_vec <- s_vec[1:(l-1)]
   
@@ -458,7 +434,13 @@ sampler_NegBinBB <- function(Z,
 
 
 
-################ IBP with Gamma(a,b) mixture ####################
+
+#
+#
+############# Functions for fitting the IBP with Gamma(a,b) mixture ##########
+#
+#
+
 
 neg_log_posterior_gamma_ibp <- function(pars, 
                                         n, K, counts,
@@ -482,26 +464,25 @@ neg_log_posterior_gamma_ibp <- function(pars,
   return (-res)
 }
 
+
 #' Metropolis-within-Gibbs sampler for IBP with Gamma(a,b) mixture,
 #' with prior also on a and b
 #'
-#' @param Z [integer] binary matrix of presence/absence (n x K- dimensional)
-#' @param alpha_0 [numeric] initial value of alpha 
-#' @param s_0 [numeric] initial value of s
-#' @param a_0 [numeric] initial value of a
-#' @param b_0 [numeric] initial value of b
-#' @param a_alpha [numeric]
-#' @param b_alpha [numeric]
-#' @param a_s [numeric]
-#' @param b_s [numeric]
-#' @param q [numeric] hyperparameter of Geometric prior on a
-#' @param r [numeric] 
-#' @param t [numeric]
+#' @param Z [integer] binary matrix of presence/absence (\code{n x K} - dimensional)
+#' @param alpha_0 [numeric] initial value of alpha
+#' @param s_0 [numeric] initial value of s (with s = alpha + theta)
+#' @param a_0 [numeric] initial value of a of Gamma(a,b) for gamma
+#' @param b_0 [numeric] initial value of b of Gamma(a,b) for gamma
+#' @param a_alpha [numeric] hyperparameter "a" of Beta(a,b) for alpha 
+#' @param b_alpha [numeric] hyperparameter "b" of Beta(a,b) for alpha 
+#' @param a_s [numeric] hyperparameter "a" of Gamma(a,b) for s 
+#' @param b_s [numeric] hyperparameter "b" of Gamma(a,b) for s 
+#' @param q [numeric] hyperparameter "q" of Geo(q) for a
+#' @param r [numeric] hyperparameter "r" of Gamma(r,t) for b
+#' @param t [numeric] hyperparameter "t" of Gamma(r,t) for b
 #' @param tau [numeric] MALA step-size
-#' @param fixed [logical] vector indicating if the variable is fixed or has prior:
-#' if fixed, it stays equal to initial value - order: a, b, alpha, s
 #' @param S [integer] number of iterations for the MCMC algorithm
-#' @param n_burnin [integer] number of iterations for the burn-in
+#' @param n_burnin [integer] number of burn-in iterations
 #' @param thin [integer] thinning
 #' @param seed [integer] seed
 #'
@@ -631,9 +612,7 @@ sampler_GammaIBP <- function(Z,
     alpha <- exp(alpha_hat_curr)/(1 + exp(alpha_hat_curr))
     
     
-    #######################################################################
-    
-    # Store parameters if burn-in is over and once every "thin" iteration
+    ### Store parameters if burn-in is over and once every "thin" iteration
     if ((w > n_burnin) & (w %% thin == 0) ){
       print(paste0("iteration: ", w))
       
@@ -646,6 +625,9 @@ sampler_GammaIBP <- function(Z,
     }
     
   }
+  
+  
+  ######## End Gibbs-sampler #############
   
   a_vec <- a_vec[1:(l-1)]
   b_vec <- b_vec[1:(l-1)]
