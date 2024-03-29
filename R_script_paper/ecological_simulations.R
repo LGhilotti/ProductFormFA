@@ -441,7 +441,7 @@ ggplot(joint_emp_long, aes(x = estimate, color = Model)) +
 
 # 3) Plot Extrapolation
 
-df_extr_PoissonBB_long <- list_extr_GibbsFA_to_long(list_extr_PoissonBB, model = "Poisson")
+df_extr_PoissonBB_long <- list_extr_GibbsFA_to_long(list_extr_PoissonBB, model = "Poisson", Kn )
 df_extr_NegBinBB_long <- list_extr_GibbsFA_to_long(list_extr_NegBinBB, model = "NegBin")
 df_extr_GammaIBP_long <- list_extr_GibbsFA_to_long(list_extr_GammaIBP, model = "Gamma")
 

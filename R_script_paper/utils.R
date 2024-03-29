@@ -178,7 +178,7 @@ list_extr_competitor_to_long <- function(list_extr, model){
   df_extr$n_train <- as.integer(df_extr$n_train)
   df_extr <- df_extr %>%
     add_column("model" = model) %>%
-    filter(t > n_train)        
+    filter(t >= n_train)        
   
   return(df_extr)
   
