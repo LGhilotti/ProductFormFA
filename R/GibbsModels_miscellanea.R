@@ -10,11 +10,12 @@
 #' @param n Size of the hypothetical observed sample
 #' @param Kn Number of distinct features hypothetically observed in the sample
 #' @param M Maximum size of future sample to extrapolate
+#' @param only_last logical; TRUE if only extrapolation for the additional sample of size M
 #' @param seed Set seed for randomness
 #' 
 #' @details Draw samples from the posterior distribution Kn + K^(n)_m, for different m,
 #' for BB with Poisson(lambda) mixture
-prediction_PoissonBB <- function(object, n = 0, Kn = 0, M = 10, seed = 1234) {
+prediction_PoissonBB <- function(object, n = 0, Kn = 0, M = 10, only_last = FALSE, seed = 1234) {
   
   set.seed(seed)
   
@@ -26,10 +27,14 @@ prediction_PoissonBB <- function(object, n = 0, Kn = 0, M = 10, seed = 1234) {
   # Number of iterations of the MCMC ( = number of samples from the posterior)
   S <- length(alpha_chain)
   
-  M_vec <- 1:M
+  if (only_last == TRUE){
+    M_vec <- M
+  } else {
+    M_vec <- 1:M
+  }
   
   # Draw samples from the posteriors and store in prediction_chain
-  kmn_chain <- matrix(NA, nrow = M, ncol = S )
+  kmn_chain <- matrix(NA, nrow = length(M_vec), ncol = S )
   
   for (q in 1:S){
     alpha <- alpha_chain[q]
@@ -43,7 +48,7 @@ prediction_PoissonBB <- function(object, n = 0, Kn = 0, M = 10, seed = 1234) {
                           lgamma(theta+n) + lgamma(theta) )
     poiss_par <- par_1 - par_2
     
-    kmn_chain[,q] <- rpois(M, poiss_par)
+    kmn_chain[,q] <- rpois(length(M_vec), poiss_par)
   }
   
   prediction_chain <- kmn_chain + Kn
@@ -62,11 +67,12 @@ prediction_PoissonBB <- function(object, n = 0, Kn = 0, M = 10, seed = 1234) {
 #' @param n Size of the hypothetical observed sample
 #' @param Kn Number of distinct features hypothetically observed in the sample
 #' @param M Maximum size of future sample to extrapolate
+#' @param only_last logical; TRUE if only extrapolation for the additional sample of size M
 #' @param seed Set seed for randomness
 #' 
 #' @details Draw samples from the posterior distribution Kn + K^(n)_m, for different m,
 #' for BB with NB(n0,mu0) mixture
-prediction_NegBinBB <- function(object, n = 0, Kn = 0, M = 10, seed = 1234) {
+prediction_NegBinBB <- function(object, n = 0, Kn = 0, M = 10, only_last = FALSE, seed = 1234) {
   
   set.seed(seed)
   # Extract the chains and the parameters from object
@@ -78,10 +84,14 @@ prediction_NegBinBB <- function(object, n = 0, Kn = 0, M = 10, seed = 1234) {
   # Number of iterations of the MCMC ( = number of samples from the posterior)
   S <- length(alpha_chain)
   
-  M_vec <- 1:M
+  if (only_last == TRUE){
+    M_vec <- M
+  } else {
+    M_vec <- 1:M
+  }
   
   # Draw samples from the posteriors and store in prediction_chain
-  kmn_chain <- matrix(NA, nrow = M, ncol = S )
+  kmn_chain <- matrix(NA, nrow = length(M_vec), ncol = S )
   
   for (q in 1:S){
     
@@ -94,7 +104,7 @@ prediction_NegBinBB <- function(object, n = 0, Kn = 0, M = 10, seed = 1234) {
     
     p_bar <- 1- par_0 *(par_1 - par_2)/(1-par_0*par_2)
     
-    kmn_chain[,q] <- rnbinom(M, n0 + Kn, p_bar)
+    kmn_chain[,q] <- rnbinom(length(M_vec), n0 + Kn, p_bar)
   }
   
   prediction_chain <- kmn_chain + Kn
@@ -115,11 +125,12 @@ prediction_NegBinBB <- function(object, n = 0, Kn = 0, M = 10, seed = 1234) {
 #' @param n Size of the hypothetical observed sample
 #' @param Kn Number of distinct features hypothetically observed in the sample
 #' @param M Maximum size of future sample to extrapolate
+#' @param only_last logical; TRUE if only extrapolation for the additional sample of size M
 #' @param seed Set seed for randomness
 #' 
 #' @details Draw samples from the posterior distribution Kn + K^(n)_m, for different m,
 #' for IBP with Gamma(a,b) mixture, with prior on a and b
-prediction_GammaIBP <- function(object, n = 0, Kn = 0, M = 10, seed = 1234) {
+prediction_GammaIBP <- function(object, n = 0, Kn = 0, M = 10, only_last = FALSE, seed = 1234) {
   
   set.seed(seed)
   
@@ -132,10 +143,14 @@ prediction_GammaIBP <- function(object, n = 0, Kn = 0, M = 10, seed = 1234) {
   # Number of iterations of the MCMC ( = number of samples from the posterior)
   S <- length(a_chain)
   
-  M_vec <- 1:M
+  if (only_last == TRUE){
+    M_vec <- M
+  } else {
+    M_vec <- 1:M
+  }
   
   # Draw samples from the posteriors and store in prediction_chain
-  kmn_chain <- matrix(NA, nrow = M, ncol = S )
+  kmn_chain <- matrix(NA, nrow = length(M_vec), ncol = S )
   
   for (w in 1:S){
     a <- a_chain[w]
@@ -150,9 +165,9 @@ prediction_GammaIBP <- function(object, n = 0, Kn = 0, M = 10, seed = 1234) {
                                lgamma(theta + (1:n)) + lgamma(theta +1) ) )
     }
     
-    sum_M <- stable_sum_M_all_gamma_IBP(alpha, theta, M, n)
+    sum_M <- stable_sum_M_all_gamma_IBP(alpha, theta, M, only_last, n)
     
-    kmn_chain[,w] <- rnbinom(M, a + Kn, (gamma_a_t_n + b)/(gamma_a_t_n + b + sum_M))
+    kmn_chain[,w] <- rnbinom(length(M_vec), a + Kn, (gamma_a_t_n + b)/(gamma_a_t_n + b + sum_M))
     
     print(paste0("iteration: ", w))
     

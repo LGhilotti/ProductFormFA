@@ -4,12 +4,14 @@
 \alias{extrapolation.PoissonBB}
 \title{Model-based extrapolation for BB with Poisson(lambda) mixture}
 \usage{
-\method{extrapolation}{PoissonBB}(object, M = 10, seed = 1234)
+\method{extrapolation}{PoissonBB}(object, M = 10, only_last = FALSE, seed = 1234)
 }
 \arguments{
 \item{object}{An object of class \code{GibbsFA, PoissonBB}}
 
 \item{M}{Maximum size of future sample to extrapolate}
+
+\item{only_last}{logical; TRUE if only extrapolation for the additional sample of size M}
 
 \item{seed}{Set seed for randomness}
 }

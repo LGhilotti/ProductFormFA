@@ -21,13 +21,14 @@ extrapolation <- function(object, ...) {
 #'
 #' @param object An object of class \code{GibbsFA, PoissonBB}
 #' @param M Maximum size of future sample to extrapolate
+#' @param only_last logical; TRUE if only extrapolation for the additional sample of size M
 #' @param seed Set seed for randomness
 #' 
 #' @export
 #' 
 #' @details Draw samples from the posterior distribution of k_n + K^(n)_m, for different m,
 #' for BB with Poisson(lambda) mixture
-extrapolation.PoissonBB <- function(object, M = 10, seed = 1234) {
+extrapolation.PoissonBB <- function(object, M = 10, only_last = FALSE, seed = 1234) {
   
   # Extract the size of the observed sample "n" and the number of distinct features "Kn"
   feature_matrix <- object$feature_matrix
@@ -35,7 +36,7 @@ extrapolation.PoissonBB <- function(object, M = 10, seed = 1234) {
   Kn <- ncol(feature_matrix)
   
   # Perform the prediction
-  extrapolation_list <- prediction_PoissonBB(object, n = n, Kn = Kn, M = M, seed = seed)
+  extrapolation_list <- prediction_PoissonBB(object, n = n, Kn = Kn, M = M, only_last = only_last, seed = seed)
   
   return (extrapolation_list)
 }
@@ -45,13 +46,14 @@ extrapolation.PoissonBB <- function(object, M = 10, seed = 1234) {
 #'
 #' @param object An object of class \code{GibbsFA, NegBinBB}
 #' @param M Maximum size of future sample to extrapolate
+#' @param only_last logical; TRUE if only extrapolation for the additional sample of size M
 #' @param seed Set seed for randomness
 #' 
 #' @export
 #' 
 #' @details Draw samples from the posterior distribution of k_n + K^(n)_m, for different m,
 #' for BB with NB(n0,mu0) mixture
-extrapolation.NegBinBB <- function(object, M = 10, seed = 1234) {
+extrapolation.NegBinBB <- function(object, M = 10, only_last = FALSE, seed = 1234) {
   
   # Extract the size of the observed sample "n" and the number of distinct features "Kn"
   feature_matrix <- object$feature_matrix
@@ -59,7 +61,7 @@ extrapolation.NegBinBB <- function(object, M = 10, seed = 1234) {
   Kn <- ncol(feature_matrix)
   
   # Perform the prediction
-  extrapolation_list <- prediction_NegBinBB(object, n = n, Kn = Kn, M = M, seed = seed)
+  extrapolation_list <- prediction_NegBinBB(object, n = n, Kn = Kn, M = M, only_last = only_last, seed = seed)
   
   return (extrapolation_list)
 }
@@ -73,13 +75,14 @@ extrapolation.NegBinBB <- function(object, M = 10, seed = 1234) {
 #'
 #' @param object An object of class \code{GibbsFA, GammaIBP}
 #' @param M Maximum size of future sample to extrapolate
+#' @param only_last logical; TRUE if only extrapolation for the additional sample of size M
 #' @param seed Set seed for randomness
 #' 
 #' @export
 #' 
 #' @details Draw samples from the posterior distribution of k_n + K^(n)_m, for different m,
 #' for IBP with Gamma(a,b) mixture, and prior on a and b
-extrapolation.GammaIBP <- function(object, M = 10, seed = 1234) {
+extrapolation.GammaIBP <- function(object, M = 10, only_last = FALSE, seed = 1234) {
   
   # Extract the size of the observed sample "n" and the number of distinct features "Kn"
   feature_matrix <- object$feature_matrix
@@ -87,7 +90,7 @@ extrapolation.GammaIBP <- function(object, M = 10, seed = 1234) {
   Kn <- ncol(feature_matrix)
   
   # Perform the prediction
-  extrapolation_list <- prediction_GammaIBP(object, n = n, Kn = Kn, M = M, seed = seed)
+  extrapolation_list <- prediction_GammaIBP(object, n = n, Kn = Kn, M = M, only_last = only_last, seed = seed)
   
   return (extrapolation_list)
 }

@@ -5,7 +5,14 @@
 \title{Model-based prediction for IBP with Gamma(a,b) mixture,
 with prior on a and b}
 \usage{
-prediction_GammaIBP(object, n = 0, Kn = 0, M = 10, seed = 1234)
+prediction_GammaIBP(
+  object,
+  n = 0,
+  Kn = 0,
+  M = 10,
+  only_last = FALSE,
+  seed = 1234
+)
 }
 \arguments{
 \item{object}{An object of class \code{GibbsFA, GammaIBP}}
@@ -15,6 +22,8 @@ prediction_GammaIBP(object, n = 0, Kn = 0, M = 10, seed = 1234)
 \item{Kn}{Number of distinct features hypothetically observed in the sample}
 
 \item{M}{Maximum size of future sample to extrapolate}
+
+\item{only_last}{logical; TRUE if only extrapolation for the additional sample of size M}
 
 \item{seed}{Set seed for randomness}
 }

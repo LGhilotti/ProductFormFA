@@ -22,7 +22,7 @@ sample_NegBinBB
 
 # 1.3) IBP with Gamma(a, b) mixture
 
-sample_GammaIBP <- rGammaIBP(alpha = 0.2, theta = 10, a = 1, b = 1, n = 10)
+sample_GammaIBP <- rGammaIBP(alpha = 0.5, theta = 10, a = 1, b = 1, n = 20)
 
 sample_GammaIBP
 
@@ -138,15 +138,15 @@ NegBinBB_rich <- total_richness(object = NegBinBB_fit)
 
 # 4.1) Beta-Bernoulli with Poisson(lambda) mixture
 
-PoissonBB_extr <- extrapolation(object = PoissonBB_fit, M = 20)
+PoissonBB_extr <- extrapolation(object = PoissonBB_fit, M = 20) # option: only_last = TRUE, seed
 
 # 4.2) Beta-Bernoulli with NB(n0,mu0) mixture
 
-NegBinBB_extr <- extrapolation(object = NegBinBB_fit, M = 20)
+NegBinBB_extr <- extrapolation(object = NegBinBB_fit, M = 20) # option: only_last = TRUE, seed
 
 # 4.3) IBP with Gamma(a,b) mixture
 
-GammaIBP_extr <- extrapolation(object = GammaIBP_fit, M = 20)
+GammaIBP_extr <- extrapolation(object = GammaIBP_fit, M = 20) # option: only_last = TRUE, seed
 
 
 # 5) Rarefaction ----

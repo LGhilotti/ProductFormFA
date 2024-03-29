@@ -5,8 +5,8 @@ cpp_rbern <- function(n, prob) {
     .Call(`_ProductFormFA_cpp_rbern`, n, prob)
 }
 
-stable_sum_M_all_gamma_IBP <- function(alpha, theta, m, n) {
-    .Call(`_ProductFormFA_stable_sum_M_all_gamma_IBP`, alpha, theta, m, n)
+stable_sum_M_all_gamma_IBP <- function(alpha, theta, m, only_last, n) {
+    .Call(`_ProductFormFA_stable_sum_M_all_gamma_IBP`, alpha, theta, m, only_last, n)
 }
 
 #' Random generation from BB with Poisson(lambda) mixture
