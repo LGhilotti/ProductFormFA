@@ -190,6 +190,11 @@ df_rare_Chao <- Chao_rare_extr %>%
   filter(t <= n)
 
 
+# Accumulation curve
+accum <- rarefaction(data_mat)
+accum_df <- data.frame("accum" = c(0, accum),
+                       "t" = 0:length(accum))
+
 joint_df_rare_bayes <- rbind(df_rare_PoissonBB,df_rare_NegBinBB)
 
 # plot
@@ -197,6 +202,7 @@ ggplot(joint_df_rare_bayes, aes(x = t, y = means, color = model)) +
   geom_line(linetype = "dashed", linewidth = 0.8) +
   geom_ribbon(aes(ymin = lbs, ymax = ubs), linewidth = 0.8, alpha = 0.1) +
   geom_line(data = df_rare_Chao, aes(t, value), linewidth = 0.8) +
+  geom_line(data = accum_df, aes(t, accum), color="black", linetype="solid") +
   xlab("# observations") + ylab("# distinct features") + 
   theme_light() + 
   theme(legend.position = "top") +
