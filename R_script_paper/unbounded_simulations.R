@@ -235,7 +235,11 @@ generate_data <- function(xi, n, H, seed = 1234){
 
 # Single dataset: function to produce fit and estimate on specific polynomial scenario ------
 
-fit_estimate_polynomial_scenario_singledataset <- function(xi, seed = 1234){
+fit_estimate_polynomial_scenario_singledataset <- function(xi,
+                                                           init_obj_PoissonBB, mcmcparams_obj_PoissonBB, prior_obj_PoissonBB,
+                                                           init_obj_NegBinBB, mcmcparams_obj_NegBinBB, prior_obj_NegBinBB, c_fr,
+                                                           init_obj_GammaIBP, mcmcparams_obj_GammaIBP, prior_obj_GammaIBP,
+                                                           seed = 1234){
   
   
   # Set training dimensions and dimension of the whole sample 
@@ -288,9 +292,28 @@ fit_estimate_polynomial_scenario_singledataset <- function(xi, seed = 1234){
     list_Nbar_emp[[paste0("n_train.",n_train)]] <- Nbar_emp
     
     # Fit the models
-    PoissonBB_fit <- fit_PoissonBB_wrap(feature_matrix = train_mat, Nbar = Nbar_emp )
-    NegBinBB_fit <- fit_NegBinBB_wrap(feature_matrix = train_mat, Nbar = Nbar_emp )
-    GammaIBP_fit <- fit_GammaIBP_wrap(feature_matrix = train_mat )
+    # PoissonBB
+    prior_obj_PoissonBB$lambda <- Nbar_emp
+    PoissonBB_fit <- GibbsFA(feature_matrix = train_mat, 
+                             model = "PoissonBB", 
+                             prior = prior_obj_PoissonBB, 
+                             initialization = init_obj_PoissonBB, 
+                             mcmcparams = mcmcparams_obj_PoissonBB)
+    # NegBinBB
+    prior_obj_NegBinBB$n0 <- Nbar_emp/(c_fr - 1)
+    prior_obj_NegBinBB$mu0 <- 1/c_fr
+    NegBinBB_fit <- GibbsFA(feature_matrix = train_mat, 
+                            model = "NegBinBB", 
+                            prior = prior_obj_NegBinBB, 
+                            initialization = init_obj_NegBinBB, 
+                            mcmcparams = mcmcparams_obj_NegBinBB)    
+    # GammaIBP
+    GammaIBP_fit <- GibbsFA(feature_matrix = train_mat, 
+                            model = "GammaIBP", 
+                            prior = prior_obj_GammaIBP, 
+                            initialization = init_obj_GammaIBP, 
+                            mcmcparams = mcmcparams_obj_GammaIBP)  
+    
     
     # Fill the structures of MCMC chains of the parameters
     list_params_PoissonBB[[lab_comb_bb]] <- list("alpha" = PoissonBB_fit$alpha_chain, 
@@ -350,7 +373,11 @@ fit_estimate_polynomial_scenario_singledataset <- function(xi, seed = 1234){
 
 # Repeated dataset: function to produce fit and estimate on specific ecological scenario ------
 
-fit_estimate_polynomial_scenario_repeateddataset <- function(xi, n_dataset = 10, seed = 1234){
+fit_estimate_polynomial_scenario_repeateddataset <- function(xi, n_dataset = 10, 
+                                                             init_obj_PoissonBB, mcmcparams_obj_PoissonBB, prior_obj_PoissonBB,
+                                                             init_obj_NegBinBB, mcmcparams_obj_NegBinBB, prior_obj_NegBinBB, c_fr,
+                                                             init_obj_GammaIBP, mcmcparams_obj_GammaIBP, prior_obj_GammaIBP,
+                                                             seed = 1234){
   
   # Set training dimensions and dimension of the whole sample 
   Ns <- c(20, 40, 80)
@@ -419,9 +446,27 @@ fit_estimate_polynomial_scenario_repeateddataset <- function(xi, n_dataset = 10,
       df_Nbar_emp[d,j] <- Nbar_emp
       
       # Fit the models
-      PoissonBB_fit <- fit_PoissonBB_wrap(feature_matrix = train_mat, Nbar = Nbar_emp )
-      NegBinBB_fit <- fit_NegBinBB_wrap(feature_matrix = train_mat, Nbar = Nbar_emp )
-      GammaIBP_fit <- fit_GammaIBP_wrap(feature_matrix = train_mat )
+      # PoissonBB
+      prior_obj_PoissonBB$lambda <- Nbar_emp
+      PoissonBB_fit <- GibbsFA(feature_matrix = train_mat, 
+                               model = "PoissonBB", 
+                               prior = prior_obj_PoissonBB, 
+                               initialization = init_obj_PoissonBB, 
+                               mcmcparams = mcmcparams_obj_PoissonBB)
+      # NegBinBB
+      prior_obj_NegBinBB$n0 <- Nbar_emp/(c_fr - 1)
+      prior_obj_NegBinBB$mu0 <- 1/c_fr
+      NegBinBB_fit <- GibbsFA(feature_matrix = train_mat, 
+                              model = "NegBinBB", 
+                              prior = prior_obj_NegBinBB, 
+                              initialization = init_obj_NegBinBB, 
+                              mcmcparams = mcmcparams_obj_NegBinBB)    
+      # GammaIBP
+      GammaIBP_fit <- GibbsFA(feature_matrix = train_mat, 
+                              model = "GammaIBP", 
+                              prior = prior_obj_GammaIBP, 
+                              initialization = init_obj_GammaIBP, 
+                              mcmcparams = mcmcparams_obj_GammaIBP)  
       
       # Fill the structures about number of features in train and test
       feat_train <- unique(unlist(train_list))
@@ -488,7 +533,61 @@ xi = 1 # c(0.8, 1.2)
 
 # Fit and estimate richness, rarefaction and extrapolation for GibbsFA's (save workspace)
 if (!file.exists(paste0("R_script_paper/poly_",xi,"_fit_estimate_singledataset.RData"))) {
-  fit_estimate_polynomial_scenario_singledataset(xi = xi)
+  
+  # 1) PoissonBB 
+  
+  # Initialization and MCMC setting 
+  init_PoissonBB <- list(alpha_0 = -1, s_0 = 1)
+  init_obj_PoissonBB <- initialization(model = "PoissonBB", init = init_PoissonBB )
+  mcmcparams_PoissonBB <- list(tau = 0.1, S = 300, n_burnin = 100, thin = 2)
+  mcmcparams_obj_PoissonBB <- mcmcparameters(model = "PoissonBB", mcmcparams = mcmcparams_PoissonBB)
+  
+  # Hyperparameters elicitation 
+  hyper_PoissonBB <- list(a_alpha = 1, b_alpha = 0.1,
+                          a_s = 2, b_s = 0.2,
+                          lambda = 1)
+  prior_obj_PoissonBB <- prior(model = "PoissonBB", hyper = hyper_PoissonBB) 
+  
+  
+  # 2) NegBinBB
+  
+  # Initialization and MCMC setting
+  init_NegBinBB <- list(alpha_0 = -1, s_0 = 1)
+  init_obj_NegBinBB <- initialization(model = "NegBinBB", init = init_NegBinBB )
+  mcmcparams_NegBinBB <- list(tau = 0.1, S = 300, n_burnin = 100, thin = 2)
+  mcmcparams_obj_NegBinBB <- mcmcparameters(model = "NegBinBB", mcmcparams = mcmcparams_NegBinBB)
+  
+  # Hyperparameters elicitation 
+  c_fr <- 10
+  
+  hyper_NegBinBB <- list(a_alpha = 1, b_alpha = 0.1,
+                         a_s = 2, b_s = 0.2,
+                         n0 = 1, # n0, mu0 are set s.t. E(N) = Nbar, Var(N) = c_fr*E(N)
+                         mu0 = 0.5)
+  prior_obj_NegBinBB <- prior(model = "NegBinBB", hyper = hyper_NegBinBB) 
+  
+  # 3) GammaIBP
+  
+  # Initialization and MCMC setting 
+  init_GammaIBP <- list(alpha_0 = 0.5, s_0 = 15, a_0 = 5, b_0 = 1)
+  init_obj_GammaIBP <- initialization(model = "GammaIBP", init = init_GammaIBP )
+  mcmcparams_GammaIBP <- list(sigq_alpha = 0.1, sigq_s = 0.1, 
+                              S = 300, n_burnin = 100, thin = 2)
+  mcmcparams_obj_GammaIBP <- mcmcparameters(model = "GammaIBP", mcmcparams = mcmcparams_GammaIBP)
+  
+  # Hyperparameters elicitation 
+  hyper_GammaIBP <- list(a_alpha = 2, b_alpha = 2,
+                         a_s = 2, b_s = 0.2,
+                         q = 0.05, r = 1, t = 0.1)
+  prior_obj_GammaIBP <- prior(model = "GammaIBP", hyper = hyper_GammaIBP) 
+  
+  # 4) Call the routine to perform simulations
+  
+  fit_estimate_polynomial_scenario_singledataset(xi = xi,
+                                                 init_obj_PoissonBB, mcmcparams_obj_PoissonBB, prior_obj_PoissonBB,
+                                                 init_obj_NegBinBB, mcmcparams_obj_NegBinBB, prior_obj_NegBinBB, c_fr,
+                                                 init_obj_GammaIBP, mcmcparams_obj_GammaIBP, prior_obj_GammaIBP )
+  
 }
 
 # Load the Work space
@@ -541,7 +640,59 @@ n_dataset = 2
 
 # Fit and estimate richness, rarefaction and extrapolation for GibbsFA's (save workspace)
 if (!file.exists(paste0("R_script_paper/poly_",xi,"_fit_estimate_repeateddataset.RData"))) {
-  fit_estimate_polynomial_scenario_repeateddataset(xi = xi, n_dataset = n_dataset)
+  
+  # 1) PoissonBB 
+  
+  # Initialization and MCMC setting 
+  init_PoissonBB <- list(alpha_0 = -1, s_0 = 1)
+  init_obj_PoissonBB <- initialization(model = "PoissonBB", init = init_PoissonBB )
+  mcmcparams_PoissonBB <- list(tau = 0.1, S = 300, n_burnin = 100, thin = 2)
+  mcmcparams_obj_PoissonBB <- mcmcparameters(model = "PoissonBB", mcmcparams = mcmcparams_PoissonBB)
+  
+  # Hyperparameters elicitation 
+  hyper_PoissonBB <- list(a_alpha = 1, b_alpha = 0.1,
+                          a_s = 2, b_s = 0.2,
+                          lambda = 1)
+  prior_obj_PoissonBB <- prior(model = "PoissonBB", hyper = hyper_PoissonBB) 
+  
+  
+  # 2) NegBinBB
+  
+  # Initialization and MCMC setting
+  init_NegBinBB <- list(alpha_0 = -1, s_0 = 1)
+  init_obj_NegBinBB <- initialization(model = "NegBinBB", init = init_NegBinBB )
+  mcmcparams_NegBinBB <- list(tau = 0.1, S = 300, n_burnin = 100, thin = 2)
+  mcmcparams_obj_NegBinBB <- mcmcparameters(model = "NegBinBB", mcmcparams = mcmcparams_NegBinBB)
+  
+  # Hyperparameters elicitation 
+  c_fr <- 10
+  
+  hyper_NegBinBB <- list(a_alpha = 1, b_alpha = 0.1,
+                         a_s = 2, b_s = 0.2,
+                         n0 = 1, # n0, mu0 are set s.t. E(N) = Nbar, Var(N) = c_fr*E(N)
+                         mu0 = 0.5)
+  prior_obj_NegBinBB <- prior(model = "NegBinBB", hyper = hyper_NegBinBB) 
+  
+  # 3) GammaIBP
+  
+  # Initialization and MCMC setting 
+  init_GammaIBP <- list(alpha_0 = 0.5, s_0 = 15, a_0 = 5, b_0 = 1)
+  init_obj_GammaIBP <- initialization(model = "GammaIBP", init = init_GammaIBP )
+  mcmcparams_GammaIBP <- list(sigq_alpha = 0.1, sigq_s = 0.1, 
+                              S = 300, n_burnin = 100, thin = 2)
+  mcmcparams_obj_GammaIBP <- mcmcparameters(model = "GammaIBP", mcmcparams = mcmcparams_GammaIBP)
+  
+  # Hyperparameters elicitation 
+  hyper_GammaIBP <- list(a_alpha = 2, b_alpha = 2,
+                         a_s = 2, b_s = 0.2,
+                         q = 0.05, r = 1, t = 0.1)
+  prior_obj_GammaIBP <- prior(model = "GammaIBP", hyper = hyper_GammaIBP) 
+  
+  # 4) Call the routine to perform simulations
+  fit_estimate_polynomial_scenario_repeateddataset(xi = xi, n_dataset = n_dataset,
+                                                   init_obj_PoissonBB, mcmcparams_obj_PoissonBB, prior_obj_PoissonBB,
+                                                   init_obj_NegBinBB, mcmcparams_obj_NegBinBB, prior_obj_NegBinBB, c_fr,
+                                                   init_obj_GammaIBP, mcmcparams_obj_GammaIBP, prior_obj_GammaIBP)
 }
 
 # Load the Work space
