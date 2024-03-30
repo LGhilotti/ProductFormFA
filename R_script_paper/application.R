@@ -1,18 +1,15 @@
 rm(list=ls())
 
 library(ProductFormFA)
-library(xlsx)
-library(readxl)
 source("R_script_paper/Routine_Chao.R")
 source("R_script_paper/utils.R")
+
 
 # Choose dataset among the 3 available
 type = "Fungi" # options: "Lichens", "Plants" 
 
-data <- read_excel('R_script_paper/mazz2016_data.xls',
-                   sheet = type) %>%
-  filter(is.na(Species) == F) %>%
-  column_to_rownames(var = "Species")
+data <- read.csv(file = paste0("R_script_paper/mazz2016_",type,".csv"), header = TRUE,
+                 row.names="X")
 
 data <- t(data)
 data <- data[, colSums(is.na(data))==0]
