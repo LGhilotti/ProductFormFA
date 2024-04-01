@@ -1,6 +1,11 @@
 
 rm(list=ls())
 library(ProductFormFA)
+library(tidyverse)
+library(scales)
+library(ggpubr)
+library(ggthemes)
+
 source("R_script_paper/Routine_Chao.R")
 source("R_script_paper/utils.R")
 

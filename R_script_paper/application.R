@@ -1,12 +1,17 @@
 rm(list=ls())
 
 library(ProductFormFA)
+library(tidyverse)
+library(scales)
+library(ggpubr)
+library(ggthemes)
+
 source("R_script_paper/Routine_Chao.R")
 source("R_script_paper/utils.R")
 
 
 # Choose dataset among the 3 available
-type = "Fungi" # options: "Lichens", "Plants" 
+type = "Plants" # options: "Lichens", "Plants" 
 
 data <- read.csv(file = paste0("R_script_paper/mazz2016_",type,".csv"), header = TRUE,
                  row.names="X")
@@ -26,7 +31,7 @@ print(paste0("Number of species: ", Kn))
 M <- 1000
 
 # Randomly reorder sites
-seed <- 1234
+seed <- 12345
 set.seed(seed)
 
 data_mat <- data[sample.int(n, size = n, replace = F),]
