@@ -15,6 +15,12 @@ total_richness <- function(object, ...) {
 
 
 
+feature_fraction <- function(n, alpha, theta){
+  1 - exp(lgamma(theta + alpha + n ) - lgamma(theta + alpha) - lgamma(theta + n) + lgamma(theta))
+}
+
+feature_fraction <- Vectorize(feature_fraction, "n")
+
 
 #' Model-based richness posterior distribution for BB with Poisson(lambda) mixture
 #'
@@ -49,8 +55,7 @@ total_richness.PoissonBB <- function(object, seed = 1234) {
     alpha <- alpha_chain[q]
     theta <- theta_chain[q]
     
-    poiss_par <- lambda*exp(lgamma(theta+alpha+n_train) - lgamma(theta+alpha) - 
-                              lgamma(theta+n_train) + lgamma(theta))
+    poiss_par <- lambda*(1 - feature_fraction(n_train, alpha, theta))
     
     richness_chain[q] <- Kn + rpois(1, poiss_par)
   }
@@ -58,6 +63,25 @@ total_richness.PoissonBB <- function(object, seed = 1234) {
   return (richness_chain)
 }
 
+
+
+#' Model-based richness posterior distribution for BB with Poisson(lambda) mixture - EB version
+#'
+#' @param object An object of class \code{GibbsFA, PoissonBB_eb}
+#' 
+#' @export
+#' 
+#' @details Return the lambda parameter of the Poisson posterior distribution of N'
+#' for BB with Poisson(lambda) mixture
+total_richness.PoissonBB_eb <- function(object) {
+  
+  alpha <- object$alpha
+  theta <- object$theta
+  lambda <- object$lambda
+  n <- nrow(object$feature_matrix)
+  
+  return( list("lambda_post" = lambda * (1 - feature_fraction(n, alpha, theta)) ) )
+}
 
 
 #' Model-based richness posterior distribution for BB with NB(n0,mu0) mixture
@@ -95,11 +119,34 @@ total_richness.NegBinBB <- function(object, seed = 1234) {
     alpha <- alpha_chain[q]
     theta <- theta_chain[q]
     
-    negbin_par <- 1 - (1 - mu0)*exp(lgamma(theta+alpha+n_train) - lgamma(theta+alpha) - 
-                                    lgamma(theta+n_train) + lgamma(theta))
+    # in (nstar,p) parametrization
+    p <- 1/(mu0/n0 + 1)
+    negbin_par <- 1 - (1 - p)*(1 - feature_fraction(n_train, alpha, theta))
     
     richness_chain[q] <- Kn + rnbinom(1, n0 + Kn, negbin_par)
   }
   
   return (richness_chain)
+}
+
+#' Model-based richness posterior distribution for BB with NB(n0,mu0) mixture - EB version
+#'
+#' @param object An object of class \code{GibbsFA, NegBinBB_eb}
+#' 
+#' @export
+#' 
+#' @details Return the (n0,mu0) parameter of the NB posterior distribution of N'
+#' for BB with NB(n0,mu0) mixture
+total_richness.NegBinBB_eb <- function(object) {
+  
+  alpha <- object$alpha
+  theta <- object$theta
+  n0 <- object$n0
+  mu0 <- object$mu0
+  n <- nrow(object$feature_matrix)
+  Kn <- ncol(object$feature_matrix)
+  p_n <- feature_fraction(n, alpha, theta)
+  
+  return( list("n0_post" = n0 + Kn, 
+               "mu0_post" = (n0 + Kn)/(n0/mu0 + p_n) *(1 - p_n) ) )
 }

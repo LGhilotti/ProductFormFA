@@ -11,7 +11,7 @@ source("R_script_paper/utils.R")
 
 
 # Choose dataset among the 3 available
-type = "Plants" # options: "Lichens", "Plants" 
+type = "Lichens" # options: "Lichens", "Plants" 
 
 data <- read.csv(file = paste0("R_script_paper/mazz2016_",type,".csv"), header = TRUE,
                  row.names="X")
@@ -37,7 +37,7 @@ set.seed(seed)
 data_mat <- data[sample.int(n, size = n, replace = F),]
 
 # Plot accumulation
-plot(1:n, rarefaction(data_mat) )
+plot(1:n, rarefaction(data_mat, n_reorderings = 10) )
 
 
 # 2) Run the models on the data ----
@@ -66,6 +66,20 @@ PoissonBB_fit <- GibbsFA(feature_matrix = data_mat,
                          initialization = init_obj_PoissonBB, 
                          mcmcparams = mcmcparams_obj_PoissonBB)
 
+# 2.1.B) Beta-Bernoulli with Poisson(lambda) mixture - EB version
+
+# EB parameters 
+eb_init <- list(alpha = -1, s = 1)
+eb_known <- list(lambda = Nbar)
+eb_params_obj <- eb_params(model = "PoissonBB", init = eb_init, known = eb_known )
+
+# Fit the model with EB
+eb_PoissonBB_fit <- GibbsFA_eb(feature_matrix = data_mat, 
+                               model = "PoissonBB", 
+                               eb_params =  eb_params_obj)
+
+
+
 
 # 2.2) Beta-Bernoulli with NB(n0, mu0) mixture
 
@@ -92,11 +106,29 @@ NegBinBB_fit <- GibbsFA(feature_matrix = data_mat,
                         initialization = init_obj_NegBinBB, 
                         mcmcparams = mcmcparams_obj_NegBinBB)
 
+# 2.2.B) Beta-Bernoulli with NB(n0,mu0) mixture - EB version
+
+# EB parameters 
+eb_init <- list(alpha = -1, s = 1)
+c <- 10
+eb_known <- list( mu0 = Nbar, n0 = Nbar/(c-1))
+eb_params_obj <- eb_params(model = "NegBinBB", init = eb_init, known = eb_known )
+
+# Fit the model with EB
+eb_NegBinBB_fit <- GibbsFA_eb(feature_matrix = data_mat, 
+                              model = "NegBinBB", 
+                              eb_params =  eb_params_obj)
+
 
 # 3) Estimate the total richness ----
 
 PoissonBB_rich <- total_richness(object = PoissonBB_fit)
+eb_PoissonBB_rich <- total_richness(object = eb_PoissonBB_fit)
+plot(x = eb_PoissonBB_fit, type = "richness")
+
 NegBinBB_rich <- total_richness(object = NegBinBB_fit)
+eb_NegBinBB_rich <- total_richness(object = eb_NegBinBB_fit)
+plot(x = eb_NegBinBB_fit, type = "richness")
 
 # 4) Extrapolation ----
 
@@ -106,7 +138,12 @@ NegBinBB_extr <- extrapolation(object = NegBinBB_fit, M = M)
 # 5) Rarefaction ----
 
 PoissonBB_rare <- rarefaction(object = PoissonBB_fit) 
+eb_PoissonBB_rare <- rarefaction(object = eb_PoissonBB_fit) 
+plot(x = eb_PoissonBB_fit, type = "rarefaction", n_reorderings = 10)
+
 NegBinBB_rare <- rarefaction(object = NegBinBB_fit) 
+eb_NegBinBB_rare <- rarefaction(object = eb_NegBinBB_fit)
+plot(x = eb_NegBinBB_fit, type = "rarefaction", n_reorderings = 10)
 
 # 6) Competitors: Chao and GT ------
 

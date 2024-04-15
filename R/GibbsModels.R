@@ -79,7 +79,7 @@ GibbsFA <- function(feature_matrix, model, prior, initialization, mcmcparams, se
     # Run the model
     res <- sampler_NegBinBB(Z = feature_matrix,
                             alpha_bar_0 = alpha_bar_0, s_0 = s_0,
-                            a_alpha = a_alpha, b_alpha = b_alpha, a_s = a_s, b_s = b_s, nstar = n0, p = mu0,
+                            a_alpha = a_alpha, b_alpha = b_alpha, a_s = a_s, b_s = b_s, nstar = n0, p = 1/(mu0/n0 + 1),
                             tau = tau, S = S, n_burnin = n_burnin, thin = thin, seed = seed)
     
     out <- list("feature_matrix" = feature_matrix,
@@ -135,21 +135,177 @@ GibbsFA <- function(feature_matrix, model, prior, initialization, mcmcparams, se
 
 
 
+neg_log_EFPF_GibbsFA_R <- function(model, n, counts, par, known){
+  
+  par <- ifelse(is.na(known), par, known)
+  
+  if (model == "PoissonBB"){
+    return (neg_log_EFPF_PoissonBB(n, counts, par))
+  } 
+  
+  if (model == "NegBinBB"){
+    # component related to mu0 is substituted with the corresponding p
+    par[4] <- 1/(par[4]/par[3] + 1)
+    return (neg_log_EFPF_NegBinBB(n, counts, par))
+  }
+  
+  if (model == "NegBinBB_np"){
+    return (neg_log_EFPF_NegBinBB(n, counts, par))
+  }
+  
+  if (model == "GammaIBP"){
+    return (neg_log_EFPF_GammaIBP(n, counts, par))
+  }
+  
+}
+
+#' Gibbs-type feature allocation models through Empirical Bayes (GibbsFA_eb): 
+#' function to estimate the parameters via EB (choose among PoissonBB, NegBinBB and GammaIBP).
+#'
+#' @param feature_matrix A \code{n x K}-dimensional binary matrix of features
+#' @param model Model to fit. Available models are \code{PoissonBB} (BB with Poisson(lambda) mixture),
+#' \code{NegBinBB} (BB with NB(n0, mu0) mixture), \code{GammaIBP} (IBP with Gamma(a, b) mixture)
+#' @param initialization Initialization object for starting point of the optimization
+#' @param seed seed for fixing randomness
+#' 
+#' @return An object of class \code{GibbsFA, model_eb}
+#'
+#' @export
+#' 
+GibbsFA_eb <- function(feature_matrix, model, eb_params, seed = 1234) {
+  
+  if (!all(class(eb_params) == c("eb_params", model))  ){
+    stop("Starting point/known parameters for optimization not compatible")
+  }
+  
+  # Remove NAs and 0s column from feature_matrix
+  feature_matrix <- feature_matrix[, colSums(is.na(feature_matrix))==0]
+  feature_matrix <- feature_matrix[, colSums(feature_matrix)!=0]
+  counts <- colSums(feature_matrix)
+  n <- nrow(feature_matrix)
+    
+  if (model == "PoissonBB") {
+    
+    # Initialization of the optimization
+    eb_init <- eb_params$init
+    eb_known <- eb_params$known
+    
+    res <- optim(
+      par = eb_init, fn = neg_log_EFPF_GibbsFA_R, model = "PoissonBB", 
+      n = n, counts = counts, known = eb_known,
+      method = "L-BFGS-B", lower = c(-Inf, 1e-5, 1e-5), upper = c(-1e-5, Inf, Inf)
+    )
+   
+    
+    out <- list("feature_matrix" = feature_matrix,
+                "eb_params" = eb_params,
+                "alpha" = unname(res$par["alpha"]), 
+                "theta" = unname(res$par["s"] - res$par["alpha"]),
+                "lambda" = unname(res$par["lambda"])
+                )
+    
+    class(out) <- c("GibbsFA", "PoissonBB_eb")
+    return(out)
+  }
+  
+  if (model == "NegBinBB") {
+    
+    # Initialization of the optimization
+    eb_init <- eb_params$init
+    eb_known <- eb_params$known
+    
+    res <- optim(
+      par = eb_init, fn = neg_log_EFPF_GibbsFA_R, model = "NegBinBB", 
+      n = n, counts = counts, known = eb_known,
+      method = "L-BFGS-B", lower = c(-Inf, 1e-5, 1e-5, 1e-5), upper = c(-1e-5, Inf, Inf, Inf)
+    )
+    
+    
+    out <- list("feature_matrix" = feature_matrix,
+                "eb_params" = eb_params,
+                "alpha" = unname(res$par["alpha"]), 
+                "theta" = unname(res$par["s"] - res$par["alpha"]),
+                "n0" = unname(res$par["n0"]),
+                "mu0" = unname(res$par["mu0"])
+                )
+    
+    class(out) <- c("GibbsFA", "NegBinBB_eb")
+    return(out)
+  }
+  
+  
+  if (model == "NegBinBB_np") {
+    
+    # Initialization of the optimization
+    eb_init <- eb_params$init
+    eb_known <- eb_params$known
+    
+    res <- optim(
+      par = eb_init, fn = neg_log_EFPF_GibbsFA_R, model = "NegBinBB_np", 
+      n = n, counts = counts, known = eb_known,
+      method = "L-BFGS-B", lower = c(-Inf, 1e-5, 1e-5, 1e-5), upper = c(-1e-5, Inf, Inf, 1 - 1e-5)
+    )
+    
+    
+    out <- list("feature_matrix" = feature_matrix,
+                "eb_params" = eb_params,
+                "alpha" = unname(res$par["alpha"]), 
+                "theta" = unname(res$par["s"] - res$par["alpha"]),
+                "n0" = unname(res$par["n0"]),
+                "p" = unname(res$par["p"])
+    )
+    
+    class(out) <- c("GibbsFA", "NegBinBB_np_eb")
+    return(out)
+  }
+  
+  
+  if (model == "GammaIBP") {
+    
+    # Initialization of the optimization
+    eb_init <- eb_params$init
+    eb_known <- eb_params$known
+    
+    res <- optim(
+      par = eb_init, fn = neg_log_EFPF_GibbsFA_R, model = "GammaIBP", 
+      n = n, counts = counts, known = eb_known,
+      method = "L-BFGS-B", lower = c(1e-5, 1e-5, 1e-5, 1e-5), upper = c(1 - 1e-5, Inf, Inf, Inf)
+    )
+    
+    out <- list("feature_matrix" = feature_matrix,
+                "eb_params" = eb_params,
+                "alpha" = unname(res$par["alpha"]), 
+                "theta" = unname(res$par["s"] - res$par["alpha"]),
+                "a" = unname(res$par["a"]),
+                "b" = unname(res$par["b"])
+    )
+    
+    class(out) <- c("GibbsFA", "GammaIBP_eb")
+    return(out)
+  }
+}
+
+
 
 #' Plot for both the mixtures of Beta-Bernoulli and the Gamma IBP
 #'
 #' @param x An object of class \code{GibbsFA}.
-#' @param M additional sample to predict. Valid only for \code{type = "extrapolation"}. By default, it is equal to the sample size.
 #' @param type Type of plot. Available options are:  \code{"rarefaction"}, \code{"extrapolation"} and \code{"richness"}.
 #' Type \code{"richness"} is available only for mixtures of Beta-Bernoulli.
-#' @param plot_sample Whether to add the sample-based rarefaction curve. Available for \code{type = "rarefaction"}.
+#' @param bw bandwidth for sample-based plot of richness.
+#' @param n_reorderings number of reorderings for accumularion curve.
+#' @param M additional sample to predict. Valid only for \code{type = "extrapolation"}. By default, it is equal to the sample size.
 #' @param ... Further arguments passed to or from other methods.
 #'
 #' @details The method produces summary plots for the GibbsFA output
 #'
+#' @import ggplot2
+#' @import scales
+#' @import ggpubr
+#' @import dplyr
 #' @export
 #'
-plot.GibbsFA <- function(x, type, plot_sample = TRUE, M = NULL, seed = 1234, ...){
+plot.GibbsFA <- function(x, type, bw = 1, n_reorderings = 1, M = NULL, seed = 1234, ...){
   
   if (!type %in% c("richness", "rarefaction", "extrapolation")){
     stop("Error: invalid type of plot")
@@ -163,28 +319,118 @@ plot.GibbsFA <- function(x, type, plot_sample = TRUE, M = NULL, seed = 1234, ...
     
     richness <- total_richness(object = x)
     
-    df <- data.frame("richness" = richness, "model" = class(x)[2])
+    if (class(x)[2] == "PoissonBB_eb"){
+      
+      lambda <- richness$lambda_post
+      lb <- qpois(0.025, lambda, lower.tail = TRUE, log.p = FALSE)
+      ub <- qpois(0.975, lambda, lower.tail = TRUE, log.p = FALSE)
+      y <- dpois(lb:ub, lambda = lambda)
+      
+      p <- ggplot(data.frame(x= Kn + (lb:ub), y = y), aes(x,y)) +
+        geom_point() +
+        theme_light() +
+        theme(legend.position = "top") +
+        scale_y_continuous(breaks = pretty_breaks()) +
+        xlab("# distinct features") + rremove("ylab") +
+        facet_wrap(~"Richness") +
+        theme(aspect.ratio = 1)
+      
+      
+    } else if (class(x)[2] == "NegBinBB_eb"){
+
+      n0_post <- richness$n0_post
+      mu0_post <- richness$mu0_post
+      p_post <- 1/(mu0_post/n0_post + 1)
+      lb <- qnbinom(0.025, size = n0_post, prob = p_post, lower.tail = TRUE, log.p = FALSE)
+      ub <- qnbinom(0.975, size = n0_post, prob = p_post, lower.tail = TRUE, log.p = FALSE)
+      y <- dnbinom(lb:ub, size = n0_post, prob = p_post)
+        
+      p <- ggplot(data.frame(x= Kn + (lb:ub), y = y), aes(x,y)) +
+        geom_point() +
+        theme_light() +
+        theme(legend.position = "top") +
+        scale_y_continuous(breaks = pretty_breaks()) +
+        xlab("# distinct features") + rremove("ylab") +
+        facet_wrap(~"Richness") +
+        theme(aspect.ratio = 1)
     
-    p <- ggplot(df) +
-      stat_density(aes(x=richness), geom="line",position="identity") +
-      theme_light() +
-      theme(legend.position = "top") +
-      scale_y_continuous(breaks = pretty_breaks()) +
-      xlab("# distinct features") + rremove("ylab") +
-      facet_wrap(~"Richness") +
-      theme(aspect.ratio = 1)
+    } else {
     
+      df <- data.frame("richness" = richness, "model" = class(x)[2])
+      lb <- quantile(richness, prob = 0.025)
+      ub <- quantile(richness, prob = 0.975)
+      
+      p <- ggplot(df) +
+        stat_density(aes(x=richness), geom="line",position="identity", bw = bw) +
+        theme_light() +
+        theme(legend.position = "top") +
+        scale_y_continuous(breaks = pretty_breaks()) +
+        xlab("# distinct features") + rremove("ylab") +
+        scale_x_continuous(limits = c(lb-1, ub+1)) +
+        facet_wrap(~"Richness") +
+        theme(aspect.ratio = 1)
+    }
+      
   } else if (type == "rarefaction"){
     
     rare_list <- rarefaction(object = x, seed = seed)
+
+    # Extract accumulation curve of the observed sample (or average accumulation)
+    accum <- rarefaction(x$feature_matrix, n_reorderings = n_reorderings, seed = seed)
     
-    ci_mat <- as.matrix(bind_rows(lapply(rare_list, quantile, probs = c(0.025,0.975) )))
-    mean_vec <- as.vector(unlist(lapply(rare_list, mean)))
-    
-    if (plot_sample == TRUE){
+    if (class(x)[2] == "PoissonBB_eb"){
       
-      # Extract accumulation curve of the observed sample (or average accumulation)
-      accum <- rarefaction(x$feature_matrix)
+      lambda_post <- rare_list$lambda_post
+      lb_bands <- qpois(0.025, lambda_post, lower.tail = TRUE, log.p = FALSE)
+      ub_bands <- qpois(0.975, lambda_post, lower.tail = TRUE, log.p = FALSE)
+      means <- lambda_post
+      df <- data.frame("means" = c(0,means), 
+                       "lb_bands" = c(0,lb_bands),
+                       "ub_bands" = c(0,ub_bands),
+                       "accum" = c(0,accum))
+      
+      p <- ggplot(df, aes(x = 0:n, y = means)) +
+        geom_line(linetype = "dashed", color = "red" , linewidth = 0.9) +
+        geom_ribbon(aes(ymin = lb_bands, ymax = ub_bands), color = "red" , linewidth = 0.8, alpha = 0.1) +
+        geom_point( aes(x = 0:n, y = accum), color="black", shape = 1) +
+        xlab("# observations") + ylab("# distinct features") + 
+        theme_light() + 
+        theme(legend.position = "top") +
+        scale_y_continuous(breaks = pretty_breaks()) +
+        scale_x_continuous(breaks = pretty_breaks()) +
+        facet_wrap(~"Rarefaction and accumulation") +
+        theme(aspect.ratio = 1)
+      
+      
+    } else if (class(x)[2] %in% c("NegBinBB_eb", "GammaIBP_eb")){
+      
+      n0_post <- rare_list$n0_post
+      mu0_post <- rare_list$mu0_post
+      p_post <- 1/(mu0_post/n0_post + 1)
+      lb_bands <- qnbinom(0.025, size = n0_post, prob = p_post, lower.tail = TRUE, log.p = FALSE)
+      ub_bands <- qnbinom(0.975, size = n0_post, prob = p_post, lower.tail = TRUE, log.p = FALSE)
+      means <- mu0_post
+      df <- data.frame("means" = c(0,means), 
+                       "lb_bands" = c(0,lb_bands),
+                       "ub_bands" = c(0,ub_bands),
+                       "accum" = c(0,accum))
+      
+      p <- ggplot(df, aes(x = 0:n, y = means)) +
+        geom_line(linetype = "dashed", color = "red" , linewidth = 0.9) +
+        geom_ribbon(aes(ymin = lb_bands, ymax = ub_bands), color = "red" , linewidth = 0.8, alpha = 0.1) +
+        geom_point( aes(x = 0:n, y = accum), color="black", shape = 1) +
+        xlab("# observations") + ylab("# distinct features") + 
+        theme_light() + 
+        theme(legend.position = "top") +
+        scale_y_continuous(breaks = pretty_breaks()) +
+        scale_x_continuous(breaks = pretty_breaks()) +
+        facet_wrap(~"Rarefaction and accumulation") +
+        theme(aspect.ratio = 1)
+      
+    } else { # Prior approach
+      
+      ci_mat <- as.matrix(bind_rows(lapply(rare_list, quantile, probs = c(0.025,0.975) )))
+      mean_vec <- as.vector(unlist(lapply(rare_list, mean)))
       
       df <- data.frame("means" = c(0,mean_vec),
                        "lbs" = c(0,ci_mat[,1]),
@@ -203,26 +449,9 @@ plot.GibbsFA <- function(x, type, plot_sample = TRUE, M = NULL, seed = 1234, ...
         facet_wrap(~"Rarefaction and accumulation") +
         theme(aspect.ratio = 1)
       
-    } else {
-      
-      df <- data.frame("means" = c(0,mean_vec),
-                       "lbs" = c(0,ci_mat[,1]),
-                       "ubs" = c(0,ci_mat[,2]))
-      
-      p <- ggplot(df, aes(x = 0:n, y = means)) +
-        geom_line(linetype = "dashed", color = "red" , linewidth = 0.9) +
-        geom_ribbon(aes(ymin = lbs, ymax = ubs), color = "red", linewidth = 0.8, alpha = 0.1) +
-        xlab("# observations") + ylab("# distinct features") + 
-        theme_light() + 
-        theme(legend.position = "top") +
-        scale_y_continuous(breaks = pretty_breaks()) +
-        scale_x_continuous(breaks = pretty_breaks()) +
-        facet_wrap(~"Rarefaction") +
-        theme(aspect.ratio = 1)
-      
     }
     
-    
+  
   } else if (type == "extrapolation"){
     
     if(is.null(M)){
@@ -231,29 +460,83 @@ plot.GibbsFA <- function(x, type, plot_sample = TRUE, M = NULL, seed = 1234, ...
     
     extr_list <- extrapolation(object = x, M = M, seed = seed)
     
-    ci_mat <- as.matrix(bind_rows(lapply(extr_list, quantile, probs = c(0.025,0.975) )))
-    mean_vec <- as.vector(unlist(lapply(extr_list, mean)))
-    
     # Extract accumulation curve of the observed sample (or average accumulation)
-    accum <- rarefaction(x$feature_matrix)
-    accum_df <- data.frame("accum" = c(0, accum))
+    accum <- rarefaction(x$feature_matrix, n_reorderings = n_reorderings, seed = seed)
     
-    df <- data.frame("means" = c(Kn,mean_vec),
-                     "lbs" = c(Kn,ci_mat[,1]),
-                     "ubs" = c(Kn,ci_mat[,2]))
-    
-    p <- ggplot(df, aes(x = n:(n+M), y = means)) +
-      geom_line(linetype = "dashed", color = "red" , linewidth = 0.9) +
-      geom_ribbon(aes(ymin = lbs, ymax = ubs), color = "red" , linewidth = 0.8, alpha = 0.1) +
-      geom_point( data = accum_df, aes(x = 0:n, y = accum), color="black", shape = 1) +
-      geom_vline(aes(xintercept = n), linetype="dashed", color = "grey") +
-      xlab("# observations") + ylab("# distinct features") + 
-      theme_light() + 
-      theme(legend.position = "top") +
-      scale_y_continuous(breaks = pretty_breaks()) +
-      scale_x_continuous(breaks = pretty_breaks()) +
-      facet_wrap(~"Extrapolation and accumulation") +
-      theme(aspect.ratio = 1)
+    if (class(x)[2] == "PoissonBB_eb"){
+      
+      lambda_post <- extr_list$lambda_post
+      lb_bands <- qpois(0.025, lambda_post, lower.tail = TRUE, log.p = FALSE)
+      ub_bands <- qpois(0.975, lambda_post, lower.tail = TRUE, log.p = FALSE)
+      means <- lambda_post
+      df <- data.frame("means" = c(Kn,Kn + means), 
+                       "lb_bands" = c(Kn,Kn + lb_bands),
+                       "ub_bands" = c(Kn,Kn + ub_bands))
+      
+      p <- ggplot(df, aes(x = n:(n+M), y = means)) +
+        geom_line(linetype = "dashed", color = "red" , linewidth = 0.9) +
+        geom_ribbon(aes(ymin = lb_bands, ymax = ub_bands), color = "red" , linewidth = 0.8, alpha = 0.1) +
+        geom_point( data = data.frame(x = 0:n, y = c(0,accum)), aes(x = x, y = y),
+                    color="black", shape = 1) +
+        geom_vline(aes(xintercept = n), linetype="dashed", color = "grey") +
+        xlab("# observations") + ylab("# distinct features") + 
+        theme_light() + 
+        theme(legend.position = "top") +
+        scale_y_continuous(breaks = pretty_breaks()) +
+        scale_x_continuous(breaks = pretty_breaks()) +
+        facet_wrap(~"Extrapolation and accumulation") +
+        theme(aspect.ratio = 1)
+      
+      
+    } else if (class(x)[2] %in% c("NegBinBB_eb", "GammaIBP_eb")){
+      
+      n0_post <- extr_list$n0_post
+      mu0_post <- extr_list$mu0_post
+      p_post <- 1/(mu0_post/n0_post + 1)
+      lb_bands <- qnbinom(0.025, size = n0_post, prob = p_post, lower.tail = TRUE, log.p = FALSE)
+      ub_bands <- qnbinom(0.975, size = n0_post, prob = p_post, lower.tail = TRUE, log.p = FALSE)
+      means <- mu0_post
+      df <- data.frame("means" = c(Kn,Kn + means), 
+                       "lb_bands" = c(Kn,Kn + lb_bands),
+                       "ub_bands" = c(Kn,Kn + ub_bands))
+      
+      p <- ggplot(df, aes(x = n:(n+M), y = means)) +
+        geom_line(linetype = "dashed", color = "red" , linewidth = 0.9) +
+        geom_ribbon(aes(ymin = lb_bands, ymax = ub_bands), color = "red" , linewidth = 0.8, alpha = 0.1) +
+        geom_point( data = data.frame(x = 0:n, y = c(0,accum)), aes(x = x, y = y),
+                    color="black", shape = 1) +
+        geom_vline(aes(xintercept = n), linetype="dashed", color = "grey") +
+        xlab("# observations") + ylab("# distinct features") + 
+        theme_light() + 
+        theme(legend.position = "top") +
+        scale_y_continuous(breaks = pretty_breaks()) +
+        scale_x_continuous(breaks = pretty_breaks()) +
+        facet_wrap(~"Extrapolation and accumulation") +
+        theme(aspect.ratio = 1)
+      
+    } else { # Prior approach
+      
+      ci_mat <- as.matrix(bind_rows(lapply(extr_list, quantile, probs = c(0.025,0.975) )))
+      mean_vec <- as.vector(unlist(lapply(extr_list, mean)))
+      
+      df <- data.frame("means" = c(Kn,mean_vec),
+                       "lbs" = c(Kn,ci_mat[,1]),
+                       "ubs" = c(Kn,ci_mat[,2]))
+      
+      p <- ggplot(df, aes(x = n:(n+M), y = means)) +
+        geom_line(linetype = "dashed", color = "red" , linewidth = 0.9) +
+        geom_ribbon(aes(ymin = lbs, ymax = ubs), color = "red" , linewidth = 0.8, alpha = 0.1) +
+        geom_point( data = data.frame(x = 0:n, y = c(0,accum)), aes(x = x, y = y), 
+                    color="black", shape = 1) +
+        geom_vline(aes(xintercept = n), linetype="dashed", color = "grey") +
+        xlab("# observations") + ylab("# distinct features") + 
+        theme_light() + 
+        theme(legend.position = "top") +
+        scale_y_continuous(breaks = pretty_breaks()) +
+        scale_x_continuous(breaks = pretty_breaks()) +
+        facet_wrap(~"Extrapolation and accumulation") +
+        theme(aspect.ratio = 1)
+    }
     
   
     

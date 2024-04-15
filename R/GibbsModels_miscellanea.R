@@ -2,7 +2,19 @@
 # Functions for predicting Kn + K^(n)_m, for given n, Kn and a range of M, a posteriori
 # (i.e., using the posterior chains of the parameters).
 # Available for both mixtures of Beta-Bernoulli and Gamma IBP.
+# For the EB versions, the core parameters of the posterior distibutions are returned.
 #
+
+#' Model-based extrapolation
+#' @param object An object of class \code{GibbsFA}
+#' @param ... Additional parameters
+#' 
+#' @export
+prediction <- function(object, ...) {
+  
+  UseMethod("prediction", object)
+}
+
 
 #' Model-based prediction for BB with Poisson(lambda) mixture
 #'
@@ -15,7 +27,7 @@
 #' 
 #' @details Draw samples from the posterior distribution Kn + K^(n)_m, for different m,
 #' for BB with Poisson(lambda) mixture
-prediction_PoissonBB <- function(object, n = 0, Kn = 0, M = 10, only_last = FALSE, seed = 1234) {
+prediction.PoissonBB <- function(object, n = 0, Kn = 0, M = 10, only_last = FALSE, seed = 1234) {
   
   set.seed(seed)
   
@@ -40,13 +52,8 @@ prediction_PoissonBB <- function(object, n = 0, Kn = 0, M = 10, only_last = FALS
     alpha <- alpha_chain[q]
     theta <- theta_chain[q]
     
-    par_1 <- lambda*exp(lgamma(theta+alpha+n) - lgamma(theta+alpha) - 
-                          lgamma(theta+n) + lgamma(theta))
-    par_2 <- lambda*exp(lgamma(theta+alpha+n+M_vec) - lgamma(theta+alpha+n) - 
-                          lgamma(theta+n+M_vec) + lgamma(theta+n) +
-                          lgamma(theta+alpha+n) - lgamma(theta+alpha) - 
-                          lgamma(theta+n) + lgamma(theta) )
-    poiss_par <- par_1 - par_2
+    poiss_par <- lambda*feature_fraction(M_vec, alpha, theta + n)*
+      (1 - feature_fraction(n, alpha, theta))
     
     kmn_chain[,q] <- rpois(length(M_vec), poiss_par)
   }
@@ -61,6 +68,37 @@ prediction_PoissonBB <- function(object, n = 0, Kn = 0, M = 10, only_last = FALS
 }
 
 
+#' Model-based prediction for BB with Poisson(lambda) mixture - EB version
+#'
+#' @param object An object of class \code{GibbsFA, PoissonBB}
+#' @param n Size of the hypothetical observed sample
+#' @param Kn Number of distinct features hypothetically observed in the sample
+#' @param M Maximum size of future sample to extrapolate
+#' @param only_last logical; TRUE if only extrapolation for the additional sample of size M
+#' 
+#' @details Return lambdas sequence of the posterior distribution K^(n)_m, for different m,
+#' for BB with Poisson(lambda) mixture
+prediction.PoissonBB_eb <- function(object, n = 0, Kn = 0, M = 10, only_last = FALSE) {
+  
+  # Extract the parameters from object
+  alpha <- object$alpha
+  theta <- object$theta
+  lambda <- object$lambda
+
+  if (only_last == TRUE){
+    M_vec <- M
+  } else {
+    M_vec <- 1:M
+  }
+  
+  poiss_par <- lambda*feature_fraction(M_vec, alpha, theta + n)*
+    (1 - feature_fraction(n, alpha, theta))
+    
+  return (list("lambda_post" = poiss_par))
+}
+
+
+
 #' Model-based prediction for BB with NB(n0,mu0) mixture
 #'
 #' @param object An object of class \code{GibbsFA, NegBinBB}
@@ -72,7 +110,7 @@ prediction_PoissonBB <- function(object, n = 0, Kn = 0, M = 10, only_last = FALS
 #' 
 #' @details Draw samples from the posterior distribution Kn + K^(n)_m, for different m,
 #' for BB with NB(n0,mu0) mixture
-prediction_NegBinBB <- function(object, n = 0, Kn = 0, M = 10, only_last = FALSE, seed = 1234) {
+prediction.NegBinBB <- function(object, n = 0, Kn = 0, M = 10, only_last = FALSE, seed = 1234) {
   
   set.seed(seed)
   # Extract the chains and the parameters from object
@@ -98,13 +136,20 @@ prediction_NegBinBB <- function(object, n = 0, Kn = 0, M = 10, only_last = FALSE
     alpha <- alpha_chain[q]
     theta <- theta_chain[q]
     
-    par_0 = (1-mu0)*exp(lgamma(theta) - lgamma(theta+alpha))
-    par_1 = exp(lgamma( theta + alpha +n)- lgamma(theta +n))
-    par_2 = exp(lgamma(theta+alpha+n+M_vec) - lgamma(theta+n+M_vec))
+    # in (nstar,p) parametrization
+    n0_upd <- n0 + Kn
+    mu0_upd <- (n0 + Kn)/(n0/mu0 + feature_fraction(n, alpha, theta) ) *
+      feature_fraction(M_vec, alpha, theta + n) * (1 - feature_fraction(n, alpha, theta))
     
-    p_bar <- 1- par_0 *(par_1 - par_2)/(1-par_0*par_2)
+    p_upd <- 1/(mu0_upd/n0_upd + 1)
     
-    kmn_chain[,q] <- rnbinom(length(M_vec), n0 + Kn, p_bar)
+    # par_0 = (1-p)*exp(lgamma(theta) - lgamma(theta+alpha))
+    # par_1 = exp(lgamma( theta + alpha +n)- lgamma(theta +n))
+    # par_2 = exp(lgamma(theta+alpha+n+M_vec) - lgamma(theta+n+M_vec))
+    # 
+    # p_bar <- 1- par_0 *(par_1 - par_2)/(1-par_0*par_2)
+     
+    kmn_chain[,q] <- rnbinom(length(M_vec), n0_upd, p_upd)
   }
   
   prediction_chain <- kmn_chain + Kn
@@ -115,6 +160,43 @@ prediction_NegBinBB <- function(object, n = 0, Kn = 0, M = 10, only_last = FALSE
   
   return (prediction_list)
 }
+
+
+#' Model-based prediction for BB with NB(n0,mu0) mixture - EB version
+#'
+#' @param object An object of class \code{GibbsFA, NegBinBB}
+#' @param n Size of the hypothetical observed sample
+#' @param Kn Number of distinct features hypothetically observed in the sample
+#' @param M Maximum size of future sample to extrapolate
+#' @param only_last logical; TRUE if only extrapolation for the additional sample of size M
+#' 
+#' @details Return the (n0,mu0)s sequences of the NB of K^(n)_m, for different m,
+#' for BB with NB(n0,mu0) mixture
+prediction.NegBinBB_eb <- function(object, n = 0, Kn = 0, M = 10, only_last = FALSE) {
+  
+  # Extract the parameters from object
+  alpha <- object$alpha
+  theta <- object$theta
+  n0 <- object$n0
+  mu0 <- object$mu0
+  
+  p_n <- feature_fraction(n, alpha, theta)
+  
+  if (only_last == TRUE){
+    M_vec <- M
+  } else {
+    M_vec <- 1:M
+  }
+  
+  n0_upd <- n0 + Kn
+  mu0_upd <- (n0 + Kn)/(n0/mu0 + feature_fraction(n, alpha, theta) ) *
+    feature_fraction(M_vec, alpha, theta + n) * (1 - feature_fraction(n, alpha, theta))
+  
+  
+  return (list("n0_post" = rep(n0_upd, length(M_vec)),
+               "mu0_post" = mu0_upd) )
+}
+
 
 
 
@@ -130,7 +212,7 @@ prediction_NegBinBB <- function(object, n = 0, Kn = 0, M = 10, only_last = FALSE
 #' 
 #' @details Draw samples from the posterior distribution Kn + K^(n)_m, for different m,
 #' for IBP with Gamma(a,b) mixture, with prior on a and b
-prediction_GammaIBP <- function(object, n = 0, Kn = 0, M = 10, only_last = FALSE, seed = 1234) {
+prediction.GammaIBP <- function(object, n = 0, Kn = 0, M = 10, only_last = FALSE, seed = 1234) {
   
   set.seed(seed)
   
@@ -180,4 +262,47 @@ prediction_GammaIBP <- function(object, n = 0, Kn = 0, M = 10, only_last = FALSE
   names(prediction_list) <- paste0("M = ", M_vec)
   
   return (prediction_list)
+}
+
+
+#' Model-based prediction for IBP with Gamma(a,b) mixture - EB version
+#'
+#' @param object An object of class \code{GibbsFA, GammaIBP}
+#' @param n Size of the hypothetical observed sample
+#' @param Kn Number of distinct features hypothetically observed in the sample
+#' @param M Maximum size of future sample to extrapolate
+#' @param only_last logical; TRUE if only extrapolation for the additional sample of size M
+#' 
+#' @details Return the (n0,mu0) sequences of the NB posterior distribution K^(n)_m, 
+#' for different m, for IBP with Gamma(a,b) mixture
+prediction.GammaIBP_eb <- function(object, n = 0, Kn = 0, M = 10, only_last = FALSE) {
+  
+  # Extract the parameters from object
+  alpha <- object$alpha
+  theta <- object$theta
+  a <- object$a
+  b <- object$b
+  
+  if (only_last == TRUE){
+    M_vec <- M
+  } else {
+    M_vec <- 1:M
+  }
+  
+  if (n == 0){
+    gamma_a_t_n <- 0
+  } else {
+    gamma_a_t_n <- sum(exp(lgamma(alpha + theta + (1:n) - 1) - lgamma(alpha + theta) -
+                             lgamma(theta + (1:n)) + lgamma(theta +1) ) )
+  }
+  
+  sum_M <- stable_sum_M_all_gamma_IBP(alpha, theta, M, only_last, n)
+    
+  n0_upd <- a + Kn
+  p_upd <- (gamma_a_t_n + b)/(gamma_a_t_n + b + sum_M)
+  mu0_upd <- n0_upd*(1 - p_upd)/p_upd
+    
+    
+  return (list("n0_post" = rep(n0_upd, length(M_vec)),
+               "mu0_post" = mu0_upd))
 }

@@ -3,14 +3,18 @@
 \name{rarefaction.array}
 \alias{rarefaction.array}
 \title{Sample-based rarefaction curve for a vector of species abundances
-(RIGHT NOW IT IS JUST THE OBSERVED SAMPLE, WITH NO AVERAGE)}
+(if n_reordering=1, then it is just the observed accumulation curve, with no reshuffling)}
 \usage{
-\method{rarefaction}{array}(object)
+\method{rarefaction}{array}(object, n_reorderings = 1, seed = 1234)
 }
 \arguments{
 \item{object}{The \code{n x K}-dimensional binary matrix}
+
+\item{n_reorderings}{number of reorderings of the data to average over}
+
+\item{seed}{}
 }
 \description{
 Sample-based rarefaction curve for a vector of species abundances
-(RIGHT NOW IT IS JUST THE OBSERVED SAMPLE, WITH NO AVERAGE)
+(if n_reordering=1, then it is just the observed accumulation curve, with no reshuffling)
 }

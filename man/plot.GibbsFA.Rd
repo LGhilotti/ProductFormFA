@@ -4,7 +4,7 @@
 \alias{plot.GibbsFA}
 \title{Plot for both the mixtures of Beta-Bernoulli and the Gamma IBP}
 \usage{
-\method{plot}{GibbsFA}(x, type, plot_sample = TRUE, M = NULL, seed = 1234, ...)
+\method{plot}{GibbsFA}(x, type, bw = 1, n_reorderings = 1, M = NULL, seed = 1234, ...)
 }
 \arguments{
 \item{x}{An object of class \code{GibbsFA}.}
@@ -12,7 +12,9 @@
 \item{type}{Type of plot. Available options are:  \code{"rarefaction"}, \code{"extrapolation"} and \code{"richness"}.
 Type \code{"richness"} is available only for mixtures of Beta-Bernoulli.}
 
-\item{plot_sample}{Whether to add the sample-based rarefaction curve. Available for \code{type = "rarefaction"}.}
+\item{bw}{bandwidth for sample-based plot of richness.}
+
+\item{n_reorderings}{number of reorderings for accumularion curve.}
 
 \item{M}{additional sample to predict. Valid only for \code{type = "extrapolation"}. By default, it is equal to the sample size.}
 

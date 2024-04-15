@@ -53,3 +53,126 @@ initialization <- function(model, init){
 }
 
 
+#' @import purrr
+#' @export
+#'
+eb_params <- function(model, init, known){
+  
+  if (length(intersect(names(init), names(known))) != 0){
+    stop("Some parameters are both in init and known list.")
+  }
+  
+  
+  if (model == "PoissonBB") {
+    
+    if (!setequal(union(names(init), names(known)), c("alpha","s", "lambda")) ){
+      stop("Some parameters are missing for PoissonBB.")
+    }
+  
+    null_known <- rep(NA, length(names(init)))
+    names(null_known) <- names(init)
+    null_known <- c(as_vector(known), null_known)
+    
+    init <- c(as_vector(init), as_vector(known) ) # here I have both init and known values
+    
+    if (init["alpha"] >= 0 | init["s"] <=0 | init["lambda"] <= 0){
+      stop("Invalid value of some initial parameters for PoissonBB.")
+    }
+    
+    # order the list as (alpha, s, lambda)
+    par <- list("init" = init[order(factor(names(init), 
+                                           levels=c("alpha", "s", "lambda")))],
+                "known" = null_known[order(factor(names(null_known), 
+                                                  levels=c("alpha", "s", "lambda")))])
+    
+    class(par) <- c("eb_params", "PoissonBB")
+    return(par) 
+  }
+  
+  if (model == "NegBinBB") {
+    
+    if (!setequal(union(names(init), names(known)), c("alpha","s", "n0", "mu0")) ){
+      stop("Some parameters are missing for NegBinBB.")
+    }
+    
+    null_known <- rep(NA, length(names(init)))
+    names(null_known) <- names(init)
+    null_known <- c(as_vector(known), null_known)
+    
+    init <- c(as_vector(init), as_vector(known) ) # here I have both init and known values
+    
+    if (init["alpha"] >= 0 | init["s"] <=0 | init["n0"] <= 0 | 
+        init["mu0"] <= 0 ){
+      stop("Invalid value of some initial parameters for NegBinBB.")
+    }
+    
+    # order the list as (alpha, s, n0, mu0)
+    par <- list("init" = init[order(factor(names(init), 
+                                           levels=c("alpha", "s", "n0", "mu0")))],
+                "known" = null_known[order(factor(names(null_known), 
+                                                  levels=c("alpha", "s", "n0", "mu0")))])
+    
+    class(par) <- c("eb_params", "NegBinBB")
+    return(par) 
+    
+  }
+  
+  if (model == "NegBinBB_np") {
+    
+    if (!setequal(union(names(init), names(known)), c("alpha","s", "n0", "p")) ){
+      stop("Some parameters are missing for NegBinBB.")
+    }
+    
+    null_known <- rep(NA, length(names(init)))
+    names(null_known) <- names(init)
+    null_known <- c(as_vector(known), null_known)
+    
+    init <- c(as_vector(init), as_vector(known) ) # here I have both init and known values
+    
+    if (init["alpha"] >= 0 | init["s"] <=0 | init["n0"] <= 0 | 
+        init["p"] <= 0 | init["p"] >= 1){
+      stop("Invalid value of some initial parameters for NegBinBB.")
+    }
+    
+    # order the list as (alpha, s, n0, p)
+    par <- list("init" = init[order(factor(names(init), 
+                                           levels=c("alpha", "s", "n0", "p")))],
+                "known" = null_known[order(factor(names(null_known), 
+                                                  levels=c("alpha", "s", "n0", "p")))])
+    
+    class(par) <- c("eb_params", "NegBinBB_np")
+    return(par) 
+    
+  }
+  
+  if (model == "GammaIBP") {
+    
+    if (!setequal(union(names(init), names(known)), c("alpha","s", "a", "b")) ){
+      stop("Some parameters are missing for GammaIBP.")
+    }
+    
+    null_known <- rep(NA, length(names(init)))
+    names(null_known) <- names(init)
+    null_known <- c(as_vector(known), null_known)
+    
+    init <- c(as_vector(init), as_vector(known) ) # here I have both init and known values
+    
+    if (init["alpha"] <= 0 | init["alpha"] >= 1 | init["s"] <=0 | 
+        init["a"] <= 0 | init["b"] <= 0 ){
+      stop("Invalid value of some initial parameters for GammaIBP.")
+    }
+    
+    # order the list as (alpha, s, a, b)
+    par <- list("init" = init[order(factor(names(init), 
+                                           levels=c("alpha", "s", "a", "b")))],
+                "known" = null_known[order(factor(names(null_known), 
+                                                  levels=c("alpha", "s", "a", "b")))])
+    
+    class(par) <- c("eb_params", "GammaIBP")
+    return(par) 
+    
+  }
+  
+}
+
+

@@ -23,7 +23,7 @@ prior <- function(model, hyper){
     }
     
     if (hyper$a_alpha <= 0 | hyper$b_alpha <=0 | hyper$a_s <= 0 | hyper$b_s <= 0 | 
-        hyper$n0 <= 0 | hyper$mu0 <=0 | hyper$mu0 >= 1){
+        hyper$n0 <= 0 | hyper$mu0 <=0 ){
       stop("Invalid value of some hyperparameters for NegBinBB.")
     }
     
@@ -82,8 +82,8 @@ summary.NegBinBB <- function(object, ...) {
       paste0("Var(alpha) = ", object$a_alpha/ (object$b_alpha^2)),
       paste0("\n\t E(s) = ", object$a_s/ object$b_s, "; "),
       paste0("Var(s) = ", object$a_s/ (object$b_s^2)),
-      paste0("\n\t E(N) = ", object$n0 * (1 - object$mu0) / object$mu0 , "; "),
-      paste0("Var(N) = ", object$n0 * (1 - object$mu0) / object$mu0^2)
+      paste0("\n\t E(N) = ", object$mu0, "; "),
+      paste0("Var(N) = ", object$mu0 + object$mu0^2/ object$n0)
   )
   
 }

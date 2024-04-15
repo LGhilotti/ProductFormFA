@@ -113,7 +113,7 @@ List rPoissonBB(double alpha,double theta,double lambda, int n){
 List rNegBinBB(double alpha,double theta,int n0, double mu0, int n){
   
   int nstar = n0;
-  double p = mu0;
+  double p = 1/(mu0/n0 + 1);
 
  // vector containing the number of new dishes for each customer
  std::vector<int> vec_n_new_dishes;

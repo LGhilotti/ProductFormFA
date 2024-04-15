@@ -5,6 +5,53 @@ cpp_rbern <- function(n, prob) {
     .Call(`_ProductFormFA_cpp_rbern`, n, prob)
 }
 
+#' Negative Log-EFPF for the BB model with Poisson(lambda) mixture 
+#' 
+#' @param n dimension of the observed sample
+#' @param counts vector of cardinalities for the observed features
+#' @param pars pars[0] = value of alpha in product-form feature allocation,
+#' pars[1] = value of s = theta + alpha in product-form feature allocation,
+#' pars[2] =  value of lambda - Poisson hyperparameter
+#' 
+#' @return value of the negative logarithm of the EFPF for the sample of 
+#' dimensionality n described by counts
+#' 
+neg_log_EFPF_PoissonBB <- function(n, counts, pars) {
+    .Call(`_ProductFormFA_neg_log_EFPF_PoissonBB`, n, counts, pars)
+}
+
+#' Negative Log-EFPF for BB with NB(n0,p) mixture 
+#' 
+#' @param n dimension of the observed sample
+#' @param counts vector of cardinalities for the observed features
+#' @param pars pars[0] = value of alpha in product-form feature allocation,
+#' pars[1] = value of s = theta + alpha in product-form feature allocation,
+#' pars[2] = value of n0 - NB hyperparameter, first
+#' pars[3] = value of p - NB hyperparameter, second
+#' 
+#' @return value of the negative logarithm of the EFPF for the sample of 
+#' dimensionality n described by counts
+#' 
+neg_log_EFPF_NegBinBB <- function(n, counts, pars) {
+    .Call(`_ProductFormFA_neg_log_EFPF_NegBinBB`, n, counts, pars)
+}
+
+#' Negative Log-EFPF for IBP with Gamma(a,b) mixture
+#' 
+#' @param n dimension of the observed sample
+#' @param counts vector of cardinalities for the observed features
+#' @param pars pars[0] = value of alpha in product-form feature allocation,
+#' pars[1] = value of s = theta + alpha in product-form feature allocation,
+#' pars[2] =  value of a - Gamma hyperparameter,
+#' pars[3] =  value of b - Gamma hyperparameter
+#' 
+#' @return value of the negative logarithm of the EFPF for the sample of 
+#' dimensionality n described by counts
+#' 
+neg_log_EFPF_GammaIBP <- function(n, counts, pars) {
+    .Call(`_ProductFormFA_neg_log_EFPF_GammaIBP`, n, counts, pars)
+}
+
 stable_sum_M_all_gamma_IBP <- function(alpha, theta, m, only_last, n) {
     .Call(`_ProductFormFA_stable_sum_M_all_gamma_IBP`, alpha, theta, m, only_last, n)
 }
