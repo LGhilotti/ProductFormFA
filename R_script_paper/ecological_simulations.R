@@ -440,7 +440,7 @@ if (!file.exists(paste0("R_script_paper/",mechanism,"_fit_estimate_singledataset
   # Initialization and MCMC setting 
   init_PoissonBB <- list(alpha_0 = -1, s_0 = 1)
   init_obj_PoissonBB <- initialization(model = "PoissonBB", init = init_PoissonBB )
-  mcmcparams_PoissonBB <- list(tau = 0.1, S = 300, n_burnin = 100, thin = 2)
+  mcmcparams_PoissonBB <- list(tau = 0.1, S = 10000, n_burnin = 1000, thin = 2)
   mcmcparams_obj_PoissonBB <- mcmcparameters(model = "PoissonBB", mcmcparams = mcmcparams_PoissonBB)
   
   # Hyperparameters elicitation 
