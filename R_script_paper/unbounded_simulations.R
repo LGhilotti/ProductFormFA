@@ -375,6 +375,111 @@ fit_estimate_polynomial_scenario_singledataset <- function(xi,
 }
 
 
+# EB Single dataset: function to produce fit and estimate on specific ecological scenario ------
+
+eb_fit_estimate_polynomial_scenario_singledataset <- function(xi, 
+                                                              eb_init_PoissonBB, eb_known_PoissonBB,
+                                                              eb_init_NegBinBB, eb_known_NegBinBB, c_fr,
+                                                              eb_init_GammaIBP, eb_known_GammaIBP,
+                                                              seed = 1234){
+  
+  if (xi <= 0){
+    stop("Invalid generating mechanism.")
+  }
+  
+  # Set training dimensions and dimension of the whole sample 
+  Ns <- c(30, 60, 120) #c(20, 40, 80) 
+  L <- 600
+  # Set maximum number of features
+  H <- 10^6
+  
+  # Generate data 
+  data_mat <- generate_data(xi = xi, n = L, H = H, seed = seed)
+  
+  # Structures to save fit and estimates 
+  
+  # List to store the fitted models for PoissonBB, NegBinBB and GammaIBP, under different settings 
+  list_eb_fit_PoissonBB <- vector(mode = "list")
+  list_eb_fit_NegBinBB <-  vector(mode = "list")
+  list_eb_fit_GammaIBP <-  vector(mode = "list")
+  
+  # List of Nbar_emp for the different training sets
+  list_Nbar_emp <- vector(mode = "list")
+  
+  # List to store Chao's estimates
+  list_rare_extr_Chao <- vector(mode="list")
+  # List to store smoothed GT's estimates
+  list_extr_GT <- vector(mode="list")
+  
+  
+  
+  # Loop over the different training set dimensions 
+  
+  for (j in 1:length(Ns)){
+    
+    n_train <- Ns[j]
+    M <- L - n_train
+    
+    train_mat <- data_mat[1:n_train,]
+    
+    lab_comb_bb <- paste0("n_train.",n_train,":Nbar.emp")
+    lab_comb_ibp <- paste("n_train", n_train, sep = ".")
+    
+    # Empirical estimate of E(N) is obtained by Chiu
+    Nbar_emp <- beta_binomial_estimator(train_mat)
+    list_Nbar_emp[[paste0("n_train.",n_train)]] <- Nbar_emp
+    
+    # Fit the models
+    # PoissonBB
+    eb_params_obj_PoissonBB <- eb_params(model = "PoissonBB", 
+                                         init = eb_init_PoissonBB, 
+                                         known = eb_known_PoissonBB)
+    
+    eb_PoissonBB_fit <- GibbsFA_eb(feature_matrix = train_mat, 
+                                   model = "PoissonBB", 
+                                   eb_params =  eb_params_obj_PoissonBB)
+    
+    # NegBinBB
+    eb_params_obj_NegBinBB <- eb_params(model = "NegBinBB",
+                                        init = eb_init_NegBinBB,
+                                        known = eb_known_NegBinBB)
+    
+    eb_NegBinBB_fit <- GibbsFA_eb(feature_matrix = train_mat,
+                                  model = "NegBinBB",
+                                  eb_params =  eb_params_obj_NegBinBB)
+    
+    # GammaIBP
+    eb_params_obj_GammaIBP <- eb_params(model = "GammaIBP",
+                                        init = eb_init_GammaIBP,
+                                        known = eb_known_GammaIBP)
+    
+    eb_GammaIBP_fit <- GibbsFA_eb(feature_matrix = train_mat,
+                                  model = "GammaIBP",
+                                  eb_params =  eb_params_obj_GammaIBP)
+    
+    # Fill the structures of MCMC chains of the parameters
+    list_eb_fit_PoissonBB[[lab_comb_bb]] <- eb_PoissonBB_fit
+    list_eb_fit_NegBinBB[[lab_comb_bb]] <- eb_NegBinBB_fit
+    list_eb_fit_GammaIBP[[lab_comb_bb]] <- eb_GammaIBP_fit
+    
+    
+    
+    # Competitors
+    # B) Smoothed Good-Toulmin extrapolation
+
+    # Compute SFS vector and CTS vector
+    sfs <- tabulate(colSums(train_mat))
+    cts <- sapply(2:n_train, function(n) ncol(train_mat[1:n,colSums(train_mat[1:n,]) > 0])   )
+    cts <- c(0, sum(train_mat[1,]) , cts)
+
+    list_extr_GT[[lab_comb_ibp]] <- predict_good_toulmin(n_train, M, sfs, cts, alternative = 0)$preds
+
+  }
+  
+  # Save the entire workspace related to the mechanism just performed
+  save(list = ls(all.names = TRUE), file =  paste0("R_script_paper/eb_poly_",xi,"_fit_estimate_singledataset.RData"))
+}
+
 
 # Repeated dataset: function to produce fit and estimate on specific ecological scenario ------
 
@@ -533,6 +638,8 @@ fit_estimate_polynomial_scenario_repeateddataset <- function(xi, n_dataset = 10,
 
 ########### 1) Main script single-dataset -------
 
+### 1.A) Prior approach ----
+
 # Choose mechanism
 xi = 1 # c(0.8, 1.2)
 
@@ -636,8 +743,293 @@ ggplot(df_GibbsFA, aes(x = t, y = means, color = model)) +
 
 
 
+### 1.B) Empirical Bayes approach ----
 
-########### 2) Main script repeated-dataset -------
+# Choose mechanism
+xi = 1 
+
+# Fit and estimate richness, rarefaction and extrapolation for GibbsFA's (save workspace)
+if (!file.exists(paste0("R_script_paper/eb_poly_",xi,"_fit_estimate_singledataset.RData"))) {
+  
+  # 1) PoissonBB 
+  
+  # Initialization and known parameters
+  eb_init_PoissonBB <- list(alpha = -10, s = 1, lambda = 400)
+  eb_known_PoissonBB <- list()
+  
+  # 2) NegBinBB
+  
+  # Initialization and known parameters
+  c_fr <- 5
+  eb_init_NegBinBB <- list(alpha = -100, s = 100, mu0 = 500)
+  eb_known_NegBinBB <- list(var_fct = c_fr)
+  
+  # 3) GammaIBP
+  
+  # Initialization and known parameters
+  eb_init_GammaIBP <- list(alpha = 0.5, s = 1, a = 1, b = 1)
+  eb_known_GammaIBP <- list()
+  
+  # 4) Call the routine to perform simulations
+  eb_fit_estimate_polynomial_scenario_singledataset(xi = xi, 
+                                                    eb_init_PoissonBB, eb_known_PoissonBB,
+                                                    eb_init_NegBinBB, eb_known_NegBinBB, c_fr,
+                                                    eb_init_GammaIBP, eb_known_GammaIBP, seed = 123456)
+  
+}
+
+# Load the Work space
+load(paste0("R_script_paper/eb_poly_",xi,"_fit_estimate_singledataset.RData"))
+
+Kn <- sapply(Ns, function(n) sum(colSums(data_mat[1:n,]) > 0)  )
+sum(colSums(data_mat) > 0)
+
+# 0) Model checking: verify model is compatible with data 
+plot( x = 0:200, y = c(0, rarefaction(data_mat[1:200,])) )
+
+emp_pis <- bind_rows(lapply(Ns, function(n)
+  data.frame(x = colMeans(data_mat[1:n,])[colMeans(data_mat[1:n,]) > 0],
+             n_train = n)))
+
+# PoissonBB
+list_eb_fit_PoissonBB_Nbar_fix <- list_eb_fit_PoissonBB[grepl("Nbar.emp", 
+                                                              names(list_eb_fit_PoissonBB))]
+
+params_beta <- data.frame(alpha = sapply(1:length(list_eb_fit_PoissonBB_Nbar_fix), function(i)
+  list_eb_fit_PoissonBB_Nbar_fix[[i]]$alpha),
+  theta = sapply(1:length(list_eb_fit_PoissonBB_Nbar_fix), function(i)
+    list_eb_fit_PoissonBB_Nbar_fix[[i]]$theta),
+  lambda = sapply(1:length(list_eb_fit_PoissonBB_Nbar_fix), function(i)
+    list_eb_fit_PoissonBB_Nbar_fix[[i]]$lambda ),
+  n_train = Ns)
+
+grid <- seq(0,1, length.out = 1000)
+# cdf_betas <- bind_rows(lapply(1:nrow(params_beta), function(i)
+#   data.frame(x = grid,
+#              y = pbeta(grid, shape1 = - params_beta$alpha[i],
+#                        shape2 = params_beta$alpha[i] + params_beta$theta[i]),
+#              n_train = Ns[i]) ) )
+
+a_beta <- - params_beta$alpha
+b_beta <- params_beta$alpha + params_beta$theta
+
+cdf_betas_cond <- bind_rows(lapply(1:nrow(params_beta), function(i)
+  data.frame(x = grid,
+             y = pbeta(grid, shape1 = a_beta[i], shape2 = b_beta[i])*
+               (1/(1- beta(a_beta[i], Ns[i] + b_beta[i])/beta(a_beta[i], b_beta[i]))) +
+               pbeta(grid, shape1 = a_beta[i], shape2 = Ns[i] + b_beta[i])*
+               (1/(1- beta(a_beta[i], b_beta[i])/beta(a_beta[i], Ns[i] + b_beta[i]))),
+             n_train = Ns[i]) ) )
+
+
+n_train.labs <- paste0("n = ", Ns,", Kn = ", Kn )
+names(n_train.labs) <- Ns
+
+ggplot(emp_pis, aes(x = x) ) +
+  stat_ecdf(linewidth=2, colour = "red") +
+  facet_wrap(.~ n_train, labeller = labeller(n_train = n_train.labs ), scales = "free_x", nrow = 1) +
+  geom_line(data = cdf_betas_cond, aes(x = x, y = y), colour = "blue") +
+  labs(title="ECDF and theoretical CDF")  
+
+
+# NegBinBB
+list_eb_fit_NegBinBB_Nbar_fix <- list_eb_fit_NegBinBB[grepl("Nbar.emp", 
+                                                            names(list_eb_fit_NegBinBB))]
+
+params_beta_NegBinBB <- data.frame(alpha = sapply(1:length(list_eb_fit_NegBinBB_Nbar_fix), function(i)
+  list_eb_fit_NegBinBB_Nbar_fix[[i]]$alpha),
+  theta = sapply(1:length(list_eb_fit_NegBinBB_Nbar_fix), function(i)
+    list_eb_fit_NegBinBB_Nbar_fix[[i]]$theta),
+  var_fct = sapply(1:length(list_eb_fit_NegBinBB_Nbar_fix), function(i)
+    list_eb_fit_NegBinBB_Nbar_fix[[i]]$var_fct ),
+  mu0 = sapply(1:length(list_eb_fit_NegBinBB_Nbar_fix), function(i)
+    list_eb_fit_NegBinBB_Nbar_fix[[i]]$mu0 ),
+  n_train = Ns)
+
+grid <- seq(0,1, length.out = 1000)
+# cdf_betas <- bind_rows(lapply(1:nrow(params_beta), function(i)
+#   data.frame(x = grid,
+#              y = pbeta(grid, shape1 = - params_beta$alpha[i],
+#                        shape2 = params_beta$alpha[i] + params_beta$theta[i]),
+#              n_train = Ns[i]) ) )
+
+a_beta <- - params_beta_NegBinBB$alpha
+b_beta <- params_beta_NegBinBB$alpha + params_beta_NegBinBB$theta
+
+cdf_betas_cond_NegBinBB <- bind_rows(lapply(1:nrow(params_beta_NegBinBB), function(i)
+  data.frame(x = grid,
+             y = pbeta(grid, shape1 = a_beta[i], shape2 = b_beta[i])*
+               (1/(1- beta(a_beta[i], Ns[i] + b_beta[i])/beta(a_beta[i], b_beta[i]))) +
+               pbeta(grid, shape1 = a_beta[i], shape2 = Ns[i] + b_beta[i])*
+               (1/(1- beta(a_beta[i], b_beta[i])/beta(a_beta[i], Ns[i] + b_beta[i]))),
+             n_train = Ns[i]) ) )
+
+
+n_train.labs <- paste0("n = ", Ns,", Kn = ", Kn )
+names(n_train.labs) <- Ns
+
+ggplot(emp_pis, aes(x = x) ) +
+  stat_ecdf(linewidth=2, colour = "red") +
+  facet_wrap(.~ n_train, labeller = labeller(n_train = n_train.labs ), scales = "free_x", nrow = 1) +
+  geom_line(data = cdf_betas_cond_NegBinBB, aes(x = x, y = y), colour = "blue") +
+  labs(title="ECDF and theoretical CDF")  
+
+
+
+# 0.B) Check on rarefaction
+accum_df <- tibble( x = 0:Ns[3],
+                    n_feat = c(0,rarefaction(data_mat[1:Ns[3],], n_reorderings = 10)))
+
+rare_PoissonBB <- tibble( lambda_post = unname(unlist(
+  rarefaction(object = list_eb_fit_PoissonBB[[3]], seed = seed)$lambda_post ))) %>%
+  rename(means = lambda_post) %>%
+  add_row(means = 0) %>%
+  add_column(Model = "PoissonBB",
+             x = c(1:Ns[3],0))
+
+rare_NegBinBB <- tibble( mu0_post = unname(unlist(
+  rarefaction(object = list_eb_fit_NegBinBB[[3]], seed = seed)$mu0_post ))) %>%
+  rename(means = mu0_post) %>%
+  add_row(means = 0) %>%
+  add_column(Model = "NegBinBB",
+             x = c(1:Ns[3],0))
+
+rare_GammaIBP <- tibble( mu0_post = unname(unlist(
+  rarefaction(object = list_eb_fit_GammaIBP[[3]], seed = seed)$mu0_post ))) %>%
+  rename(means = mu0_post) %>%
+  add_row(means = 0) %>%
+  add_column(Model = "GammaIBP",
+             x = c(1:Ns[3],0)) 
+
+df_rare <- rbind(rare_PoissonBB, rare_NegBinBB, rare_GammaIBP)
+df_rare$Model <- factor(df_rare$Model, levels = c("PoissonBB", "NegBinBB", "GammaIBP"))
+
+ggplot(df_rare, aes(x = x, y = means, color = Model)) +
+  geom_line(linetype = "solid", color = "red" , linewidth = 0.9) +
+  facet_wrap(.~ Model, scales = "free_x", nrow = 1) +
+  #geom_ribbon(aes(ymin = lb_bands, ymax = ub_bands), color = "red" , linewidth = 0.8, alpha = 0.1) +
+  geom_point( data = accum_df, aes(x = x, y = n_feat), color="black", shape = 1, size = 0.5) +
+  xlab("# observations") + ylab("# distinct features") + 
+  theme_light() + 
+  theme(legend.position = "top") +
+  scale_y_continuous(breaks = pretty_breaks()) +
+  scale_x_continuous(breaks = pretty_breaks()) +
+  theme(aspect.ratio = 1)
+ggsave(filename = "R_script_paper/Paper_plots/rarefaction_poly_1_eb.pdf", width = 8, height = 3.5, dpi = 300, units = "in", device='pdf')
+
+
+
+
+
+# 3) Plot Extrapolation - EB version
+
+# Extract accumulation curve of the observed sample (or average accumulation)
+M = 400
+
+accum_df <- tibble(n_feat = unlist(sapply(Ns, function(n) 
+  c(0,rarefaction(data_mat[1:(n + M), ], n_reorderings = 1)))),
+  n_train = rep(Ns, times = Ns + M +1),
+  type = unlist(sapply(Ns, function(n) c(rep("train", n +1), rep("test", M)))),
+  x = unlist(sapply(Ns, function(n) 0:(n + M))))
+
+accum_df_train <- accum_df %>%
+  filter(type == "train")
+accum_df_test <- accum_df %>%
+  filter(type == "test")
+
+
+# Poisson
+list_eb_EB_PoissonBB <- list_eb_fit_PoissonBB[grepl("Nbar.emp", names(list_eb_fit_PoissonBB) )]
+extr_PoissonBB_df <- tibble(lambda = unname(unlist(lapply(list_eb_EB_PoissonBB, function(x)
+  extrapolation(object = x, M = M, seed = seed)$lambda_post ))),
+  n_train = rep(Ns, each = M),
+  Kn = rep(Kn, each = M)) %>%
+  mutate(lb = qpois(0.025, lambda, lower.tail = TRUE, log.p = FALSE),
+         ub = qpois(0.975, lambda, lower.tail = TRUE, log.p = FALSE)) %>%
+  rename(means = lambda) %>%
+  add_row(means = 0, lb = 0, ub = 0, n_train = Ns, Kn = Kn) %>%
+  mutate(means = means + Kn, lb = lb + Kn, ub = ub + Kn) %>%
+  add_column(x = c(unlist(sapply(Ns, function(n) (n+1):(M+n))), Ns),
+             Model = "PoissonBB")
+
+extr_PoissonBB_df$x <- as.integer(extr_PoissonBB_df$x)
+extr_PoissonBB_df <- extr_PoissonBB_df %>%
+  select(means, lb, ub, n_train, x, Model)
+
+# NegBin
+list_eb_EB_NegBinBB <- list_eb_fit_NegBinBB[grepl("Nbar.emp", names(list_eb_fit_NegBinBB) )]
+extr_NegBinBB_df <- tibble(mu0 = unname(unlist(lapply(list_eb_EB_NegBinBB, function(x)
+  extrapolation(object = x, M = M, seed = seed)$mu0_post ))),
+  n0 = unname(unlist(lapply(list_eb_EB_NegBinBB, function(x)
+    extrapolation(object = x, M = M, seed = seed)$n0_post ))),
+  n_train = rep(Ns, each = M),
+  Kn = rep(Kn, each = M)) %>%
+  mutate(p = 1/(mu0/n0 + 1),
+         lb = qnbinom(0.025, size = n0, prob = p, lower.tail = TRUE, log.p = FALSE),
+         ub = qnbinom(0.975, size = n0, prob = p, lower.tail = TRUE, log.p = FALSE)) %>%
+  rename(means = mu0) %>%
+  add_row(means = 0, lb = 0, ub = 0, n_train = Ns, Kn = Kn) %>%
+  mutate(means = means + Kn, lb = lb + Kn, ub = ub + Kn) %>%
+  add_column(x = c(unlist(sapply(Ns, function(n) (n+1):(M+n))), Ns),
+             Model = "NegBinBB")
+
+extr_NegBinBB_df$x <- as.integer(extr_NegBinBB_df$x)
+extr_NegBinBB_df <- extr_NegBinBB_df %>%
+  select(means, lb, ub, n_train, x, Model)
+
+
+# GammaIBP
+list_eb_EB_GammaIBP <- list_eb_fit_GammaIBP[grepl("Nbar.emp", names(list_eb_fit_GammaIBP) )]
+extr_GammaIBP_df <- tibble(mu0 = unname(unlist(lapply(list_eb_EB_GammaIBP, function(x)
+  extrapolation(object = x, M = M, seed = seed)$mu0_post ))),
+  n0 = unname(unlist(lapply(list_eb_EB_GammaIBP, function(x)
+    extrapolation(object = x, M = M, seed = seed)$n0_post ))),
+  n_train = rep(Ns, each = M),
+  Kn = rep(Kn, each = M)) %>%
+  mutate(p = 1/(mu0/n0 + 1),
+         lb = qnbinom(0.025, size = n0, prob = p, lower.tail = TRUE, log.p = FALSE),
+         ub = qnbinom(0.975, size = n0, prob = p, lower.tail = TRUE, log.p = FALSE)) %>%
+  rename(means = mu0) %>%
+  add_row(means = 0, lb = 0, ub = 0, n_train = Ns, Kn = Kn) %>%
+  mutate(means = means + Kn, lb = lb + Kn, ub = ub + Kn) %>%
+  add_column(x = c(unlist(sapply(Ns, function(n) (n+1):(M+n))), Ns),
+             Model = "GammaIBP")
+
+extr_GammaIBP_df$x <- as.integer(extr_GammaIBP_df$x)
+extr_GammaIBP_df <- extr_GammaIBP_df %>%
+  select(means, lb, ub, n_train, x, Model)
+
+df_extr_GT_long <- list_extr_competitor_to_long(list_extr_GT, model = "GT") %>%
+  rename(Model = model) %>%
+  filter(t < n_train + M + 1)
+
+
+# Plot
+n_train.labs <- paste0("n = ", Ns,", Kn = ", Kn )
+names(n_train.labs) <- Ns
+temp <- tibble(n_train = Ns, xvalues = Ns)
+extr_all_df <- rbind(extr_PoissonBB_df, extr_NegBinBB_df, extr_GammaIBP_df)
+
+ggplot(extr_all_df, aes(x, means, color = Model)) +
+  geom_line(linetype = "dashed", linewidth = 0.9) +
+  geom_point( data = accum_df_train, aes(x = x, y = n_feat),
+              color="black", shape = 1, size = 1) +
+  geom_point( data = accum_df_test, aes(x = x, y = n_feat),
+              color="darkgrey", shape = 1, size = 0.1) +
+  #geom_line(data = df_extr_GT_long, aes(t, value), linetype = "dashed", linewidth = 1) +
+  facet_wrap(. ~ n_train,labeller = labeller(n_train = n_train.labs ),  scales = "free_x") +
+  geom_vline(data = temp, mapping =  aes(xintercept = xvalues) , linetype = "dashed", color = "grey") +
+  xlab("# observations") + ylab("# distinct features") + 
+  theme_light() + 
+  theme(legend.position = "top") +
+  scale_y_continuous(breaks = pretty_breaks()) +
+  scale_x_continuous(breaks = pretty_breaks()) +
+  theme(aspect.ratio = 1)
+ggsave(filename = "R_script_paper/Paper_plots/extr_poly_1_eb.pdf", width = 8, height = 3.8, dpi = 300, units = "in", device='pdf')
+
+
+
+# 2) Main script repeated-dataset -------
 
 # Choose mechanism
 xi = 1 # c(0.8, 1.2)

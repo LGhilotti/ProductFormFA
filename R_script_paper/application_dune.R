@@ -10,13 +10,11 @@ source("R_script_paper/Routine_Chao.R")
 source("R_script_paper/utils.R")
 
 
-# Choose dataset among the 3 available
-type = "Fungi" # options: "Lichens", "Plants" 
+library(vegan)
+data(dune)
 
-data <- read.csv(file = paste0("R_script_paper/mazz2016_",type,".csv"), header = TRUE,
-                 row.names="X")
+data <- as.matrix(dune > 0)
 
-data <- t(data)
 data <- data[, colSums(is.na(data))==0]
 data <- data[, colSums(data)!=0]
 
@@ -27,7 +25,8 @@ Kn <- ncol(data)
 print(paste0("Number of sites: ", n ))
 print(paste0("Number of species: ", Kn))
 
-
+# Set extrapolation horizon 
+M <- 1000
 
 # Randomly reorder sites
 seed <- 12345
@@ -41,10 +40,14 @@ plot(1:n, rarefaction(data_mat, n_reorderings = 10) )
 
 # 2) Run the models on the data ----
 
+# Empirical estimate of E(N) is obtained by Chiu
+Nbar <- beta_binomial_estimator(data_mat)
+
+
 # 2.1) Beta-Bernoulli with Poisson(lambda) mixture - EB version
 
 # EB parameters 
-eb_init_PoissonBB <- list(alpha = -1, s = 10, lambda = 100)
+eb_init_PoissonBB <- list(alpha = -1000, s = 100, lambda = 100)
 eb_known_PoissonBB <- list()
 eb_params_obj_PoissonBB <- eb_params(model = "PoissonBB", 
                                      init = eb_init_PoissonBB, known = eb_known_PoissonBB )
@@ -60,7 +63,7 @@ eb_PoissonBB_fit
 
 # Initialization and known parameters
 c_fr <- 5
-eb_init_NegBinBB <- list(alpha = -10, s = 10, mu0 = 20)
+eb_init_NegBinBB <- list(alpha = -100, s = 100, mu0 = 30)
 eb_known_NegBinBB <- list(var_fct = c_fr)
 eb_params_obj_NegBinBB <- eb_params(model = "NegBinBB",
                                     init = eb_init_NegBinBB,
@@ -105,7 +108,7 @@ cdf_betas_cond_PoissonBB <- data.frame(
     (1/(1- beta(a_beta_PoissonBB, n + b_beta_PoissonBB)/beta(a_beta_PoissonBB, b_beta_PoissonBB))) +
     pbeta(grid, shape1 = a_beta_PoissonBB, shape2 = n + b_beta_PoissonBB)*
     (1/(1- beta(a_beta_PoissonBB, b_beta_PoissonBB)/beta(a_beta_PoissonBB, n + b_beta_PoissonBB)))
-)
+  )
 
 # cdf_beta <- data.frame(x = grid,
 #                        y = pbeta(grid, shape1 = - eb_PoissonBB_fit$alpha,
@@ -117,8 +120,7 @@ ggplot(emp_pis, aes(x = x) ) +
   labs(title="ECDF and theoretical CDF")  
 
 
-# Check on rarefaction
-plot(x = eb_PoissonBB_fit, type = "rarefaction", n_reorderings = 10)
+plot(x = eb_PoissonBB_fit, type = "richness")
 
 
 # NegBinBB
@@ -145,22 +147,103 @@ ggplot(emp_pis, aes(x = x) ) +
   labs(title="ECDF and theoretical CDF")  
 
 
-# Check on rarefaction
-plot(x = eb_NegBinBB_fit, type = "rarefaction", n_reorderings = 10)
+plot(x = eb_NegBinBB_fit, type = "richness")
 
 
-# GammaIBP
+# 0.B) Check on rarefaction
+accum_df <- tibble( x = 0:n,
+                    n_feat = c(0,rarefaction(data_mat[1:n,], n_reorderings = 20)))
 
-# Check on rarefaction
-plot(x = eb_GammaIBP_fit, type = "rarefaction", n_reorderings = 10)
+rare_PoissonBB <- tibble( lambda_post = unname(unlist(
+  rarefaction(object = eb_PoissonBB_fit, seed = seed)$lambda_post ))) %>%
+  rename(means = lambda_post) %>%
+  add_row(means = 0) %>%
+  add_column(Model = "PoissonBB",
+             x = c(1:n,0))
+
+rare_NegBinBB <- tibble( mu0_post = unname(unlist(
+  rarefaction(object = eb_NegBinBB_fit, seed = seed)$mu0_post ))) %>%
+  rename(means = mu0_post) %>%
+  add_row(means = 0) %>%
+  add_column(Model = "NegBinBB",
+             x = c(1:n,0))
+
+rare_GammaIBP <- tibble( mu0_post = unname(unlist(
+  rarefaction(object = eb_GammaIBP_fit, seed = seed)$mu0_post ))) %>%
+  rename(means = mu0_post) %>%
+  add_row(means = 0) %>%
+  add_column(Model = "GammaIBP",
+             x = c(1:n,0)) 
+
+df_rare <- rbind(rare_PoissonBB, rare_NegBinBB, rare_GammaIBP)
+df_rare$Model <- factor(df_rare$Model, levels = c("PoissonBB", "NegBinBB", "GammaIBP"))
+
+ggplot(df_rare, aes(x = x, y = means, color = Model)) +
+  geom_line(linetype = "solid", color = "red" , linewidth = 0.9) +
+  facet_wrap(.~ Model, scales = "free_x", nrow = 1) +
+  #geom_ribbon(aes(ymin = lb_bands, ymax = ub_bands), color = "red" , linewidth = 0.8, alpha = 0.1) +
+  geom_point( data = accum_df, aes(x = x, y = n_feat), color="black", shape = 1, size = 0.5) +
+  xlab("# observations") + ylab("# distinct features") + 
+  theme_light() + 
+  theme(legend.position = "top") +
+  scale_y_continuous(breaks = pretty_breaks()) +
+  scale_x_continuous(breaks = pretty_breaks()) +
+  theme(aspect.ratio = 1)
+ggsave(filename = "R_script_paper/Paper_plots/rarefaction_dune_eb.pdf", width = 8, height = 3.5, dpi = 300, units = "in", device='pdf')
 
 
+
+
+
+
+# 3) Estimate the total richness ----
+
+lambda_prime <- total_richness(eb_PoissonBB_fit)$lambda_post
+lb_PoissonBB <- qpois(0.005, lambda_prime, lower.tail = TRUE, log.p = FALSE)
+ub_PoissonBB <- qpois(0.995, lambda_prime, lower.tail = TRUE, log.p = FALSE)
+
+mu0_prime <- total_richness(eb_NegBinBB_fit)$mu0_post
+n0_prime <- total_richness(eb_NegBinBB_fit)$n0_post
+p_prime = 1/(mu0_prime/n0_prime + 1)
+lb_NegBinBB <- qnbinom(0.005, size = n0_prime, prob = p_prime, lower.tail = TRUE, log.p = FALSE)
+ub_NegBinBB <- qnbinom(0.995, size = n0_prime, prob = p_prime, lower.tail = TRUE, log.p = FALSE) 
+
+
+bounds <- tibble(lb = min(lb_PoissonBB, lb_NegBinBB) + Kn, 
+            ub = max(ub_PoissonBB, ub_NegBinBB) + Kn )
+
+dens_richness_PoissonBB <- tibble( x = bounds$lb: bounds$ub) %>%
+  mutate( y = dpois(x - Kn , lambda = lambda_prime)) %>%
+  add_column(Model = "PoissonBB")
+
+dens_richness_NegBinBB <- tibble( x = bounds$lb : bounds$ub) %>%
+  mutate( y = dnbinom(x - Kn, size = n0_prime, 
+                      prob = p_prime)) %>%
+  add_column(Model = "NegBinBB")
+
+dens_richnesses <- rbind(dens_richness_PoissonBB,
+                         dens_richness_NegBinBB)
+
+
+ggplot(dens_richnesses, aes(x = x, y = y, color = Model)) +
+  geom_line() +
+  theme_light() +
+  facet_wrap(~"Richness") +
+  theme(legend.position = "top") +
+  scale_y_continuous(breaks = pretty_breaks()) +
+  xlab("# distinct features") + rremove("ylab") +
+  scale_color_tableau() +
+  theme(aspect.ratio = 1)
+ggsave(filename = "R_script_paper/Paper_plots/richness_dune_eb.pdf", width = 3.8, height = 3.8, dpi = 300, units = "in", device='pdf')
+
+
+# 3) Plot Extrapolation - EB version
 
 # Extract accumulation curve of the observed sample (or average accumulation)
 M = 200
 
 accum_df <- tibble( x = 0:n,
-                    n_feat = c(0,rarefaction(data_mat, n_reorderings = 10)))
+                    n_feat = c(0,rarefaction(data_mat, n_reorderings = 20)))
 
 
 extr_PoissonBB_df <- tibble(lambda = unname(unlist( 
@@ -225,104 +308,14 @@ ggplot(extr_all_df, aes(x, means, color = Model)) +
   geom_vline(aes(xintercept = n) , linetype = "dashed", color = "grey") +
   xlab("# observations") + ylab("# distinct features") + 
   theme_light() + 
+  facet_wrap(~"Extrapolation") +
   theme(legend.position = "top") +
   scale_y_continuous(breaks = pretty_breaks()) +
   scale_x_continuous(breaks = pretty_breaks()) +
   theme(aspect.ratio = 1)
+ggsave(filename = "R_script_paper/Paper_plots/extr_dune_eb.pdf", width = 3.8, height = 3.8, dpi = 300, units = "in", device='pdf')
 
 
-
-
-
-# Prior approach ----------
-
-# Empirical estimate of E(N) is obtained by Chiu
-Nbar <- beta_binomial_estimator(data_mat)
-
-# 2.1) Beta-Bernoulli with Poisson(lambda) mixture
-
-# Initialization and MCMC setting 
-init_PoissonBB <- list(alpha_0 = -1, s_0 = 1)
-init_obj_PoissonBB <- initialization(model = "PoissonBB", init = init_PoissonBB )
-mcmcparams_PoissonBB <- list(tau = 0.1, S = 3*10^4, n_burnin = 5*10^3, thin = 2)
-mcmcparams_obj_PoissonBB <- mcmcparameters(model = "PoissonBB", mcmcparams = mcmcparams_PoissonBB)
-
-# Hyperparameters elicitation 
-hyper_PoissonBB <- list(a_alpha = 1, b_alpha = 0.1,
-                        a_s = 2, b_s = 0.2,
-                        lambda = Nbar)
-prior_obj_PoissonBB <- prior(model = "PoissonBB", hyper = hyper_PoissonBB) 
-
-# Fit the model
-PoissonBB_fit <- GibbsFA(feature_matrix = data_mat, 
-                         model = "PoissonBB", 
-                         prior = prior_obj_PoissonBB, 
-                         initialization = init_obj_PoissonBB, 
-                         mcmcparams = mcmcparams_obj_PoissonBB)
-
-# 2.1.B) Beta-Bernoulli with Poisson(lambda) mixture - EB version
-
-# EB parameters 
-eb_init <- list(alpha = -1, s = 1)#, lambda = 100)
-eb_known <- list(lambda = Nbar)
-eb_params_obj <- eb_params(model = "PoissonBB", init = eb_init, known = eb_known )
-
-# Fit the model with EB
-eb_PoissonBB_fit <- GibbsFA_eb(feature_matrix = data_mat, 
-                               model = "PoissonBB", 
-                               eb_params =  eb_params_obj)
-
-
-
-
-# 2.2) Beta-Bernoulli with NB(n0, mu0) mixture
-
-# Initialization and MCMC setting
-init_NegBinBB <- list(alpha_0 = -1, s_0 = 1)
-init_obj_NegBinBB <- initialization(model = "NegBinBB", init = init_NegBinBB )
-mcmcparams_NegBinBB <- list(tau = 0.1, S = 3*10^4, n_burnin = 5*10^3, thin = 2)
-mcmcparams_obj_NegBinBB <- mcmcparameters(model = "NegBinBB", mcmcparams = mcmcparams_NegBinBB)
-
-# Hyperparameters elicitation 
-c_fr <- 10
-
-hyper_NegBinBB <- list(a_alpha = 1, b_alpha = 0.1,
-                       a_s = 2, b_s = 0.2,
-                       n0 = Nbar/(c_fr - 1), # n0, mu0 are set s.t. E(N) = Nbar, Var(N) = c_fr*E(N)
-                       mu0 = 1/c_fr)
-prior_obj_NegBinBB <- prior(model = "NegBinBB", hyper = hyper_NegBinBB) 
-
-
-# Fit the model
-NegBinBB_fit <- GibbsFA(feature_matrix = data_mat, 
-                        model = "NegBinBB", 
-                        prior = prior_obj_NegBinBB, 
-                        initialization = init_obj_NegBinBB, 
-                        mcmcparams = mcmcparams_obj_NegBinBB)
-
-# 2.2.B) Beta-Bernoulli with NB(n0,mu0) mixture - EB version
-
-# EB parameters 
-eb_init <- list(alpha = -1, s = 1)
-c <- 10
-eb_known <- list( mu0 = Nbar, n0 = Nbar/(c-1))
-eb_params_obj <- eb_params(model = "NegBinBB", init = eb_init, known = eb_known )
-
-# Fit the model with EB
-eb_NegBinBB_fit <- GibbsFA_eb(feature_matrix = data_mat, 
-                              model = "NegBinBB", 
-                              eb_params =  eb_params_obj)
-
-
-# 3) Estimate the total richness ----
-
-PoissonBB_rich <- total_richness(object = PoissonBB_fit)
-eb_PoissonBB_rich <- total_richness(object = eb_PoissonBB_fit)
-plot(x = eb_PoissonBB_fit, type = "richness")
-
-NegBinBB_rich <- total_richness(object = NegBinBB_fit)
-eb_NegBinBB_rich <- total_richness(object = eb_NegBinBB_fit)
-plot(x = eb_NegBinBB_fit, type = "richness")
 
 # 4) Extrapolation ----
 
@@ -381,7 +374,7 @@ GT_extr <- predict_good_toulmin(n, M, sfs, cts, alternative = 0)$preds
 
 richness_PoissonBB_long <- as_tibble(PoissonBB_rich) %>%
   add_column(model= "Poisson")
-      
+
 richness_NegBinBB_long <- as_tibble(NegBinBB_rich) %>%
   add_column(model= "NegBin")
 
@@ -405,7 +398,7 @@ ggplot(joint_richness_long, aes(x = value, color = model)) +
 
 # PoissonBB
 df_rare_PoissonBB <- as_tibble(t(bind_rows(as.data.frame(lapply(PoissonBB_rare, quantile, prob = c(0.025, 0.975))),
-                               as.data.frame(lapply(PoissonBB_rare, mean))))) 
+                                           as.data.frame(lapply(PoissonBB_rare, mean))))) 
 colnames(df_rare_PoissonBB) <- c("lbs", "ubs", "means")
 df_rare_PoissonBB <- df_rare_PoissonBB %>%
   add_column(t = 1:nrow(df_rare_PoissonBB),
@@ -415,7 +408,7 @@ df_rare_PoissonBB <- df_rare_PoissonBB %>%
 
 # NegBinBB
 df_rare_NegBinBB <- as_tibble(t(bind_rows(as.data.frame(lapply(NegBinBB_rare, quantile, prob = c(0.025, 0.975))),
-                                         as.data.frame(lapply(NegBinBB_rare, mean))))) 
+                                          as.data.frame(lapply(NegBinBB_rare, mean))))) 
 colnames(df_rare_NegBinBB) <- c("lbs", "ubs", "means")
 df_rare_NegBinBB <- df_rare_NegBinBB %>%
   add_column(t = 1:nrow(df_rare_NegBinBB),
@@ -458,12 +451,9 @@ ggplot(joint_df_rare_bayes, aes(x = t, y = means, color = model)) +
 
 # 9) Plot Extrapolation: PoissonBB, NegBinBB, Chao and GT
 
-# Set extrapolation horizon 
-M <- 1000
-
 # PoissonBB
 df_extr_PoissonBB <- as_tibble(t(bind_rows(as.data.frame(lapply(PoissonBB_extr, quantile, prob = c(0.025, 0.975))),
-                                         as.data.frame(lapply(PoissonBB_extr, mean))))) 
+                                           as.data.frame(lapply(PoissonBB_extr, mean))))) 
 colnames(df_extr_PoissonBB) <- c("lbs", "ubs", "means")
 df_extr_PoissonBB <- df_extr_PoissonBB %>%
   add_column(t = 1:nrow(df_extr_PoissonBB),
@@ -474,7 +464,7 @@ df_extr_PoissonBB <- df_extr_PoissonBB %>%
 
 # NegBinBB
 df_extr_NegBinBB <- as_tibble(t(bind_rows(as.data.frame(lapply(NegBinBB_extr, quantile, prob = c(0.025, 0.975))),
-                                        as.data.frame(lapply(NegBinBB_extr, mean))))) 
+                                          as.data.frame(lapply(NegBinBB_extr, mean))))) 
 colnames(df_extr_NegBinBB) <- c("lbs", "ubs", "means")
 df_extr_NegBinBB <- df_extr_NegBinBB %>%
   add_column(t = 1:nrow(df_extr_NegBinBB),

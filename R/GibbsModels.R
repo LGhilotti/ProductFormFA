@@ -144,8 +144,12 @@ neg_log_EFPF_GibbsFA_R <- function(model, n, counts, par, known){
   } 
   
   if (model == "NegBinBB"){
-    # component related to mu0 is substituted with the corresponding p
-    par[4] <- 1/(par[4]/par[3] + 1)
+    # from parametrization (var_fct, mu0) need to find (n0,p)
+    var_fct <- par[3]
+    mu0 <- par[4]
+    
+    par[3] <- mu0/(var_fct -1) # this is n0
+    par[4] <- 1/(mu0/par[3] + 1)
     return (neg_log_EFPF_NegBinBB(n, counts, par))
   }
   
@@ -201,7 +205,8 @@ GibbsFA_eb <- function(feature_matrix, model, eb_params, seed = 1234) {
                 "eb_params" = eb_params,
                 "alpha" = unname(res$par["alpha"]), 
                 "theta" = unname(res$par["s"] - res$par["alpha"]),
-                "lambda" = unname(res$par["lambda"])
+                "lambda" = unname(res$par["lambda"]),
+                "fun_value" = res$value
                 )
     
     class(out) <- c("GibbsFA", "PoissonBB_eb")
@@ -217,7 +222,7 @@ GibbsFA_eb <- function(feature_matrix, model, eb_params, seed = 1234) {
     res <- optim(
       par = eb_init, fn = neg_log_EFPF_GibbsFA_R, model = "NegBinBB", 
       n = n, counts = counts, known = eb_known,
-      method = "L-BFGS-B", lower = c(-Inf, 1e-5, 1e-5, 1e-5), upper = c(-1e-5, Inf, Inf, Inf)
+      method = "L-BFGS-B", lower = c(-Inf, 1e-5, 1 + 1e-5, 1e-5), upper = c(-1e-5, Inf, Inf, Inf)
     )
     
     
@@ -225,8 +230,10 @@ GibbsFA_eb <- function(feature_matrix, model, eb_params, seed = 1234) {
                 "eb_params" = eb_params,
                 "alpha" = unname(res$par["alpha"]), 
                 "theta" = unname(res$par["s"] - res$par["alpha"]),
-                "n0" = unname(res$par["n0"]),
-                "mu0" = unname(res$par["mu0"])
+                "var_fct" = unname(res$par["var_fct"]),
+                "n0" = unname(res$par["mu0"]/(res$par["var_fct"] - 1)),
+                "mu0" = unname(res$par["mu0"]),
+                "fun_value" = res$value
                 )
     
     class(out) <- c("GibbsFA", "NegBinBB_eb")
@@ -390,8 +397,8 @@ plot.GibbsFA <- function(x, type, bw = 1, n_reorderings = 1, M = NULL, seed = 12
                        "accum" = c(0,accum))
       
       p <- ggplot(df, aes(x = 0:n, y = means)) +
-        geom_line(linetype = "dashed", color = "red" , linewidth = 0.9) +
-        geom_ribbon(aes(ymin = lb_bands, ymax = ub_bands), color = "red" , linewidth = 0.8, alpha = 0.1) +
+        geom_line(linetype = "solid", color = "red" , linewidth = 0.9) +
+        #geom_ribbon(aes(ymin = lb_bands, ymax = ub_bands), color = "red" , linewidth = 0.8, alpha = 0.1) +
         geom_point( aes(x = 0:n, y = accum), color="black", shape = 1) +
         xlab("# observations") + ylab("# distinct features") + 
         theme_light() + 
@@ -416,8 +423,8 @@ plot.GibbsFA <- function(x, type, bw = 1, n_reorderings = 1, M = NULL, seed = 12
                        "accum" = c(0,accum))
       
       p <- ggplot(df, aes(x = 0:n, y = means)) +
-        geom_line(linetype = "dashed", color = "red" , linewidth = 0.9) +
-        geom_ribbon(aes(ymin = lb_bands, ymax = ub_bands), color = "red" , linewidth = 0.8, alpha = 0.1) +
+        geom_line(linetype = "solid", color = "red" , linewidth = 0.9) +
+        #geom_ribbon(aes(ymin = lb_bands, ymax = ub_bands), color = "red" , linewidth = 0.8, alpha = 0.1) +
         geom_point( aes(x = 0:n, y = accum), color="black", shape = 1) +
         xlab("# observations") + ylab("# distinct features") + 
         theme_light() + 
@@ -438,8 +445,8 @@ plot.GibbsFA <- function(x, type, bw = 1, n_reorderings = 1, M = NULL, seed = 12
                        "accum" = c(0, accum))
       
       p <- ggplot(df, aes(x = 0:n, y = means)) +
-        geom_line(linetype = "dashed", color = "red" , linewidth = 0.9) +
-        geom_ribbon(aes(ymin = lbs, ymax = ubs), color = "red" , linewidth = 0.8, alpha = 0.1) +
+        geom_line(linetype = "solid", color = "red" , linewidth = 0.9) +
+        #geom_ribbon(aes(ymin = lbs, ymax = ubs), color = "red" , linewidth = 0.8, alpha = 0.1) +
         geom_point( aes(x = 0:n, y = accum), color="black", shape = 1) +
         xlab("# observations") + ylab("# distinct features") + 
         theme_light() + 

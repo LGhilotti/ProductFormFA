@@ -91,7 +91,7 @@ eb_params <- function(model, init, known){
   
   if (model == "NegBinBB") {
     
-    if (!setequal(union(names(init), names(known)), c("alpha","s", "n0", "mu0")) ){
+    if (!setequal(union(names(init), names(known)), c("alpha","s", "var_fct", "mu0")) ){
       stop("Some parameters are missing for NegBinBB.")
     }
     
@@ -101,16 +101,16 @@ eb_params <- function(model, init, known){
     
     init <- c(as_vector(init), as_vector(known) ) # here I have both init and known values
     
-    if (init["alpha"] >= 0 | init["s"] <=0 | init["n0"] <= 0 | 
+    if (init["alpha"] >= 0 | init["s"] <=0 | init["var_fct"] <= 1 | 
         init["mu0"] <= 0 ){
       stop("Invalid value of some initial parameters for NegBinBB.")
     }
     
     # order the list as (alpha, s, n0, mu0)
     par <- list("init" = init[order(factor(names(init), 
-                                           levels=c("alpha", "s", "n0", "mu0")))],
+                                           levels=c("alpha", "s", "var_fct", "mu0")))],
                 "known" = null_known[order(factor(names(null_known), 
-                                                  levels=c("alpha", "s", "n0", "mu0")))])
+                                                  levels=c("alpha", "s", "var_fct", "mu0")))])
     
     class(par) <- c("eb_params", "NegBinBB")
     return(par) 

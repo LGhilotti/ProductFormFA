@@ -6,3 +6,5 @@ src/*.o
 src/*.so
 src/*.dll
 inst/doc
+R_script_paper/*.Rdata
+R_script_paper/Paper_plots

@@ -97,8 +97,9 @@ summary.GammaIBP <- function(object, ...) {
   cat("Model:",
       "\n\t IBP with Gamma(a,b) mixture",
       "\nPrior details:\n",
-      paste0("\t E(alpha) = ", object$a_alpha/ object$b_alpha, "; "),
-      paste0("Var(alpha) = ", object$a_alpha/ (object$b_alpha^2)),
+      paste0("\t E(alpha) = ", object$a_alpha/ (object$a_alpha + object$b_alpha), "; "),
+      paste0("Var(alpha) = ", (object$a_alpha*object$b_alpha)/ (object$a_alpha + object$b_alpha)^2 /
+               (object$a_alpha + object$b_alpha + 1)),
       paste0("\n\t E(s) = ", object$a_s/ object$b_s, "; "),
       paste0("Var(s) = ", object$a_s/ (object$b_s^2)),
       paste0("\n\t E(a) = ", 1/ object$q , "; "),
