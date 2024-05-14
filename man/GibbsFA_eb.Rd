@@ -3,9 +3,10 @@
 \name{GibbsFA_eb}
 \alias{GibbsFA_eb}
 \title{Gibbs-type feature allocation models through Empirical Bayes (GibbsFA_eb):
-function to estimate the parameters via EB (choose among PoissonBB, NegBinBB and GammaIBP).}
+function to estimate the parameters via EB, either by maximizing the EFPF
+or method of moments (choose among PoissonBB, NegBinBB and GammaIBP).}
 \usage{
-GibbsFA_eb(feature_matrix, model, eb_params, seed = 1234)
+GibbsFA_eb(feature_matrix, model, type, seed = 1234, eb_params = NULL, ...)
 }
 \arguments{
 \item{feature_matrix}{A \code{n x K}-dimensional binary matrix of features}
@@ -13,14 +14,15 @@ GibbsFA_eb(feature_matrix, model, eb_params, seed = 1234)
 \item{model}{Model to fit. Available models are \code{PoissonBB} (BB with Poisson(lambda) mixture),
 \code{NegBinBB} (BB with NB(n0, mu0) mixture), \code{GammaIBP} (IBP with Gamma(a, b) mixture)}
 
-\item{seed}{seed for fixing randomness}
+\item{type}{Either "EFPF" or "MM" ("MM" is available only for mixtures of BBs)}
 
-\item{initialization}{Initialization object for starting point of the optimization}
+\item{seed}{seed for fixing randomness}
 }
 \value{
 An object of class \code{GibbsFA, model_eb}
 }
 \description{
 Gibbs-type feature allocation models through Empirical Bayes (GibbsFA_eb):
-function to estimate the parameters via EB (choose among PoissonBB, NegBinBB and GammaIBP).
+function to estimate the parameters via EB, either by maximizing the EFPF
+or method of moments (choose among PoissonBB, NegBinBB and GammaIBP).
 }

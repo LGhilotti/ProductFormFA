@@ -295,7 +295,7 @@ fit_estimate_ecological_scenario_singledataset <- function(mechanism,
 
 eb_fit_estimate_ecological_scenario_singledataset <- function(mechanism, 
                                                               eb_init_PoissonBB, eb_known_PoissonBB,
-                                                              eb_init_NegBinBB, eb_known_NegBinBB, c_fr,
+                                                              eb_init_NegBinBB, eb_known_NegBinBB, c_fr, cfrs,
                                                               eb_init_GammaIBP, eb_known_GammaIBP,
                                                               seed = 1234){
   
@@ -305,6 +305,8 @@ eb_fit_estimate_ecological_scenario_singledataset <- function(mechanism,
   
   # Set training dimensions and dimension of the whole sample 
   Ns <- c(30, 60, 120) #c(20, 40, 80) 
+  N_max <- Ns[3]
+  
   if (mechanism == "log-normal"){
     L <- 300
   } else {
@@ -326,6 +328,9 @@ eb_fit_estimate_ecological_scenario_singledataset <- function(mechanism,
   list_eb_fit_NegBinBB <-  vector(mode = "list")
   list_eb_fit_GammaIBP <-  vector(mode = "list")
   
+  eb_NegBinBB_list_variances <- vector(mode="list", length = length(cfrs))
+  names(eb_NegBinBB_list_variances) <- paste0("c_fr.", cfrs)
+  
   # List of Nbar_emp for the different training sets
   list_Nbar_emp <- vector(mode = "list")
   
@@ -334,7 +339,16 @@ eb_fit_estimate_ecological_scenario_singledataset <- function(mechanism,
   # List to store smoothed GT's estimates
   list_extr_GT <- vector(mode="list")
   
-  
+  for (cfr in cfrs){
+    eb_known_NegBinBB_vars <- list(var_fct = cfr)
+    eb_params_obj_NegBinBB <- eb_params(model = "NegBinBB",
+                                        init = eb_init_NegBinBB,
+                                        known = eb_known_NegBinBB_vars)
+    
+    eb_NegBinBB_list[[paste0("c_fr.", cfr)]] <- GibbsFA_eb(feature_matrix = data_mat[1:N_max,],
+                                                           model = "NegBinBB",
+                                                           eb_params =  eb_params_obj_NegBinBB)
+  }
   
   # Loop over the different training set dimensions 
   
@@ -425,32 +439,32 @@ eb_fit_estimate_ecological_scenario_singledataset <- function(mechanism,
 
     }
     
-    # Competitors
-
-    # A) Chao's rarefaction and extrapolation
-
-    # Determine the frequency vector of the training sets
-    Q_vec <- colSums(train_mat)
-    Q_vec <- Q_vec[Q_vec>0]
-
-    # Compute the curves with confidence intervals
-    fit_Chao <- iNEXT.Sam(Spec = Q_vec, T = n_train, endpoint = L)
-
-    rare_Chao <- as_tibble(fit_Chao[["q=0"]]) %>%
-      select(-Cov.hat) %>%
-      rename(medians = D0.hat, lbs = Norm.CI.Low, ubs = Norm.CI.High)
-
-    list_rare_extr_Chao[[lab_comb_ibp]] <- as.data.frame(rare_Chao)
-
-
-    # B) Smoothed Good-Toulmin extrapolation
-
-    # Compute SFS vector and CTS vector
-    sfs <- tabulate(colSums(train_mat))
-    cts <- sapply(2:n_train, function(n) ncol(train_mat[1:n,colSums(train_mat[1:n,]) > 0])   )
-    cts <- c(0, sum(train_mat[1,]) , cts)
-
-    list_extr_GT[[lab_comb_ibp]] <- predict_good_toulmin(n_train, M, sfs, cts, alternative = 0)$preds
+    # # Competitors
+    # 
+    # # A) Chao's rarefaction and extrapolation
+    # 
+    # # Determine the frequency vector of the training sets
+    # Q_vec <- colSums(train_mat)
+    # Q_vec <- Q_vec[Q_vec>0]
+    # 
+    # # Compute the curves with confidence intervals
+    # fit_Chao <- iNEXT.Sam(Spec = Q_vec, T = n_train, endpoint = L)
+    # 
+    # rare_Chao <- as_tibble(fit_Chao[["q=0"]]) %>%
+    #   select(-Cov.hat) %>%
+    #   rename(medians = D0.hat, lbs = Norm.CI.Low, ubs = Norm.CI.High)
+    # 
+    # list_rare_extr_Chao[[lab_comb_ibp]] <- as.data.frame(rare_Chao)
+    # 
+    # 
+    # # B) Smoothed Good-Toulmin extrapolation
+    # 
+    # # Compute SFS vector and CTS vector
+    # sfs <- tabulate(colSums(train_mat))
+    # cts <- sapply(2:n_train, function(n) ncol(train_mat[1:n,colSums(train_mat[1:n,]) > 0])   )
+    # cts <- c(0, sum(train_mat[1,]) , cts)
+    # 
+    # list_extr_GT[[lab_comb_ibp]] <- predict_good_toulmin(n_train, M, sfs, cts, alternative = 0)$preds
 
   }
   
@@ -806,7 +820,7 @@ if (!file.exists(paste0("R_script_paper/eb_",mechanism,"_fit_estimate_singledata
   
   # Initialization and known parameters
   c_fr <- 5
-  eb_init_NegBinBB <- list(alpha = -100, s = 100, mu0 = 500)
+  eb_init_NegBinBB <- list(alpha = - 100, s = 100, mu0 = 500)
   eb_known_NegBinBB <- list(var_fct = c_fr)
   
   # 3) GammaIBP
@@ -815,11 +829,14 @@ if (!file.exists(paste0("R_script_paper/eb_",mechanism,"_fit_estimate_singledata
   eb_init_GammaIBP <- list(alpha = 0.5, s = 1, a = 1, b = 1)
   eb_known_GammaIBP <- list()
   
+  # NegBin for different variances
+  cfrs <- c(2, 10, 50)
+  
   # 4) Call the routine to perform simulations
   eb_fit_estimate_ecological_scenario_singledataset(mechanism = mechanism, 
                                                     eb_init_PoissonBB, eb_known_PoissonBB,
-                                                    eb_init_NegBinBB, eb_known_NegBinBB, c_fr,
-                                                    eb_init_GammaIBP, eb_known_GammaIBP, seed = 123456)
+                                                    eb_init_NegBinBB, eb_known_NegBinBB, c_fr, cfrs, 
+                                                    eb_init_GammaIBP, eb_known_GammaIBP, seed = 1234)
   
 }
 
@@ -828,6 +845,8 @@ load(paste0("R_script_paper/eb_",mechanism,"_fit_estimate_singledataset.RData"))
 
 Kn <- sapply(Ns, function(n) sum(colSums(data_mat[1:n,]) > 0)  )
 sum(colSums(data_mat) > 0)
+
+###### Comparison Poisson, NegBin and Gamma ------
 
 # 0) Model checking: verify model is compatible with data 
 plot( x = 0:100, y = c(0, rarefaction(data_mat)[1:100]) )
@@ -921,31 +940,35 @@ ggplot(emp_pis, aes(x = x) ) +
 
 
 
-
 # 0.B) Check on rarefaction
-accum_df <- tibble( x = 0:Ns[3],
-                    n_feat = c(0,rarefaction(data_mat[1:Ns[3],], n_reorderings = 10)))
+n_rare <- Ns[3]
+eb_fit_PoissonBB_rare <- list_eb_fit_PoissonBB[[9]]
+eb_fit_NegBinBB_rare <- list_eb_fit_NegBinBB[[9]]
+eb_fit_GammaIBP_rare <- list_eb_fit_GammaIBP[[3]]
+
+accum_df <- tibble( x = 0:n_rare,
+                    n_feat = c(0,rarefaction(data_mat[1:n_rare,], n_reorderings = 10)))
 
 rare_PoissonBB <- tibble( lambda_post = unname(unlist(
-  rarefaction(object = list_eb_fit_PoissonBB[[9]], seed = seed)$lambda_post ))) %>%
+  rarefaction(object = eb_fit_PoissonBB_rare, seed = seed)$lambda_post ))) %>%
   rename(means = lambda_post) %>%
   add_row(means = 0) %>%
   add_column(Model = "PoissonBB",
-             x = c(1:Ns[3],0))
+             x = c(1:n_rare,0))
 
 rare_NegBinBB <- tibble( mu0_post = unname(unlist(
-  rarefaction(object = list_eb_fit_NegBinBB[[9]], seed = seed)$mu0_post ))) %>%
+  rarefaction(object = eb_fit_NegBinBB_rare, seed = seed)$mu0_post ))) %>%
   rename(means = mu0_post) %>%
   add_row(means = 0) %>%
   add_column(Model = "NegBinBB",
-             x = c(1:Ns[3],0))
+             x = c(1:n_rare,0))
 
 rare_GammaIBP <- tibble( mu0_post = unname(unlist(
-  rarefaction(object = list_eb_fit_GammaIBP[[3]], seed = seed)$mu0_post ))) %>%
+  rarefaction(object = eb_fit_GammaIBP_rare, seed = seed)$mu0_post ))) %>%
   rename(means = mu0_post) %>%
   add_row(means = 0) %>%
   add_column(Model = "GammaIBP",
-             x = c(1:Ns[3],0)) 
+             x = c(1:n_rare,0)) 
 
 df_rare <- rbind(rare_PoissonBB, rare_NegBinBB, rare_GammaIBP)
 df_rare$Model <- factor(df_rare$Model, levels = c("PoissonBB", "NegBinBB", "GammaIBP"))
@@ -962,6 +985,164 @@ ggplot(df_rare, aes(x = x, y = means, color = Model)) +
   scale_x_continuous(breaks = pretty_breaks()) +
   theme(aspect.ratio = 1)
 ggsave(filename = "R_script_paper/Paper_plots/rarefaction_beta_pis_eb.pdf", width = 8, height = 3.5, dpi = 300, units = "in", device='pdf')
+
+
+# 0.c) Check on K_n_r
+n_knr <- Ns[3]
+eb_fit_PoissonBB_knr <- list_eb_fit_PoissonBB[[9]]
+eb_fit_NegBinBB_knr <- list_eb_fit_NegBinBB[[9]]
+eb_fit_GammaIBP_knr <- list_eb_fit_GammaIBP[[3]]
+
+
+observed_K_n_r <- tibble( r = 1:n_knr,
+                          k_n_r = K_n_r(data_mat[1:n_knr,], n_reorderings = 1)[[paste0('N = ', n_knr)]])
+
+K_n_r_PoissonBB <- tibble( lambda_est = unname(unlist(
+  K_n_r(object = eb_fit_PoissonBB_knr, n = n_knr)[[paste0('N = ', n_knr)]]$lambda_est ))) %>%
+  rename(means = lambda_est) %>%
+  add_column(Model = "PoissonBB",
+             r = 1:n_knr)
+
+K_n_r_NegBinBB <- tibble( mu0_est = unname(unlist(
+  K_n_r(object = eb_fit_NegBinBB_knr, n = n_knr)[[paste0('N = ', n_knr)]]$mu0_est ))) %>%
+  rename(means = mu0_est) %>%
+  add_column(Model = "NegBinBB",
+             r = 1:n_knr)
+
+K_n_r_GammaIBP <- tibble( mu0_est = unname(unlist(
+  K_n_r(object = eb_fit_GammaIBP_knr, n = n_knr)[[paste0('N = ', n_knr)]]$mu0_est ))) %>%
+  rename(means = mu0_est) %>%
+  add_column(Model = "GammaIBP",
+             r = 1:n_knr)
+
+df_K_n_r <- rbind(K_n_r_PoissonBB, K_n_r_NegBinBB, K_n_r_GammaIBP)
+df_K_n_r$Model <- factor(df_K_n_r$Model, levels = c("PoissonBB", "NegBinBB", "GammaIBP"))
+
+r_positive <- observed_K_n_r %>%
+  filter(k_n_r > 0) %>%
+  select(r)
+
+df_K_n_r_plot <- df_K_n_r %>%
+  filter(r %in% c(r_positive$r))
+
+observed_K_n_r_plot <- observed_K_n_r %>%
+  filter(r %in% c(r_positive$r))
+
+ggplot(df_K_n_r_plot, aes(x = r, y = means, color = Model)) +
+  geom_line( linetype = "dashed") +
+  geom_point( data = observed_K_n_r_plot, aes(x = r, y = k_n_r), color="black", size = 1) +
+  scale_y_log10() +
+  xlab("r") + ylab(expression(m[r])) + 
+  theme_light() + 
+  theme(legend.position = "top") +
+  scale_x_continuous(breaks = pretty_breaks()) +
+  theme(aspect.ratio = 1)
+ggsave(filename = "R_script_paper/Paper_plots/knr_beta_pis_eb.pdf", width = 5, height = 4.5, dpi = 300, units = "in", device='pdf')
+
+
+##### Comparison among NegBin with different variances -----------
+# 0.B) Check on rarefaction
+n_rare <- N_max
+eb_fit_NegBinBB_1_rare <- eb_NegBinBB_list[[1]]
+eb_fit_NegBinBB_2_rare <- eb_NegBinBB_list[[2]]
+eb_fit_NegBinBB_3_rare <- eb_NegBinBB_list[[3]]
+
+accum_df <- tibble( x = 0:n_rare,
+                    n_feat = c(0,rarefaction(data_mat[1:n_rare,], n_reorderings = 10)))
+
+
+
+rare_NegBinBB_1 <- tibble( mu0_post = unname(unlist(
+  rarefaction(object = eb_fit_NegBinBB_1_rare, seed = seed)$mu0_post ))) %>%
+  rename(means = mu0_post) %>%
+  add_row(means = 0) %>%
+  add_column(Variance = paste0(cfrs[1]," x"),
+             x = c(1:n_rare,0))
+
+rare_NegBinBB_2 <- tibble( mu0_post = unname(unlist(
+  rarefaction(object = eb_fit_NegBinBB_2_rare, seed = seed)$mu0_post ))) %>%
+  rename(means = mu0_post) %>%
+  add_row(means = 0) %>%
+  add_column(Variance = paste0(cfrs[2]," x"),
+             x = c(1:n_rare,0))
+
+rare_NegBinBB_3 <- tibble( mu0_post = unname(unlist(
+  rarefaction(object = eb_fit_NegBinBB_3_rare, seed = seed)$mu0_post ))) %>%
+  rename(means = mu0_post) %>%
+  add_row(means = 0) %>%
+  add_column(Variance = paste0(cfrs[3]," x"),
+             x = c(1:n_rare,0))
+
+df_rare <- rbind(rare_NegBinBB_1, rare_NegBinBB_2, rare_NegBinBB_3)
+df_rare$Variance <- factor(df_rare$Variance, 
+                           levels = paste0(cfrs, " x"))
+
+ggplot(df_rare, aes(x = x, y = means, color = Variance)) +
+  geom_line(linetype = "solid", color = "red" , linewidth = 0.9) +
+  facet_wrap(.~ Variance, scales = "free_x", nrow = 1) +
+  #geom_ribbon(aes(ymin = lb_bands, ymax = ub_bands), color = "red" , linewidth = 0.8, alpha = 0.1) +
+  geom_point( data = accum_df, aes(x = x, y = n_feat), color="black", shape = 1, size = 0.5) +
+  xlab("# observations") + ylab("# distinct features") + 
+  theme_light() + 
+  theme(legend.position = "top") +
+  scale_y_continuous(breaks = pretty_breaks()) +
+  scale_x_continuous(breaks = pretty_breaks()) +
+  theme(aspect.ratio = 1)
+ggsave(filename = "R_script_paper/Paper_plots/rarefaction__variances_beta_pis_eb.pdf", width = 8, height = 3.5, dpi = 300, units = "in", device='pdf')
+
+
+# 0.c) Check on K_n_r
+n_knr <- N_max
+eb_fit_NegBinBB_1_knr <- eb_NegBinBB_list[[1]]
+eb_fit_NegBinBB_2_knr <- eb_NegBinBB_list[[2]]
+eb_fit_NegBinBB_3_knr <- eb_NegBinBB_list[[3]]
+
+
+observed_K_n_r <- tibble( r = 1:n_knr,
+                          k_n_r = K_n_r(data_mat[1:n_knr,], n_reorderings = 1)[[paste0('N = ', n_knr)]])
+
+K_n_r_NegBinBB_1 <- tibble( mu0_est = unname(unlist(
+  K_n_r(object = eb_fit_NegBinBB_1_knr, n = n_knr)[[paste0('N = ', n_knr)]]$mu0_est ))) %>%
+  rename(means = mu0_est) %>%
+  add_column(Variance = paste0(cfrs[1], " x"),
+             r = 1:n_knr)
+
+K_n_r_NegBinBB_2 <- tibble( mu0_est = unname(unlist(
+  K_n_r(object = eb_fit_NegBinBB_2_knr, n = n_knr)[[paste0('N = ', n_knr)]]$mu0_est ))) %>%
+  rename(means = mu0_est) %>%
+  add_column(Variance = paste0(cfrs[2], " x"),
+             r = 1:n_knr)
+
+K_n_r_NegBinBB_3 <- tibble( mu0_est = unname(unlist(
+  K_n_r(object = eb_fit_NegBinBB_3_knr, n = n_knr)[[paste0('N = ', n_knr)]]$mu0_est ))) %>%
+  rename(means = mu0_est) %>%
+  add_column(Variance = paste0(cfrs[3], " x"),
+             r = 1:n_knr)
+
+df_K_n_r <- rbind(K_n_r_NegBinBB_1, K_n_r_NegBinBB_2, K_n_r_NegBinBB_3)
+df_K_n_r$Variance <- factor(df_K_n_r$Variance, 
+                            levels = paste0(cfrs, " x"))
+
+r_positive <- observed_K_n_r %>%
+  filter(k_n_r > 0) %>%
+  select(r)
+
+df_K_n_r_plot <- df_K_n_r %>%
+  filter(r %in% c(r_positive$r))
+
+observed_K_n_r_plot <- observed_K_n_r %>%
+  filter(r %in% c(r_positive$r))
+
+ggplot(df_K_n_r_plot, aes(x = r, y = means, color = Variance)) +
+  geom_line( linetype = "dashed") +
+  geom_point( data = observed_K_n_r_plot, aes(x = r, y = k_n_r), color="black", size = 1) +
+  scale_y_log10() +
+  xlab("r") + ylab(expression(m[r])) + 
+  theme_light() + 
+  theme(legend.position = "top") +
+  scale_x_continuous(breaks = pretty_breaks()) +
+  theme(aspect.ratio = 1)
+ggsave(filename = "R_script_paper/Paper_plots/knr_variances_beta_pis_eb.pdf", width = 5, height = 4.5, dpi = 300, units = "in", device='pdf')
 
 
 
@@ -1199,7 +1380,8 @@ ggplot(extr_all_df, aes(x, means, color = Model)) +
 ggsave(filename = "R_script_paper/Paper_plots/extr_beta_pis_eb.pdf", width = 8, height = 3.8, dpi = 300, units = "in", device='pdf')
 
 
-  
+
+
 
 
 

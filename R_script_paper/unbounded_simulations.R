@@ -464,15 +464,15 @@ eb_fit_estimate_polynomial_scenario_singledataset <- function(xi,
     
     
     
-    # Competitors
-    # B) Smoothed Good-Toulmin extrapolation
-
-    # Compute SFS vector and CTS vector
-    sfs <- tabulate(colSums(train_mat))
-    cts <- sapply(2:n_train, function(n) ncol(train_mat[1:n,colSums(train_mat[1:n,]) > 0])   )
-    cts <- c(0, sum(train_mat[1,]) , cts)
-
-    list_extr_GT[[lab_comb_ibp]] <- predict_good_toulmin(n_train, M, sfs, cts, alternative = 0)$preds
+    # # Competitors
+    # # B) Smoothed Good-Toulmin extrapolation
+    # 
+    # # Compute SFS vector and CTS vector
+    # sfs <- tabulate(colSums(train_mat))
+    # cts <- sapply(2:n_train, function(n) ncol(train_mat[1:n,colSums(train_mat[1:n,]) > 0])   )
+    # cts <- c(0, sum(train_mat[1,]) , cts)
+    # 
+    # list_extr_GT[[lab_comb_ibp]] <- predict_good_toulmin(n_train, M, sfs, cts, alternative = 0)$preds
 
   }
   
@@ -877,29 +877,34 @@ ggplot(emp_pis, aes(x = x) ) +
 
 
 # 0.B) Check on rarefaction
-accum_df <- tibble( x = 0:Ns[3],
-                    n_feat = c(0,rarefaction(data_mat[1:Ns[3],], n_reorderings = 10)))
+n_rare <- Ns[3]
+eb_fit_PoissonBB_rare <- list_eb_fit_PoissonBB[[3]]
+eb_fit_NegBinBB_rare <- list_eb_fit_NegBinBB[[3]]
+eb_fit_GammaIBP_rare <- list_eb_fit_GammaIBP[[3]]
+
+accum_df <- tibble( x = 0:n_rare,
+                    n_feat = c(0,rarefaction(data_mat[1:n_rare,], n_reorderings = 10)))
 
 rare_PoissonBB <- tibble( lambda_post = unname(unlist(
-  rarefaction(object = list_eb_fit_PoissonBB[[3]], seed = seed)$lambda_post ))) %>%
+  rarefaction(object = eb_fit_PoissonBB_rare, seed = seed)$lambda_post ))) %>%
   rename(means = lambda_post) %>%
   add_row(means = 0) %>%
   add_column(Model = "PoissonBB",
-             x = c(1:Ns[3],0))
+             x = c(1:n_rare,0))
 
 rare_NegBinBB <- tibble( mu0_post = unname(unlist(
-  rarefaction(object = list_eb_fit_NegBinBB[[3]], seed = seed)$mu0_post ))) %>%
+  rarefaction(object = eb_fit_NegBinBB_rare, seed = seed)$mu0_post ))) %>%
   rename(means = mu0_post) %>%
   add_row(means = 0) %>%
   add_column(Model = "NegBinBB",
-             x = c(1:Ns[3],0))
+             x = c(1:n_rare,0))
 
 rare_GammaIBP <- tibble( mu0_post = unname(unlist(
-  rarefaction(object = list_eb_fit_GammaIBP[[3]], seed = seed)$mu0_post ))) %>%
+  rarefaction(object = eb_fit_GammaIBP_rare, seed = seed)$mu0_post ))) %>%
   rename(means = mu0_post) %>%
   add_row(means = 0) %>%
   add_column(Model = "GammaIBP",
-             x = c(1:Ns[3],0)) 
+             x = c(1:n_rare,0)) 
 
 df_rare <- rbind(rare_PoissonBB, rare_NegBinBB, rare_GammaIBP)
 df_rare$Model <- factor(df_rare$Model, levels = c("PoissonBB", "NegBinBB", "GammaIBP"))
@@ -918,6 +923,58 @@ ggplot(df_rare, aes(x = x, y = means, color = Model)) +
 ggsave(filename = "R_script_paper/Paper_plots/rarefaction_poly_1_eb.pdf", width = 8, height = 3.5, dpi = 300, units = "in", device='pdf')
 
 
+# 0.c) Check on K_n_r
+n_knr <- Ns[3]
+eb_fit_PoissonBB_knr <- list_eb_fit_PoissonBB[[3]]
+eb_fit_NegBinBB_knr <- list_eb_fit_NegBinBB[[3]]
+eb_fit_GammaIBP_knr <- list_eb_fit_GammaIBP[[3]]
+
+
+observed_K_n_r <- tibble( r = 1:n_knr,
+                          k_n_r = K_n_r(data_mat[1:n_knr,], n_reorderings = 1)[[paste0('N = ', n_knr)]])
+
+K_n_r_PoissonBB <- tibble( lambda_est = unname(unlist(
+  K_n_r(object = eb_fit_PoissonBB_knr, n = n_knr)[[paste0('N = ', n_knr)]]$lambda_est ))) %>%
+  rename(means = lambda_est) %>%
+  add_column(Model = "PoissonBB",
+             r = 1:n_knr)
+
+K_n_r_NegBinBB <- tibble( mu0_est = unname(unlist(
+  K_n_r(object = eb_fit_NegBinBB_knr, n = n_knr)[[paste0('N = ', n_knr)]]$mu0_est ))) %>%
+  rename(means = mu0_est) %>%
+  add_column(Model = "NegBinBB",
+             r = 1:n_knr)
+
+K_n_r_GammaIBP <- tibble( mu0_est = unname(unlist(
+  K_n_r(object = eb_fit_GammaIBP_knr, n = n_knr)[[paste0('N = ', n_knr)]]$mu0_est ))) %>%
+  rename(means = mu0_est) %>%
+  add_column(Model = "GammaIBP",
+             r = 1:n_knr)
+
+df_K_n_r <- rbind(K_n_r_PoissonBB, K_n_r_NegBinBB, K_n_r_GammaIBP)
+df_K_n_r$Model <- factor(df_K_n_r$Model, levels = c("PoissonBB", "NegBinBB", "GammaIBP"))
+
+r_positive <- observed_K_n_r %>%
+  filter(k_n_r > 0) %>%
+  select(r)
+
+df_K_n_r_plot <- df_K_n_r %>%
+  filter(r %in% c(r_positive$r))
+
+observed_K_n_r_plot <- observed_K_n_r %>%
+  filter(r %in% c(r_positive$r))
+
+
+ggplot(df_K_n_r_plot, aes(x = r, y = means, color = Model)) +
+  geom_line( linetype = "dashed") +
+  geom_point( data = observed_K_n_r_plot, aes(x = r, y = k_n_r), color="black", size = 1) +
+  scale_y_log10() +
+  xlab("r") + ylab(expression(m[r])) + 
+  theme_light() + 
+  theme(legend.position = "top") +
+  scale_x_continuous(breaks = pretty_breaks()) +
+  theme(aspect.ratio = 1)
+ggsave(filename = "R_script_paper/Paper_plots/knr_poly_1_eb.pdf", width = 5, height = 4.5, dpi = 300, units = "in", device='pdf')
 
 
 
