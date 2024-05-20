@@ -163,6 +163,46 @@ neg_log_EFPF_GibbsFA_R <- function(model, n, counts, par, known){
   
 }
 
+
+
+mse_GammaIBP <- function(par, emp_knr, known){ # par = (alpha, s, a, b)
+  
+  par <- ifelse(is.na(known), par, known)
+  
+  alpha <- par[1]
+  theta <- par[2] - par[1]
+  a <- par[3]
+  b <- par[4]
+  n <- length(emp_knr)
+  
+  return( sum((emp_knr - ev_K_n_r_GammaIBP(alpha, theta, a, b, n))^2))
+  
+}
+
+
+
+#' @export
+mm_censored_fun <- function(x, n, emp_mean, emp_var){ # takes x = (a, b), where a = -alpha, b=alpha +theta
+  
+  a <- x[1]
+  b <- x[2]
+  beta_a_b <- beta(a,b)
+  beta_a_b_n <- beta(a, b + n)
+  
+  ev_censored <- a/(beta_a_b - beta_a_b_n) * 
+    (beta_a_b/(a + b) - beta_a_b_n/(a + b + n))
+    
+  y <- numeric(2)
+  
+  y[1] <- ev_censored - emp_mean
+  y[2] <- beta_a_b/(beta_a_b - beta_a_b_n)*(a/(a+b))*((a+1)/(a+b+1)) +
+    beta_a_b_n/(beta_a_b_n - beta_a_b)*(a/(a+b+n))*((a+1)/(a+b+n+1)) -
+    ev_censored^2 - emp_var
+  
+  y
+  
+}
+
 #' Gibbs-type feature allocation models through Empirical Bayes (GibbsFA_eb): 
 #' function to estimate the parameters via EB, either by maximizing the EFPF
 #' or method of moments (choose among PoissonBB, NegBinBB and GammaIBP).
@@ -170,14 +210,16 @@ neg_log_EFPF_GibbsFA_R <- function(model, n, counts, par, known){
 #' @param feature_matrix A \code{n x K}-dimensional binary matrix of features
 #' @param model Model to fit. Available models are \code{PoissonBB} (BB with Poisson(lambda) mixture),
 #' \code{NegBinBB} (BB with NB(n0, mu0) mixture), \code{GammaIBP} (IBP with Gamma(a, b) mixture)
-#' @param type Either "EFPF" or "MM" ("MM" is available only for mixtures of BBs)
+#' @param type Either "EFPF" (for all models),"MM_biased", "MM_censored" (only for mixtures of BBs),
+#' "MM" (only for GammaIBP)
 #' @param seed seed for fixing randomness
 #' 
 #' @return An object of class \code{GibbsFA, model_eb}
 #'
+#' @import nleqslv
 #' @export
 #' 
-GibbsFA_eb <- function(feature_matrix, model, type, seed = 1234, eb_params = NULL, ...) {
+GibbsFA_eb <- function(feature_matrix, model, type, seed = 1234, eb_params = NULL, Nhat_MM = NULL, var_fct = NULL, ...) {
   
   if (type == "EFPF"){
     
@@ -296,7 +338,11 @@ GibbsFA_eb <- function(feature_matrix, model, type, seed = 1234, eb_params = NUL
   
   
   
-  if (type == "MM"){
+  if (type == "MM_biased"){
+    
+    if (model == "GammaIBP"){
+      stop("GammaIBP has not the MM_biased based parameter elicitation")
+    }
     
     # Remove NAs and 0s column from feature_matrix
     feature_matrix <- feature_matrix[, colSums(is.na(feature_matrix))==0]
@@ -313,7 +359,9 @@ GibbsFA_eb <- function(feature_matrix, model, type, seed = 1234, eb_params = NUL
     # Solve the system given by the moments equations
     theta_MM <- emp_mean*(1 - emp_mean)/emp_var - 1
     alpha_MM <- - emp_mean*theta_MM
-    Nhat_MM <- K/(feature_fraction(n, alpha_MM, theta_MM))
+    if (is.null(Nhat_MM)){
+      Nhat_MM <- K/(feature_fraction(n, alpha_MM, theta_MM))
+    }
     
     out <- list("feature_matrix" = feature_matrix,
                 "alpha" = alpha_MM, 
@@ -338,6 +386,103 @@ GibbsFA_eb <- function(feature_matrix, model, type, seed = 1234, eb_params = NUL
     
   }
     
+  
+  if (type == "MM_censored"){
+    
+    if (model == "GammaIBP"){
+      stop("GammaIBP has not the MM_censored based parameter elicitation")
+    }
+    
+    # Remove NAs and 0s column from feature_matrix
+    feature_matrix <- feature_matrix[, colSums(is.na(feature_matrix))==0]
+    feature_matrix <- feature_matrix[, colSums(feature_matrix)!=0]
+    counts <- colSums(feature_matrix)
+    n <- nrow(feature_matrix)
+    K <- ncol(feature_matrix)
+    
+    # MM estimates are just used as initialization of the system solver algorithm
+    emp_pis <- counts/n
+    emp_mean <- mean(emp_pis)
+    emp_var <- var(emp_pis)
+    theta_MM <- emp_mean*(1 - emp_mean)/emp_var - 1
+    alpha_MM <- - emp_mean*theta_MM
+    
+    # Solve the non-linear system of equations for alpha and theta 
+    x_start <- c(- alpha_MM, alpha_MM + theta_MM)
+    sol <- nleqslv(x_start, mm_censored_fun, control=list(btol=.01),
+                   n = n, emp_mean = emp_mean, emp_var = emp_var)
+    
+    alpha_MM_censored <- - sol$x[1]
+    theta_MM_censored <- sol$x[1] + sol$x[2]
+    
+    if (is.null(Nhat_MM)){
+      Nhat_MM <- K/(feature_fraction(n, alpha_MM_censored, theta_MM_censored))
+    }    
+    
+    out <- list("feature_matrix" = feature_matrix,
+                "alpha" = alpha_MM_censored, 
+                "theta" = theta_MM_censored)
+    
+    if (model == "PoissonBB") {
+      
+      out[["lambda"]] <- Nhat_MM
+      
+      class(out) <- c("GibbsFA", "PoissonBB_eb")
+      return(out)
+    }
+    
+    if (model == "NegBinBB") {
+      
+      out[["mu0"]] <- Nhat_MM
+      out[["n0"]] <- Nhat_MM/(var_fct - 1)
+      
+      class(out) <- c("GibbsFA", "NegBinBB_eb")
+      return(out)
+    }
+    
+  }
+  
+  if (type == "MM"){
+    
+    if (model != "GammaIBP"){
+      stop("Only GammaIBP has the MM based parameter elicitation")
+    }
+    
+    if (!all(class(eb_params) == c("eb_params", model))  ){
+      stop("Starting point/known parameters for optimization not compatible")
+    }
+    
+    # Remove NAs and 0s column from feature_matrix
+    feature_matrix <- feature_matrix[, colSums(is.na(feature_matrix))==0]
+    feature_matrix <- feature_matrix[, colSums(feature_matrix)!=0]
+    n <- nrow(feature_matrix)
+    K <- ncol(feature_matrix)
+    
+    emp_knr <- K_n_r(feature_matrix)[[paste0("N = ", n)]]
+    
+    # Initialization of the optimization
+    eb_init <- eb_params$init
+    eb_known <- eb_params$known
+    
+    res <- nlminb(
+      start = eb_init, objective = mse_GammaIBP, 
+      emp_knr = emp_knr, known = eb_known,
+      lower = c(1e-5, 1e-5, 1e-5, 1e-5), upper = c(1 - 1e-5, Inf, Inf, Inf)
+    )
+    
+    out <- list("feature_matrix" = feature_matrix,
+                "eb_params" = eb_params,
+                "alpha" = unname(res$par["alpha"]), 
+                "theta" = unname(res$par["s"] - res$par["alpha"]),
+                "a" = unname(res$par["a"]),
+                "b" = unname(res$par["b"]),
+                "fun_value" = res$objective
+    )
+    
+    class(out) <- c("GibbsFA", "GammaIBP_eb")
+    return(out)
+    
+  }
 }
 
 

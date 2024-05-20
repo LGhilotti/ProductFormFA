@@ -378,8 +378,7 @@ fit_estimate_polynomial_scenario_singledataset <- function(xi,
 # EB Single dataset: function to produce fit and estimate on specific ecological scenario ------
 
 eb_fit_estimate_polynomial_scenario_singledataset <- function(xi, 
-                                                              eb_init_PoissonBB, eb_known_PoissonBB,
-                                                              eb_init_NegBinBB, eb_known_NegBinBB, c_fr,
+                                                              var_fct,
                                                               eb_init_GammaIBP, eb_known_GammaIBP,
                                                               seed = 1234){
   
@@ -399,19 +398,10 @@ eb_fit_estimate_polynomial_scenario_singledataset <- function(xi,
   # Structures to save fit and estimates 
   
   # List to store the fitted models for PoissonBB, NegBinBB and GammaIBP, under different settings 
-  list_eb_fit_PoissonBB <- vector(mode = "list")
-  list_eb_fit_NegBinBB <-  vector(mode = "list")
-  list_eb_fit_GammaIBP <-  vector(mode = "list")
-  
-  # List of Nbar_emp for the different training sets
-  list_Nbar_emp <- vector(mode = "list")
-  
-  # List to store Chao's estimates
-  list_rare_extr_Chao <- vector(mode="list")
-  # List to store smoothed GT's estimates
-  list_extr_GT <- vector(mode="list")
-  
-  
+  list_eb_MM_cens_fit_PoissonBB <- vector(mode = "list")
+  list_eb_MM_cens_fit_NegBinBB <-  vector(mode = "list")
+  list_eb_EFPF_fit_GammaIBP <-  vector(mode = "list")
+  list_eb_MM_fit_GammaIBP <-  vector(mode = "list")
   
   # Loop over the different training set dimensions 
   
@@ -425,43 +415,38 @@ eb_fit_estimate_polynomial_scenario_singledataset <- function(xi,
     lab_comb_bb <- paste0("n_train.",n_train,":Nbar.emp")
     lab_comb_ibp <- paste("n_train", n_train, sep = ".")
     
-    # Empirical estimate of E(N) is obtained by Chiu
-    Nbar_emp <- beta_binomial_estimator(train_mat)
-    list_Nbar_emp[[paste0("n_train.",n_train)]] <- Nbar_emp
-    
     # Fit the models
-    # PoissonBB
-    eb_params_obj_PoissonBB <- eb_params(model = "PoissonBB", 
-                                         init = eb_init_PoissonBB, 
-                                         known = eb_known_PoissonBB)
-    
-    eb_PoissonBB_fit <- GibbsFA_eb(feature_matrix = train_mat, 
-                                   model = "PoissonBB", 
-                                   eb_params =  eb_params_obj_PoissonBB)
-    
-    # NegBinBB
-    eb_params_obj_NegBinBB <- eb_params(model = "NegBinBB",
-                                        init = eb_init_NegBinBB,
-                                        known = eb_known_NegBinBB)
-    
-    eb_NegBinBB_fit <- GibbsFA_eb(feature_matrix = train_mat,
-                                  model = "NegBinBB",
-                                  eb_params =  eb_params_obj_NegBinBB)
-    
+    # # PoissonBB
+    # eb_MM_cens_PoissonBB_fit <- GibbsFA_eb(feature_matrix = train_mat, 
+    #                                        model = "PoissonBB", 
+    #                                        type = "MM_censored")
+    # 
+    # # NegBinBB
+    # eb_MM_cens_NegBinBB_fit <- GibbsFA_eb(feature_matrix = train_mat, 
+    #                                       model = "NegBinBB", 
+    #                                       type = "MM_censored", var_fct = var_fct)
+    # 
     # GammaIBP
     eb_params_obj_GammaIBP <- eb_params(model = "GammaIBP",
                                         init = eb_init_GammaIBP,
                                         known = eb_known_GammaIBP)
     
-    eb_GammaIBP_fit <- GibbsFA_eb(feature_matrix = train_mat,
-                                  model = "GammaIBP",
-                                  eb_params =  eb_params_obj_GammaIBP)
+    eb_EFPF_GammaIBP_fit <- GibbsFA_eb(feature_matrix = train_mat,
+                                     model = "GammaIBP", type = "EFPF",
+                                     eb_params =  eb_params_obj_GammaIBP)
+    
+    eb_MM_GammaIBP_fit <- GibbsFA_eb(feature_matrix = train_mat,
+                                     model = "GammaIBP", type = "MM",
+                                     eb_params =  eb_params_obj_GammaIBP)
+    
     
     # Fill the structures of MCMC chains of the parameters
-    list_eb_fit_PoissonBB[[lab_comb_bb]] <- eb_PoissonBB_fit
-    list_eb_fit_NegBinBB[[lab_comb_bb]] <- eb_NegBinBB_fit
-    list_eb_fit_GammaIBP[[lab_comb_bb]] <- eb_GammaIBP_fit
+    list_eb_MM_cens_fit_PoissonBB[[lab_comb_bb]] <- eb_MM_cens_PoissonBB_fit
     
+    list_eb_MM_cens_fit_NegBinBB[[lab_comb_bb]] <- eb_MM_cens_NegBinBB_fit
+    
+    list_eb_EFPF_fit_GammaIBP[[lab_comb_bb]] <- eb_EFPF_GammaIBP_fit
+    list_eb_MM_fit_GammaIBP[[lab_comb_bb]] <- eb_MM_GammaIBP_fit
     
     
     # # Competitors
@@ -743,7 +728,7 @@ ggplot(df_GibbsFA, aes(x = t, y = means, color = model)) +
 
 
 
-### 1.B) Empirical Bayes approach ----
+### 1.B) EB approach: EFPF vs MM ----
 
 # Choose mechanism
 xi = 1 
@@ -751,19 +736,9 @@ xi = 1
 # Fit and estimate richness, rarefaction and extrapolation for GibbsFA's (save workspace)
 if (!file.exists(paste0("R_script_paper/eb_poly_",xi,"_fit_estimate_singledataset.RData"))) {
   
-  # 1) PoissonBB 
-  
-  # Initialization and known parameters
-  eb_init_PoissonBB <- list(alpha = -10, s = 1, lambda = 400)
-  eb_known_PoissonBB <- list()
-  
-  # 2) NegBinBB
-  
-  # Initialization and known parameters
+ 
   c_fr <- 5
-  eb_init_NegBinBB <- list(alpha = -100, s = 100, mu0 = 500)
-  eb_known_NegBinBB <- list(var_fct = c_fr)
-  
+ 
   # 3) GammaIBP
   
   # Initialization and known parameters
@@ -772,9 +747,9 @@ if (!file.exists(paste0("R_script_paper/eb_poly_",xi,"_fit_estimate_singledatase
   
   # 4) Call the routine to perform simulations
   eb_fit_estimate_polynomial_scenario_singledataset(xi = xi, 
-                                                    eb_init_PoissonBB, eb_known_PoissonBB,
-                                                    eb_init_NegBinBB, eb_known_NegBinBB, c_fr,
-                                                    eb_init_GammaIBP, eb_known_GammaIBP, seed = 123456)
+                                                    c_fr,
+                                                    eb_init_GammaIBP, eb_known_GammaIBP,
+                                                    seed = 123456)
   
 }
 
@@ -875,39 +850,52 @@ ggplot(emp_pis, aes(x = x) ) +
   labs(title="ECDF and theoretical CDF")  
 
 
+##### Comparison between PoissonBB(cens), NegBinBB(cens), GammaIBP(EFPF) and GammaIBP(MM) ----
 
 # 0.B) Check on rarefaction
 n_rare <- Ns[3]
-eb_fit_PoissonBB_rare <- list_eb_fit_PoissonBB[[3]]
-eb_fit_NegBinBB_rare <- list_eb_fit_NegBinBB[[3]]
-eb_fit_GammaIBP_rare <- list_eb_fit_GammaIBP[[3]]
+eb_MM_cens_fit_PoissonBB_rare <- list_eb_MM_cens_fit_PoissonBB[[3]]
+eb_MM_cens_fit_NegBinBB_rare <- list_eb_MM_cens_fit_NegBinBB[[3]]
+eb_EFPF_fit_GammaIBP_rare <- list_eb_EFPF_fit_GammaIBP[[3]]
+eb_MM_fit_GammaIBP_rare <- list_eb_MM_fit_GammaIBP[[3]]
 
 accum_df <- tibble( x = 0:n_rare,
                     n_feat = c(0,rarefaction(data_mat[1:n_rare,], n_reorderings = 10)))
 
-rare_PoissonBB <- tibble( lambda_post = unname(unlist(
-  rarefaction(object = eb_fit_PoissonBB_rare, seed = seed)$lambda_post ))) %>%
+rare_MM_cens_PoissonBB <- tibble( lambda_post = unname(unlist(
+  rarefaction(object = eb_MM_cens_fit_PoissonBB_rare, seed = seed)$lambda_post ))) %>%
   rename(means = lambda_post) %>%
   add_row(means = 0) %>%
-  add_column(Model = "PoissonBB",
+  add_column(Model = "PoissonBB_MM_cens",
              x = c(1:n_rare,0))
 
-rare_NegBinBB <- tibble( mu0_post = unname(unlist(
-  rarefaction(object = eb_fit_NegBinBB_rare, seed = seed)$mu0_post ))) %>%
+rare_MM_cens_NegBinBB <- tibble( mu0_post = unname(unlist(
+  rarefaction(object = eb_MM_cens_fit_NegBinBB_rare, seed = seed)$mu0_post ))) %>%
   rename(means = mu0_post) %>%
   add_row(means = 0) %>%
-  add_column(Model = "NegBinBB",
+  add_column(Model = "NegBinBB_MM_cens",
              x = c(1:n_rare,0))
 
-rare_GammaIBP <- tibble( mu0_post = unname(unlist(
-  rarefaction(object = eb_fit_GammaIBP_rare, seed = seed)$mu0_post ))) %>%
+rare_EFPF_GammaIBP <- tibble( mu0_post = unname(unlist(
+  rarefaction(object = eb_EFPF_fit_GammaIBP_rare, seed = seed)$mu0_post ))) %>%
   rename(means = mu0_post) %>%
   add_row(means = 0) %>%
-  add_column(Model = "GammaIBP",
-             x = c(1:n_rare,0)) 
+  add_column(Model = "GammaIBP_EFPF",
+             x = c(1:n_rare,0))
 
-df_rare <- rbind(rare_PoissonBB, rare_NegBinBB, rare_GammaIBP)
-df_rare$Model <- factor(df_rare$Model, levels = c("PoissonBB", "NegBinBB", "GammaIBP"))
+rare_MM_GammaIBP <- tibble( mu0_post = unname(unlist(
+  rarefaction(object = eb_MM_fit_GammaIBP_rare, seed = seed)$mu0_post ))) %>%
+  rename(means = mu0_post) %>%
+  add_row(means = 0) %>%
+  add_column(Model = "GammaIBP_MM",
+             x = c(1:n_rare,0))
+
+df_rare <- rbind(rare_MM_cens_PoissonBB,
+                 rare_MM_cens_NegBinBB,
+                 rare_EFPF_GammaIBP, rare_MM_GammaIBP)
+
+df_rare$Model <- factor(df_rare$Model)
+
 
 ggplot(df_rare, aes(x = x, y = means, color = Model)) +
   geom_line(linetype = "solid", color = "red" , linewidth = 0.9) +
@@ -920,43 +908,54 @@ ggplot(df_rare, aes(x = x, y = means, color = Model)) +
   scale_y_continuous(breaks = pretty_breaks()) +
   scale_x_continuous(breaks = pretty_breaks()) +
   theme(aspect.ratio = 1)
-ggsave(filename = "R_script_paper/Paper_plots/rarefaction_poly_1_eb.pdf", width = 8, height = 3.5, dpi = 300, units = "in", device='pdf')
+ggsave(filename = paste0("R_script_paper/Paper_plots/rarefaction_poly_", xi, "_eb.pdf"), width = 8, height = 3.5, dpi = 300, units = "in", device='pdf')
 
 
 # 0.c) Check on K_n_r
 n_knr <- Ns[3]
-eb_fit_PoissonBB_knr <- list_eb_fit_PoissonBB[[3]]
-eb_fit_NegBinBB_knr <- list_eb_fit_NegBinBB[[3]]
-eb_fit_GammaIBP_knr <- list_eb_fit_GammaIBP[[3]]
+eb_MM_cens_fit_PoissonBB_knr <- list_eb_MM_cens_fit_PoissonBB[[3]]
+eb_MM_cens_fit_NegBinBB_knr <- list_eb_MM_cens_fit_NegBinBB[[3]]
+eb_EFPF_fit_GammaIBP_knr <- list_eb_EFPF_fit_GammaIBP[[3]]
+eb_MM_fit_GammaIBP_knr <- list_eb_MM_fit_GammaIBP[[3]]
 
 
 observed_K_n_r <- tibble( r = 1:n_knr,
                           k_n_r = K_n_r(data_mat[1:n_knr,], n_reorderings = 1)[[paste0('N = ', n_knr)]])
 
-K_n_r_PoissonBB <- tibble( lambda_est = unname(unlist(
-  K_n_r(object = eb_fit_PoissonBB_knr, n = n_knr)[[paste0('N = ', n_knr)]]$lambda_est ))) %>%
+K_n_r_MM_cens_PoissonBB <- tibble( lambda_est = unname(unlist(
+  K_n_r(object = eb_MM_cens_fit_PoissonBB_knr, n = n_knr)[[paste0('N = ', n_knr)]]$lambda_est ))) %>%
   rename(means = lambda_est) %>%
-  add_column(Model = "PoissonBB",
+  add_column(Model = "PoissonBB_MM_cens",
              r = 1:n_knr)
 
-K_n_r_NegBinBB <- tibble( mu0_est = unname(unlist(
-  K_n_r(object = eb_fit_NegBinBB_knr, n = n_knr)[[paste0('N = ', n_knr)]]$mu0_est ))) %>%
+K_n_r_MM_cens_NegBinBB <- tibble( mu0_est = unname(unlist(
+  K_n_r(object = eb_MM_cens_fit_NegBinBB_knr, n = n_knr)[[paste0('N = ', n_knr)]]$mu0_est ))) %>%
   rename(means = mu0_est) %>%
-  add_column(Model = "NegBinBB",
+  add_column(Model = "NegBinBB_MM_cens",
              r = 1:n_knr)
 
-K_n_r_GammaIBP <- tibble( mu0_est = unname(unlist(
-  K_n_r(object = eb_fit_GammaIBP_knr, n = n_knr)[[paste0('N = ', n_knr)]]$mu0_est ))) %>%
+K_n_r_EFPF_GammaIBP <- tibble( mu0_est = unname(unlist(
+  K_n_r(object = eb_EFPF_fit_GammaIBP_knr, n = n_knr)[[paste0('N = ', n_knr)]]$mu0_est ))) %>%
   rename(means = mu0_est) %>%
-  add_column(Model = "GammaIBP",
+  add_column(Model = "GammaIBP_EFPF",
              r = 1:n_knr)
 
-df_K_n_r <- rbind(K_n_r_PoissonBB, K_n_r_NegBinBB, K_n_r_GammaIBP)
-df_K_n_r$Model <- factor(df_K_n_r$Model, levels = c("PoissonBB", "NegBinBB", "GammaIBP"))
+K_n_r_MM_GammaIBP <- tibble( mu0_est = unname(unlist(
+  K_n_r(object = eb_MM_fit_GammaIBP_knr, n = n_knr)[[paste0('N = ', n_knr)]]$mu0_est ))) %>%
+  rename(means = mu0_est) %>%
+  add_column(Model = "GammaIBP_MM",
+             r = 1:n_knr)
+
+df_K_n_r <- rbind(K_n_r_MM_cens_PoissonBB,
+                  #K_n_r_MM_cens_NegBinBB,
+                  K_n_r_EFPF_GammaIBP, K_n_r_MM_GammaIBP)
+
+df_K_n_r$Model <- factor(df_K_n_r$Model)
 
 r_positive <- observed_K_n_r %>%
   filter(k_n_r > 0) %>%
-  select(r)
+  select(r) %>%
+  filter(r < 10)
 
 df_K_n_r_plot <- df_K_n_r %>%
   filter(r %in% c(r_positive$r))
@@ -974,7 +973,8 @@ ggplot(df_K_n_r_plot, aes(x = r, y = means, color = Model)) +
   theme(legend.position = "top") +
   scale_x_continuous(breaks = pretty_breaks()) +
   theme(aspect.ratio = 1)
-ggsave(filename = "R_script_paper/Paper_plots/knr_poly_1_eb.pdf", width = 5, height = 4.5, dpi = 300, units = "in", device='pdf')
+ggsave(filename = paste0("R_script_paper/Paper_plots/knr_poly_", xi, "_eb.pdf"), width = 5, height = 4.5, dpi = 300, units = "in", device='pdf')
+
 
 
 
@@ -996,8 +996,7 @@ accum_df_test <- accum_df %>%
 
 
 # Poisson
-list_eb_EB_PoissonBB <- list_eb_fit_PoissonBB[grepl("Nbar.emp", names(list_eb_fit_PoissonBB) )]
-extr_PoissonBB_df <- tibble(lambda = unname(unlist(lapply(list_eb_EB_PoissonBB, function(x)
+extr_MM_cens_PoissonBB_df <- tibble(lambda = unname(unlist(lapply(list_eb_MM_cens_PoissonBB, function(x)
   extrapolation(object = x, M = M, seed = seed)$lambda_post ))),
   n_train = rep(Ns, each = M),
   Kn = rep(Kn, each = M)) %>%
@@ -1007,17 +1006,16 @@ extr_PoissonBB_df <- tibble(lambda = unname(unlist(lapply(list_eb_EB_PoissonBB, 
   add_row(means = 0, lb = 0, ub = 0, n_train = Ns, Kn = Kn) %>%
   mutate(means = means + Kn, lb = lb + Kn, ub = ub + Kn) %>%
   add_column(x = c(unlist(sapply(Ns, function(n) (n+1):(M+n))), Ns),
-             Model = "PoissonBB")
+             Model = "PoissonBB_MM_cens")
 
-extr_PoissonBB_df$x <- as.integer(extr_PoissonBB_df$x)
-extr_PoissonBB_df <- extr_PoissonBB_df %>%
+extr_MM_cens_PoissonBB_df$x <- as.integer(extr_MM_cens_PoissonBB_df$x)
+extr_MM_cens_PoissonBB_df <- extr_MM_cens_PoissonBB_df %>%
   select(means, lb, ub, n_train, x, Model)
 
 # NegBin
-list_eb_EB_NegBinBB <- list_eb_fit_NegBinBB[grepl("Nbar.emp", names(list_eb_fit_NegBinBB) )]
-extr_NegBinBB_df <- tibble(mu0 = unname(unlist(lapply(list_eb_EB_NegBinBB, function(x)
+extr_MM_cens_NegBinBB_df <- tibble(mu0 = unname(unlist(lapply(list_eb_MM_cens_NegBinBB, function(x)
   extrapolation(object = x, M = M, seed = seed)$mu0_post ))),
-  n0 = unname(unlist(lapply(list_eb_EB_NegBinBB, function(x)
+  n0 = unname(unlist(lapply(list_eb_MM_cens_NegBinBB, function(x)
     extrapolation(object = x, M = M, seed = seed)$n0_post ))),
   n_train = rep(Ns, each = M),
   Kn = rep(Kn, each = M)) %>%
@@ -1028,18 +1026,17 @@ extr_NegBinBB_df <- tibble(mu0 = unname(unlist(lapply(list_eb_EB_NegBinBB, funct
   add_row(means = 0, lb = 0, ub = 0, n_train = Ns, Kn = Kn) %>%
   mutate(means = means + Kn, lb = lb + Kn, ub = ub + Kn) %>%
   add_column(x = c(unlist(sapply(Ns, function(n) (n+1):(M+n))), Ns),
-             Model = "NegBinBB")
+             Model = "NegBinBB_MM_cens")
 
-extr_NegBinBB_df$x <- as.integer(extr_NegBinBB_df$x)
-extr_NegBinBB_df <- extr_NegBinBB_df %>%
+extr_MM_cens_NegBinBB_df$x <- as.integer(extr_MM_cens_NegBinBB_df$x)
+extr_MM_cens_NegBinBB_df <- extr_MM_cens_NegBinBB_df %>%
   select(means, lb, ub, n_train, x, Model)
 
 
 # GammaIBP
-list_eb_EB_GammaIBP <- list_eb_fit_GammaIBP[grepl("Nbar.emp", names(list_eb_fit_GammaIBP) )]
-extr_GammaIBP_df <- tibble(mu0 = unname(unlist(lapply(list_eb_EB_GammaIBP, function(x)
+extr_EFPF_GammaIBP_df <- tibble(mu0 = unname(unlist(lapply(list_eb_EFPF_GammaIBP, function(x)
   extrapolation(object = x, M = M, seed = seed)$mu0_post ))),
-  n0 = unname(unlist(lapply(list_eb_EB_GammaIBP, function(x)
+  n0 = unname(unlist(lapply(list_eb_EFPF_GammaIBP, function(x)
     extrapolation(object = x, M = M, seed = seed)$n0_post ))),
   n_train = rep(Ns, each = M),
   Kn = rep(Kn, each = M)) %>%
@@ -1050,15 +1047,31 @@ extr_GammaIBP_df <- tibble(mu0 = unname(unlist(lapply(list_eb_EB_GammaIBP, funct
   add_row(means = 0, lb = 0, ub = 0, n_train = Ns, Kn = Kn) %>%
   mutate(means = means + Kn, lb = lb + Kn, ub = ub + Kn) %>%
   add_column(x = c(unlist(sapply(Ns, function(n) (n+1):(M+n))), Ns),
-             Model = "GammaIBP")
+             Model = "GammaIBP_EFPF")
 
-extr_GammaIBP_df$x <- as.integer(extr_GammaIBP_df$x)
-extr_GammaIBP_df <- extr_GammaIBP_df %>%
+extr_EFPF_GammaIBP_df$x <- as.integer(extr_EFPF_GammaIBP_df$x)
+extr_EFPF_GammaIBP_df <- extr_EFPF_GammaIBP_df %>%
   select(means, lb, ub, n_train, x, Model)
 
-df_extr_GT_long <- list_extr_competitor_to_long(list_extr_GT, model = "GT") %>%
-  rename(Model = model) %>%
-  filter(t < n_train + M + 1)
+
+extr_MM_GammaIBP_df <- tibble(mu0 = unname(unlist(lapply(list_eb_MM_GammaIBP, function(x)
+  extrapolation(object = x, M = M, seed = seed)$mu0_post ))),
+  n0 = unname(unlist(lapply(list_eb_MM_GammaIBP, function(x)
+    extrapolation(object = x, M = M, seed = seed)$n0_post ))),
+  n_train = rep(Ns, each = M),
+  Kn = rep(Kn, each = M)) %>%
+  mutate(p = 1/(mu0/n0 + 1),
+         lb = qnbinom(0.025, size = n0, prob = p, lower.tail = TRUE, log.p = FALSE),
+         ub = qnbinom(0.975, size = n0, prob = p, lower.tail = TRUE, log.p = FALSE)) %>%
+  rename(means = mu0) %>%
+  add_row(means = 0, lb = 0, ub = 0, n_train = Ns, Kn = Kn) %>%
+  mutate(means = means + Kn, lb = lb + Kn, ub = ub + Kn) %>%
+  add_column(x = c(unlist(sapply(Ns, function(n) (n+1):(M+n))), Ns),
+             Model = "GammaIBP_MM")
+
+extr_MM_GammaIBP_df$x <- as.integer(extr_MM_GammaIBP_df$x)
+extr_MM_GammaIBP_df <- extr_MM_GammaIBP_df %>%
+  select(means, lb, ub, n_train, x, Model)
 
 
 # Plot

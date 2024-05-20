@@ -210,3 +210,14 @@ prediction_K_n_r.PoissonBB <- function(object, n, seed) {
 prediction_K_n_r.NegBinBB <- function(object, n, seed) {
   stop("Not implemented yet")
 }
+
+
+ev_K_n_r_GammaIBP <- function(alpha, theta, a, b, n){
+  
+  return( a/b *choose(n, 1:n)*exp(
+    lgamma(theta + 1) - lgamma(theta + n) +
+      lgamma(1:n - alpha) - lgamma(1 - alpha) +
+      lgamma(theta + alpha + n - 1:n) - lgamma(theta + alpha))
+    )
+  
+}

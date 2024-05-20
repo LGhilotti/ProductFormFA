@@ -6,7 +6,16 @@
 function to estimate the parameters via EB, either by maximizing the EFPF
 or method of moments (choose among PoissonBB, NegBinBB and GammaIBP).}
 \usage{
-GibbsFA_eb(feature_matrix, model, type, seed = 1234, eb_params = NULL, ...)
+GibbsFA_eb(
+  feature_matrix,
+  model,
+  type,
+  seed = 1234,
+  eb_params = NULL,
+  Nhat_MM = NULL,
+  var_fct = NULL,
+  ...
+)
 }
 \arguments{
 \item{feature_matrix}{A \code{n x K}-dimensional binary matrix of features}
@@ -14,7 +23,8 @@ GibbsFA_eb(feature_matrix, model, type, seed = 1234, eb_params = NULL, ...)
 \item{model}{Model to fit. Available models are \code{PoissonBB} (BB with Poisson(lambda) mixture),
 \code{NegBinBB} (BB with NB(n0, mu0) mixture), \code{GammaIBP} (IBP with Gamma(a, b) mixture)}
 
-\item{type}{Either "EFPF" or "MM" ("MM" is available only for mixtures of BBs)}
+\item{type}{Either "EFPF" (for all models),"MM_biased", "MM_censored" (only for mixtures of BBs),
+"MM" (only for GammaIBP)}
 
 \item{seed}{seed for fixing randomness}
 }
