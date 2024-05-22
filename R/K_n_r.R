@@ -221,3 +221,23 @@ ev_K_n_r_GammaIBP <- function(alpha, theta, a, b, n){
     )
   
 }
+
+ev_K_n_r_PoissonBB <- function(alpha, theta, lambda, n){
+  
+  return( lambda*(-alpha)*choose(n, 1:n)*exp(
+    lgamma(1:n - alpha) - lgamma(1 - alpha) +
+      lgamma(theta + alpha + n - 1:n) - lgamma(theta + alpha) -
+      lgamma(theta + n) + lgamma(theta))
+  )
+  
+}
+
+ev_K_n_r_NegBinBB <- function(alpha, theta, n0, mu0, n){
+  
+  return( mu0*(-alpha)*choose(n, 1:n)*exp(
+    lgamma(1:n - alpha) - lgamma(1 - alpha) +
+      lgamma(theta + alpha + n - 1:n) - lgamma(theta + alpha) -
+      lgamma(theta + n) + lgamma(theta))
+  )
+  
+}

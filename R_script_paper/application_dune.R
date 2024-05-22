@@ -44,7 +44,7 @@ plot(1:n, rarefaction(data_mat, n_reorderings = 10) )
 Nbar <- beta_binomial_estimator(data_mat)
 
 
-# 2.1) Beta-Bernoulli with Poisson(lambda) mixture - EFPF version
+# 2.0) Beta-Bernoulli with Poisson(lambda) mixture - EFPF version wrong
 
 # EB parameters 
 eb_init_PoissonBB <- list(alpha = -100, s = 10, lambda = 100)
@@ -52,13 +52,48 @@ eb_known_PoissonBB <- list()
 eb_params_obj_PoissonBB <- eb_params(model = "PoissonBB", 
                                      init = eb_init_PoissonBB, known = eb_known_PoissonBB )
 
-eb_PoissonBB_fit <- GibbsFA_eb(feature_matrix = data_mat, 
+eb_PoissonBB_EFPF_wrong_fit <- GibbsFA_eb(feature_matrix = data_mat, 
                                model = "PoissonBB", 
-                               type = "EFPF",
+                               type = "EFPF_wrong",
                                eb_params =  eb_params_obj_PoissonBB)
 
 
-eb_PoissonBB_fit[c("alpha", "theta", "lambda")]
+eb_PoissonBB_EFPF_wrong_fit[c("alpha", "theta", "lambda")]
+
+
+# 2.1) Beta-Bernoulli with Poisson(lambda) mixture - EFPF version correct
+
+# EB parameters 
+eb_init_BB <- list(alpha = -100, s = 10, Nhat_prime = 10)
+eb_known_BB <- list()
+eb_params_obj_BB <- eb_params(model = "BB", 
+                              init = eb_init_BB, known = eb_known_BB )
+
+eb_PoissonBB_EFPF_fit <- GibbsFA_eb(feature_matrix = data_mat, 
+                               model = "PoissonBB", 
+                               type = "EFPF",
+                               eb_params =  eb_params_obj_BB)
+
+
+eb_PoissonBB_EFPF_fit[c("alpha", "theta", "lambda")]
+- eb_PoissonBB_EFPF_fit[["alpha"]]/eb_PoissonBB_EFPF_fit[["theta"]]
+
+# just check that the function evaluation of mse_GammaIBP is higher in EFPF estimates
+eb_init_BB_eval <- list()
+eb_known_BB_eval <- list(alpha = eb_PoissonBB_MM_cens_fit[["alpha"]], 
+                               s = eb_PoissonBB_MM_cens_fit[["alpha"]] + eb_PoissonBB_MM_cens_fit[["theta"]],
+                               Nhat_prime = eb_PoissonBB_MM_cens_fit[["lambda"]])
+
+eb_params_obj_BB_eval <- eb_params(model = "BB",
+                                         init = eb_init_BB_eval,
+                                         known = eb_known_BB_eval)
+
+eb_BB_evaluation <- GibbsFA_eb(feature_matrix = data_mat,
+                                        model = "PoissonBB", type = "EFPF",
+                                        eb_params =  eb_params_obj_BB_eval)
+
+eb_BB_evaluation$fun_value
+eb_PoissonBB_EFPF_fit$fun_value
 
 # 2.1:B) Beta-Bernoulli with Poisson(lambda) mixture - MM_biased version
 
@@ -83,7 +118,7 @@ eb_PoissonBB_MM_cens_fit <- GibbsFA_eb(feature_matrix = data_mat,
 eb_PoissonBB_MM_cens_fit[c("alpha", "theta", "lambda")]
 - eb_PoissonBB_MM_cens_fit[["alpha"]]/eb_PoissonBB_MM_cens_fit[["theta"]]
 
-# 2.2) NegBinBB - EFPF version
+# 2.2) NegBinBB - EFPF version wrong
 
 # Initialization and known parameters
 c_fr <- 10
@@ -98,6 +133,19 @@ eb_NegBinBB_fit <- GibbsFA_eb(feature_matrix = data_mat,
                               eb_params =  eb_params_obj_NegBinBB)
 
 eb_NegBinBB_fit[c("alpha", "theta", "mu0", "n0")]
+
+
+# 2.2.1) NegBinBB - EFPF version correct
+
+c_fr <- 10
+
+eb_NegBinBB_EFPF_fit <- GibbsFA_eb(feature_matrix = data_mat,
+                                   model = "NegBinBB", type = "EFPF",
+                                   eb_params =  eb_params_obj_BB,
+                                   var_fct = c_fr)
+
+eb_NegBinBB_EFPF_fit[c("alpha", "theta", "mu0", "n0")]
+
 
 # 2.2.B) NegBinBB - MM version
 var_fct <- c_fr
@@ -245,7 +293,7 @@ accum_df <- tibble( x = 0:n,
                     n_feat = c(0,rarefaction(data_mat[1:n,], n_reorderings = 20)))
 
 rare_PoissonBB_EFPF <- tibble( lambda_post = unname(unlist(
-  rarefaction(object = eb_PoissonBB_fit, seed = seed)$lambda_post ))) %>%
+  rarefaction(object = eb_PoissonBB_EFPF_fit, seed = seed)$lambda_post ))) %>%
   rename(means = lambda_post) %>%
   add_row(means = 0) %>%
   add_column(Model = "PoissonBB_EFPF",
@@ -296,7 +344,8 @@ rare_GammaIBP_MM <- tibble( mu0_post = unname(unlist(
 
 df_rare <- rbind(rare_PoissonBB_EFPF, rare_PoissonBB_MM_biased, rare_PoissonBB_MM_cens,
                  #rare_NegBinBB_EFPF, rare_NegBinBB_MM, 
-                 rare_GammaIBP_EFPF, rare_GammaIBP_MM)
+                 #rare_GammaIBP_EFPF, 
+                 rare_GammaIBP_MM)
 
 df_rare$Model <- factor(df_rare$Model)
 
@@ -405,7 +454,7 @@ observed_K_n_r <- tibble( r = 1:n_knr,
                     k_n_r = K_n_r(data_mat[1:n_knr,], n_reorderings = 1)[[paste0('N = ', n_knr)]])
 
 K_n_r_PoissonBB_EFPF <- tibble( lambda_est = unname(unlist(
-  K_n_r(eb_PoissonBB_fit, n =n_knr)[[paste0('N = ', n_knr)]]$lambda_est ))) %>%
+  K_n_r(eb_PoissonBB_EFPF_fit, n =n_knr)[[paste0('N = ', n_knr)]]$lambda_est ))) %>%
   rename(means = lambda_est) %>%
   add_column(Model = "PoissonBB_EFPF",
              r = 1:n_knr)
@@ -486,7 +535,8 @@ K_n_r_GammaIBP_MM <- tibble( mu0_est = unname(unlist(
 df_K_n_r <- rbind(K_n_r_PoissonBB_EFPF, K_n_r_PoissonBB_MM_biased, K_n_r_PoissonBB_MM_cens,
                   #K_n_r_NegBinBB_EFPF_1, K_n_r_NegBinBB_EFPF_2, K_n_r_NegBinBB_EFPF_3, K_n_r_NegBinBB_EFPF_4,
                   # K_n_r_NegBinBB_MM_1, K_n_r_NegBinBB_MM_2, K_n_r_NegBinBB_MM_3, K_n_r_NegBinBB_MM_4)
-                  K_n_r_GammaIBP_EFPF, K_n_r_GammaIBP_MM)
+                  #K_n_r_GammaIBP_EFPF, 
+                  K_n_r_GammaIBP_MM)
 
                   
 df_K_n_r$Model <- factor(df_K_n_r$Model)

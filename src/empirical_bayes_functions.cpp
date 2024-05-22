@@ -2,6 +2,91 @@
 #include <Rcpp.h>
 using namespace Rcpp;
 
+//' Negative Log-EFPF for the BB model  
+//' 
+//' @param n dimension of the observed sample
+//' @param counts vector of cardinalities for the observed features
+//' @param pars pars[0] = value of alpha in product-form feature allocation,
+//' pars[1] = value of s = theta + alpha in product-form feature allocation,
+//' pars[2] =  value of Nhat_prime = Nhat - k 
+//' 
+//' @return value of the negative logarithm of the EFPF for the sample of 
+//' dimensionality n described by counts
+//' 
+// [[Rcpp::export]]
+double neg_log_EFPF_BB(int n, std::vector<int> counts,
+                       std::vector<double> pars ){
+ 
+ double alpha = pars[0];
+ double s = pars[1]; 
+ double Nhat_prime = pars[2];
+ 
+ int k = counts.size();
+ double Nhat = Nhat_prime + k;
+ 
+ 
+ double l_g_s = lgamma(s);
+ double l_g_s_n = lgamma(s + n);
+ double l_g_s_malpha = lgamma(s-alpha);
+ double l_g_1_malpha = lgamma(1-alpha);
+ double l_g_s_malpha_n = lgamma(s-alpha +n);
+ 
+ double log_EFPF = lgamma(Nhat + 1) - lgamma(k + 1) - lgamma(Nhat - k + 1) +
+   k*log(-alpha) + (Nhat - k)*l_g_s_n - 
+   Nhat*(l_g_s + l_g_s_malpha_n - l_g_s_malpha) - k*l_g_1_malpha;
+ 
+ for (int l=0; l<k;l++){
+   log_EFPF += lgamma(counts[l]-alpha) + lgamma(s+n-counts[l]);
+ }
+ 
+ return - log_EFPF;
+ 
+}
+ 
+//' Negative Log-EFPF for the IBP model  
+//' 
+//' @param n dimension of the observed sample
+//' @param counts vector of cardinalities for the observed features
+//' @param pars pars[0] = value of alpha in product-form feature allocation,
+//' pars[1] = value of s = theta + alpha in product-form feature allocation,
+//' pars[2] =  value of Gamma 
+//' 
+//' @return value of the negative logarithm of the EFPF for the sample of 
+//' dimensionality n described by counts
+//' 
+// [[Rcpp::export]]
+double neg_log_EFPF_IBP(int n, std::vector<int> counts,
+                      std::vector<double> pars ){
+ 
+ double alpha = pars[0];
+ double s = pars[1]; 
+ double Gam = pars[2];
+ 
+ int k = counts.size();
+
+ double l_g_s = lgamma(s);
+ double l_g_1_malpha = lgamma(1-alpha);
+ double l_g_s_malpha_n = lgamma(s-alpha +n);
+ double l_g_s_malpha_1 = lgamma(s-alpha + 1);
+ double gn = 0;
+ for (int i=1; i<n + 1; i++){
+   gn += exp(lgamma(s + i - 1) - lgamma(s - alpha + i));
+ }
+ gn = gn* exp(l_g_s_malpha_1 - l_g_s);
+ 
+ double log_EFPF = - lgamma(k+ 1) + 
+   k*(log(Gam) + l_g_s_malpha_1 - l_g_s_malpha_n - l_g_1_malpha - l_g_s) -
+   Gam*gn;
+ 
+ for (int l=0; l<k;l++){
+   log_EFPF += lgamma(counts[l]-alpha) + lgamma(s+n-counts[l]);
+ }
+ 
+ return - log_EFPF;
+ 
+}
+
+
 //' Negative Log-EFPF for the BB model with Poisson(lambda) mixture 
 //' 
 //' @param n dimension of the observed sample

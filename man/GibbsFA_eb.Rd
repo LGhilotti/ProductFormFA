@@ -14,6 +14,7 @@ GibbsFA_eb(
   eb_params = NULL,
   Nhat_MM = NULL,
   var_fct = NULL,
+  var_GammaIBP = NULL,
   ...
 )
 }

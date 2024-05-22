@@ -5,6 +5,36 @@ cpp_rbern <- function(n, prob) {
     .Call(`_ProductFormFA_cpp_rbern`, n, prob)
 }
 
+#' Negative Log-EFPF for the BB model  
+#' 
+#' @param n dimension of the observed sample
+#' @param counts vector of cardinalities for the observed features
+#' @param pars pars[0] = value of alpha in product-form feature allocation,
+#' pars[1] = value of s = theta + alpha in product-form feature allocation,
+#' pars[2] =  value of Nhat_prime = Nhat - k 
+#' 
+#' @return value of the negative logarithm of the EFPF for the sample of 
+#' dimensionality n described by counts
+#' 
+neg_log_EFPF_BB <- function(n, counts, pars) {
+    .Call(`_ProductFormFA_neg_log_EFPF_BB`, n, counts, pars)
+}
+
+#' Negative Log-EFPF for the IBP model  
+#' 
+#' @param n dimension of the observed sample
+#' @param counts vector of cardinalities for the observed features
+#' @param pars pars[0] = value of alpha in product-form feature allocation,
+#' pars[1] = value of s = theta + alpha in product-form feature allocation,
+#' pars[2] =  value of Gamma 
+#' 
+#' @return value of the negative logarithm of the EFPF for the sample of 
+#' dimensionality n described by counts
+#' 
+neg_log_EFPF_IBP <- function(n, counts, pars) {
+    .Call(`_ProductFormFA_neg_log_EFPF_IBP`, n, counts, pars)
+}
+
 #' Negative Log-EFPF for the BB model with Poisson(lambda) mixture 
 #' 
 #' @param n dimension of the observed sample

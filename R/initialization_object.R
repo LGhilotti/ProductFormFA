@@ -62,6 +62,58 @@ eb_params <- function(model, init, known){
     stop("Some parameters are both in init and known list.")
   }
   
+  if (model == "BB") {
+    
+    if (!setequal(union(names(init), names(known)), c("alpha","s", "Nhat_prime")) ){
+      stop("Some parameters are missing for BB.")
+    }
+    
+    null_known <- rep(NA, length(names(init)))
+    names(null_known) <- names(init)
+    null_known <- c(as_vector(known), null_known)
+    
+    init <- c(as_vector(init), as_vector(known) ) # here I have both init and known values
+    
+    if (init["alpha"] >= 0 | init["s"] <=0 | init["Nhat_prime"] <= 0){
+      stop("Invalid value of some initial parameters for BB.")
+    }
+    
+    # order the list as (alpha, s, Nhat_prime)
+    par <- list("init" = init[order(factor(names(init), 
+                                           levels=c("alpha", "s", "Nhat_prime")))],
+                "known" = null_known[order(factor(names(null_known), 
+                                                  levels=c("alpha", "s", "Nhat_prime")))])
+    
+    class(par) <- c("eb_params", "BB")
+    return(par) 
+  }
+  
+  if (model == "IBP") {
+    
+    if (!setequal(union(names(init), names(known)), c("alpha","s", "Gamma")) ){
+      stop("Some parameters are missing for IBP.")
+    }
+    
+    null_known <- rep(NA, length(names(init)))
+    names(null_known) <- names(init)
+    null_known <- c(as_vector(known), null_known)
+    
+    init <- c(as_vector(init), as_vector(known) ) # here I have both init and known values
+    
+    if (init["alpha"] < 0 | init["alpha"] > 1 | init["s"] <=0 | init["Gamma"] <= 0){
+      stop("Invalid value of some initial parameters for IBP.")
+    }
+    
+    # order the list as (alpha, s, Gamma)
+    par <- list("init" = init[order(factor(names(init), 
+                                           levels=c("alpha", "s", "Gamma")))],
+                "known" = null_known[order(factor(names(null_known), 
+                                                  levels=c("alpha", "s", "Gamma")))])
+    
+    class(par) <- c("eb_params", "IBP")
+    return(par) 
+  }
+  
   
   if (model == "PoissonBB") {
     

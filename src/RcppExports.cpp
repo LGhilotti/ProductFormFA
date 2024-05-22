@@ -22,6 +22,32 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// neg_log_EFPF_BB
+double neg_log_EFPF_BB(int n, std::vector<int> counts, std::vector<double> pars);
+RcppExport SEXP _ProductFormFA_neg_log_EFPF_BB(SEXP nSEXP, SEXP countsSEXP, SEXP parsSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< int >::type n(nSEXP);
+    Rcpp::traits::input_parameter< std::vector<int> >::type counts(countsSEXP);
+    Rcpp::traits::input_parameter< std::vector<double> >::type pars(parsSEXP);
+    rcpp_result_gen = Rcpp::wrap(neg_log_EFPF_BB(n, counts, pars));
+    return rcpp_result_gen;
+END_RCPP
+}
+// neg_log_EFPF_IBP
+double neg_log_EFPF_IBP(int n, std::vector<int> counts, std::vector<double> pars);
+RcppExport SEXP _ProductFormFA_neg_log_EFPF_IBP(SEXP nSEXP, SEXP countsSEXP, SEXP parsSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< int >::type n(nSEXP);
+    Rcpp::traits::input_parameter< std::vector<int> >::type counts(countsSEXP);
+    Rcpp::traits::input_parameter< std::vector<double> >::type pars(parsSEXP);
+    rcpp_result_gen = Rcpp::wrap(neg_log_EFPF_IBP(n, counts, pars));
+    return rcpp_result_gen;
+END_RCPP
+}
 // neg_log_EFPF_PoissonBB
 double neg_log_EFPF_PoissonBB(int n, std::vector<int> counts, std::vector<double> pars);
 RcppExport SEXP _ProductFormFA_neg_log_EFPF_PoissonBB(SEXP nSEXP, SEXP countsSEXP, SEXP parsSEXP) {
@@ -123,6 +149,8 @@ END_RCPP
 
 static const R_CallMethodDef CallEntries[] = {
     {"_ProductFormFA_cpp_rbern", (DL_FUNC) &_ProductFormFA_cpp_rbern, 2},
+    {"_ProductFormFA_neg_log_EFPF_BB", (DL_FUNC) &_ProductFormFA_neg_log_EFPF_BB, 3},
+    {"_ProductFormFA_neg_log_EFPF_IBP", (DL_FUNC) &_ProductFormFA_neg_log_EFPF_IBP, 3},
     {"_ProductFormFA_neg_log_EFPF_PoissonBB", (DL_FUNC) &_ProductFormFA_neg_log_EFPF_PoissonBB, 3},
     {"_ProductFormFA_neg_log_EFPF_NegBinBB", (DL_FUNC) &_ProductFormFA_neg_log_EFPF_NegBinBB, 3},
     {"_ProductFormFA_neg_log_EFPF_GammaIBP", (DL_FUNC) &_ProductFormFA_neg_log_EFPF_GammaIBP, 3},
