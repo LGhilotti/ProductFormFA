@@ -288,7 +288,7 @@ GibbsFA_eb <- function(feature_matrix, model, type, seed = 1234,
           n = n, counts = counts, known = eb_known, lower = c(-Inf, 1e-5, 1e-5), upper = c(-1e-5, Inf, Inf)
         )
         
-        Nhat_res <- unname(res$par["Nhat_prime"]) + K
+        Nhat_res <- round(unname(res$par["Nhat_prime"]) + K)
         
         if (model == "PoissonBB"){
           out <- list("feature_matrix" = feature_matrix,
@@ -374,7 +374,7 @@ GibbsFA_eb <- function(feature_matrix, model, type, seed = 1234,
                   "eb_params" = eb_params,
                   "alpha" = unname(res$par["alpha"]), 
                   "theta" = unname(res$par["s"] - res$par["alpha"]),
-                  "lambda" = unname(res$par["lambda"]),
+                  "lambda" = eb_known[["lambda"]],
                   "fun_value" = res$objective
       )
       
@@ -399,9 +399,9 @@ GibbsFA_eb <- function(feature_matrix, model, type, seed = 1234,
                   "eb_params" = eb_params,
                   "alpha" = unname(res$par["alpha"]), 
                   "theta" = unname(res$par["s"] - res$par["alpha"]),
-                  "var_fct" = unname(res$par["var_fct"]),
-                  "n0" = unname(res$par["mu0"]/(res$par["var_fct"] - 1)),
-                  "mu0" = unname(res$par["mu0"]),
+                  "var_fct" = eb_known[["var_fct"]],
+                  "n0" = eb_known[["mu0"]]/(eb_known[["var_fct"]] - 1),
+                  "mu0" = eb_known[["mu0"]],
                   "fun_value" = res$objective
       )
       
