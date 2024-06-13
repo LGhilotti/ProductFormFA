@@ -35,17 +35,32 @@ initialization <- function(model, init){
     
   }
   
-  if (model == "GammaIBP") {
+  if (model == "GammaIBP_more_prior") {
     
     if (!all(names(init) == c("alpha_0","s_0","a_0","b_0")) ){
-      stop("Incorrect set of initial parameters for GammaIBP.")
+      stop("Incorrect set of initial parameters for GammaIBP (more prior).")
     }
     
     if (init$alpha_0 <= 0 | init$alpha_0 >= 1 | init$s_0 <=0 | init$a_0 <= 0 | init$b_0 <= 0 ){
-      stop("Invalid value of some initial parameters for GammaIBP.")
+      stop("Invalid value of some initial parameters for GammaIBP (more prior).")
     }
     
-    class(init) <- c("initialization", "GammaIBP")
+    class(init) <- c("initialization", "GammaIBP_more_prior")
+    return(init)
+    
+  }
+  
+  if (model == "GammaIBP_single_prior") {
+    
+    if (!all(names(init) == c("alpha_0","s_0")) ){
+      stop("Incorrect set of initial parameters for GammaIBP (single prior).")
+    }
+    
+    if (init$alpha_0 <= 0 | init$alpha_0 >= 1 | init$s_0 <=0 ){
+      stop("Invalid value of some initial parameters for GammaIBP (single prior).")
+    }
+    
+    class(init) <- c("initialization", "GammaIBP_single_prior")
     return(init)
     
   }

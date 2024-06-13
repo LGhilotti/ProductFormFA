@@ -495,7 +495,8 @@ neg_log_posterior_gamma_ibp <- function(pars,
 sampler_GammaIBP <- function(Z, 
                              alpha_0, s_0, a_0, b_0,
                              a_alpha, b_alpha, a_s, b_s, q, r, t,
-                             sigq_alpha, sigq_s, S, n_burnin, thin, seed){
+                             sigq_alpha, sigq_s, S, n_burnin, thin, seed,
+                             fix_a, fix_b){
   
   set.seed(seed)
   
@@ -548,14 +549,21 @@ sampler_GammaIBP <- function(Z,
    
     # Update a | Gam, Z, alpha, s, b
     
-    a <- 1 + rpois(1, b*Gam*(1-q) )
-    
+    if (fix_a == FALSE){
+      
+      a <- 1 + rpois(1, b*Gam*(1-q) )
+      
+    }
 
     # Update b | Gam, Z, alpha, s, a
     
-    b <- rgamma(1, shape = a + r, rate = Gam + t )
+    if (fix_b == FALSE){
+      
+      b <- rgamma(1, shape = a + r, rate = Gam + t )
+      
+    }
     
-    
+
     ################################################################
     ############# Draw ( s, alpha) | Z, a, b ##################
     ###############################################################

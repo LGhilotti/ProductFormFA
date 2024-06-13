@@ -5,6 +5,9 @@ library(tidyverse)
 library(scales)
 library(ggpubr)
 library(ggthemes)
+library(patchwork)
+library(latex2exp)
+library(dplyr, warn.conflicts = FALSE)
 
 source("R_script_paper/Routine_Chao.R")
 source("R_script_paper/utils.R")
@@ -341,7 +344,8 @@ eb_EFPF_fit_estimate_ecological_scenario_singledataset <- function(mechanism,
   }
   
   data_mat <- data_mat[, colSums(data_mat) > 0]
-    
+  
+  Nbars <- c(200, 400, 800)
   # Set grid of desired value of E[N] = Nbar, with the empirical case to be added
   if (mechanism == "custom"){
     H_hundred <- round(H / 100) * 100
@@ -626,7 +630,7 @@ fit_estimate_ecological_scenario_repeateddataset <- function(mechanism, n_datase
 ## EFPF approach -------
 
 # Choose mechanism
-mechanism = "beta_pis" # c("homogeneous", "random_uniform", "broken_stick", "log-normal")
+mechanism = "custom" # c("homogeneous", "random_uniform", "broken_stick", "log-normal")
 
 # Fit and estimate richness, rarefaction and extrapolation for GibbsFA's (save workspace)
 if (!file.exists(paste0("R_script_paper/eb_EFPF_",mechanism,"_fit_estimate_singledataset.RData"))) {
@@ -634,7 +638,7 @@ if (!file.exists(paste0("R_script_paper/eb_EFPF_",mechanism,"_fit_estimate_singl
   vars_fct_NegBinBB <- c(10, 1000) 
   vars_GammaIBP <- c(1, 1000)
   
-  eb_init_BB <- list(alpha = -1, s = 100, Nhat_prime = 100)
+  eb_init_BB <- list(alpha = -1, s = 100, Nhat_prime = 50)
   eb_known_BB <- list()
   
   eb_init_IBP <- list(alpha = 0.5, s = 1, Gamma = 10)
@@ -646,7 +650,8 @@ if (!file.exists(paste0("R_script_paper/eb_EFPF_",mechanism,"_fit_estimate_singl
                                                          vars_GammaIBP,
                                                          eb_init_BB, eb_known_BB,
                                                          eb_init_IBP, eb_known_IBP, 
-                                                         seed = 123)
+                                                         seed = 123456) #for beta_pis
+                                                         #seed = 123) # for custom
   
 }
 
@@ -656,7 +661,7 @@ load(paste0("R_script_paper/eb_EFPF_",mechanism,"_fit_estimate_singledataset.RDa
 Ns
 Kn <- sapply(Ns, function(n) sum(colSums(data_mat[1:n,]) > 0)  )
 sum(colSums(data_mat) > 0)
-plot(rarefaction(data_mat[1:1000,]))
+plot(rarefaction(data_mat))
 print(paste0("features totali: ", H))
 ### Comparison Poisson, NegBin and Gamma ------
 
@@ -706,18 +711,24 @@ df_rare <- rbind(rare_EFPF_mixtureBB,
 df_rare$Model <- factor(df_rare$Model,
                         levels = c( "PoissonBB/NegBinBB", "GammaIBP"))
 
-ggplot(df_rare, aes(x = x, y = means, color = Model)) +
-  geom_line(linetype = "dashed", linewidth = 1) + 
+
+ggplot(accum_df, aes(x = x, y = n_feat)) +
+  geom_point(color="black", shape = 18, size = 0.01) + 
   #facet_wrap(.~ Model, scales = "free_x", nrow = 1) +
   #geom_ribbon(aes(ymin = lb_bands, ymax = ub_bands), color = "red" , linewidth = 0.8, alpha = 0.1) +
-  geom_point( data = accum_df, aes(x = x, y = n_feat), color="black", shape = 21, size = 0.05) +
+  geom_line(data = df_rare, aes(x = x, y = means, color = Model), linetype = "dashed") + 
   xlab("# observations") + ylab("# distinct features") + 
   theme_light() + 
   theme(legend.position = "top") +
   scale_y_continuous(breaks = pretty_breaks()) +
   scale_x_continuous(breaks = pretty_breaks()) +
   theme(aspect.ratio = 1) + 
-  scale_color_tableau()
+  scale_color_tableau(
+    labels = c(
+      "PoissonBB/NegBinBB" = "Mixtures of BBs",
+      "GammaIBP" = "Mixtures of IBPs"
+    )
+  ) 
 ggsave(filename = paste0("R_script_paper/Paper_plots/rarefaction_",mechanism,"_eb_EFPF.pdf"), width = 4, height = 4, dpi = 300, units = "in", device='pdf')
 
 
@@ -776,16 +787,21 @@ df_K_n_r_plot <- df_K_n_r %>%
 observed_K_n_r_plot <- observed_K_n_r %>%
   filter(r %in% c(r_positive$r))
 
-ggplot(df_K_n_r_plot, aes(x = r, y = means, color = Model)) +
-  geom_line( linetype = "dashed") +
-  geom_point( data = observed_K_n_r_plot, aes(x = r, y = k_n_r), color="black", shape = 21, size = 1) +
+ggplot(observed_K_n_r_plot,  aes(x = r, y = k_n_r)) +
+  geom_point(color="black", shape = 19, size = 1) +
+  geom_line( data = df_K_n_r_plot, aes(x = r, y = means, color = Model), linetype = "dashed") +
   scale_y_log10() +
   xlab("r") + ylab(expression(m[r])) + 
   theme_light() + 
   theme(legend.position = "top") +
   scale_x_continuous(breaks = pretty_breaks()) +
   theme(aspect.ratio = 1) + 
-  scale_color_tableau()
+  scale_color_tableau(
+    labels = c(
+    "PoissonBB/NegBinBB" = "Mixtures of BBs",
+    "GammaIBP" = "Mixtures of IBPs"
+    )
+  )
 ggsave(filename = paste0("R_script_paper/Paper_plots/knr_", mechanism, "_eb_EFPF.pdf"), width = 4, height = 4, dpi = 300, units = "in", device='pdf')
 
 
@@ -801,22 +817,25 @@ labels_comb_bb <- paste(rep(paste("n_train", Ns, sep = "."), each = length(Nbars
 # PoissonBB
 richness_EFPF_PoissonBB_df <- tibble(estimate = unname(sapply(list_eb_EFPF_fit_PoissonBB, function(x)
   total_richness(x)$lambda_post + ncol(x$feature_matrix)) ) ) %>%
-  add_column(Model = "PoissonBB", 
+  add_column(Model = "Poisson BB", 
              Nbar = rep(c("EB", Nbars), length(Ns)),
-             n_train = rep(Ns, each = length(Nbars)+ 1)) 
+             n_train = rep(Ns, each = length(Nbars)+ 1),
+             n_train_idx = rep(c(1,2,3), each = length(Nbars)+ 1)) 
 
 # NegBinBB
 richness_EFPF_NegBinBB_df <- tibble(estimate = numeric(), Model = character(),
-                                    Nbar = character(), n_train = integer())
+                                    Nbar = character(), 
+                                    n_train = integer(), n_train_idx = integer())
 
 for (var_fct_NegBinBB in vars_fct_NegBinBB){
   list_eb_EFPF_fit_NegBinBB_var <- list_eb_EFPF_fit_NegBinBB[[paste0("var_fct.", var_fct_NegBinBB)]]
   
   richness_EFPF_NegBinBB_df_var <- tibble(estimate = unname(sapply(list_eb_EFPF_fit_NegBinBB_var, function(x)
     total_richness(x)$mu0_post + ncol(x$feature_matrix)) ) ) %>%
-    add_column(Model = paste0("NegBinBB x",var_fct_NegBinBB) , 
+    add_column(Model = paste0("NegBinomial BB x",var_fct_NegBinBB) , 
                Nbar = rep(c("EB", Nbars), length(Ns)),
-               n_train = rep(Ns, each = length(Nbars)+ 1) )
+               n_train = rep(Ns, each = length(Nbars)+ 1),
+               n_train_idx = rep(c(1,2,3), each = length(Nbars)+ 1))
   
   richness_EFPF_NegBinBB_df <- bind_rows(richness_EFPF_NegBinBB_df, richness_EFPF_NegBinBB_df_var)
   
@@ -825,16 +844,35 @@ for (var_fct_NegBinBB in vars_fct_NegBinBB){
 
 joint_richness_long <- bind_rows(richness_EFPF_PoissonBB_df,
                                  richness_EFPF_NegBinBB_df) %>%
-  mutate(Model = fct_relevel(Model, c("PoissonBB", 
-                             paste0("NegBinBB x", vars_fct_NegBinBB))) )
+  mutate(Model = fct_relevel(Model, c("Poisson BB", 
+                             paste0("NegBinomial BB x", vars_fct_NegBinBB))) )
 
 n_train.labs <- paste0("n = ", Ns,", Kn = ", Kn )
 names(n_train.labs) <- Ns
 
+
+joint_richness_long <- joint_richness_long %>%
+  mutate(n_train_latex = paste0(r"($n = $)", n_train, r"($, K_n =$)", Kn[n_train_idx])) %>%
+  mutate(n_train_latex = factor(n_train_latex, levels = c(
+           paste0(r"($n = $)", n_train[1], r"($, K_n =$)", Kn[1]),
+           paste0(r"($n = $)", n_train[2], r"($, K_n =$)", Kn[2]),
+           paste0(r"($n = $)", n_train[3], r"($, K_n =$)", Kn[3]))))
+
+
+custom_labeller <- function(labels) {
+  labels <- sapply(labels, function(x) latex2exp::TeX(x))
+  return(labels)
+}
+
+
 # plots estimator
 ggplot(joint_richness_long, aes( y=estimate, x=Model, shape = Nbar)) +
   geom_point(size = 2) +
-  facet_wrap(.~ n_train, labeller = labeller(n_train = n_train.labs ), scales = "free_x", nrow = 1) +
+  facet_wrap(~ n_train_latex, labeller = as_labeller(custom_labeller), 
+             scales = "free_x", nrow = 1) +
+  # facet_wrap(~ TeX(n_train_latex, output = "character"), 
+  #            labeller = label_parsed, #custom_labeller,
+  #            scales = "free_x", nrow = 1) +
   theme_light() +
   geom_hline(aes(yintercept = H), linetype = "dashed") +
   theme(legend.position = "top") +
@@ -847,6 +885,22 @@ ggplot(joint_richness_long, aes( y=estimate, x=Model, shape = Nbar)) +
 ggsave(filename = paste0("R_script_paper/Paper_plots/richness_points_", mechanism,"_eb_EFPF.pdf"), width = 9, height = 5, dpi = 300, units = "in", device='pdf')
 
 
+
+ggplot(joint_richness_long, aes( y=estimate, x=Model, shape = Nbar)) +
+  geom_point(size = 2) +
+  facet_wrap(~ n_train_idx, 
+             labeller = labeller(n_train_idx = lab_graph),
+             scales = "free_x", nrow = 1) +
+  theme_light() +
+  geom_hline(aes(yintercept = H), linetype = "dashed") +
+  theme(legend.position = "top") +
+  ylab("Posterior mean of N") +
+  scale_y_continuous(breaks = pretty_breaks()) +
+  rremove("xlab") +
+  scale_shape_discrete(name = "Prior mean of N") +
+  theme(aspect.ratio = 1) + 
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
 # 2) Plot Richness: whole distributions for Nbar = 600 
 Nbar_plot <- 400
 
@@ -856,14 +910,14 @@ Nbar_plot <- 400
 list_eb_EFPF_est_PoissonBB <- list_eb_EFPF_fit_PoissonBB[grepl("Nbar.emp", names(list_eb_EFPF_fit_PoissonBB) )]
 params_richness_EFPF_est_PoissonBB <- tibble( lambda_prime = unname(sapply(list_eb_EFPF_est_PoissonBB, function(x)
   total_richness(x)$lambda_post))) %>%
-  add_column(n_train = Ns, Model = "PoissonBB", PM = "est") %>%
+  add_column(n_train = Ns, Model = "Poisson BB", PM = "est") %>%
   mutate(lb = qpois(0.025, lambda_prime, lower.tail = TRUE, log.p = FALSE),
          ub = qpois(0.975, lambda_prime, lower.tail = TRUE, log.p = FALSE) )
 
 list_eb_EFPF_fixed_PoissonBB <- list_eb_EFPF_fit_PoissonBB[grepl(paste0("Nbar.",Nbar_plot), names(list_eb_EFPF_fit_PoissonBB) )]
 params_richness_EFPF_fixed_PoissonBB <- tibble( lambda_prime = unname(sapply(list_eb_EFPF_fixed_PoissonBB, function(x)
   total_richness(x)$lambda_post))) %>%
-  add_column(n_train = Ns, Model = "PoissonBB", PM = "fixed") %>%
+  add_column(n_train = Ns, Model = "Poisson BB", PM = "fixed") %>%
   mutate(lb = qpois(0.025, lambda_prime, lower.tail = TRUE, log.p = FALSE),
          ub = qpois(0.975, lambda_prime, lower.tail = TRUE, log.p = FALSE) )
 
@@ -893,7 +947,7 @@ for (var_fct_NegBinBB in vars_fct_NegBinBB){
     total_richness(x)$n0_post)),
     mu0_prime = unname(sapply(list_eb_EFPF_est_NegBinBB_var, function(x)
       total_richness(x)$mu0_post))) %>%
-    add_column(n_train = Ns, Model = paste0("NegBinBB x", var_fct_NegBinBB),
+    add_column(n_train = Ns, Model = paste0("NegBinomial BB x", var_fct_NegBinBB),
                PM = "est") %>%
     mutate(p_prime = 1/(mu0_prime/n0_prime + 1),
            lb = qnbinom(0.025, size = n0_prime, prob = p_prime, lower.tail = TRUE, log.p = FALSE),
@@ -911,7 +965,7 @@ for (var_fct_NegBinBB in vars_fct_NegBinBB){
     total_richness(x)$n0_post)),
     mu0_prime = unname(sapply(list_eb_EFPF_fixed_NegBinBB_var, function(x)
       total_richness(x)$mu0_post))) %>%
-    add_column(n_train = Ns, Model = paste0("NegBinBB x", var_fct_NegBinBB),
+    add_column(n_train = Ns, Model = paste0("NegBinomial BB x", var_fct_NegBinBB),
                PM = "fixed") %>%
     mutate(p_prime = 1/(mu0_prime/n0_prime + 1),
            lb = qnbinom(0.025, size = n0_prime, prob = p_prime, lower.tail = TRUE, log.p = FALSE),
@@ -943,14 +997,14 @@ bounds_distr <- tibble( lb = min(params_richness_EFPF_est_PoissonBB$lb + Kn,
 dens_richness_EFPF_est_PoissonBB <- bind_rows(lapply(1:length(Ns), function(j) 
   tibble( x = bounds_distr$lb: bounds_distr$ub) %>%
     mutate( y = dpois(x - Kn[j] , lambda = params_richness_EFPF_est_PoissonBB$lambda_prime[j])) %>%
-    add_column(Model = "PoissonBB", PM = "est",
+    add_column(Model = "Poisson BB", PM = "est",
                n_train = params_richness_EFPF_est_PoissonBB$n_train[j])
 ))
 
 dens_richness_EFPF_fixed_PoissonBB <- bind_rows(lapply(1:length(Ns), function(j) 
   tibble( x = bounds_distr$lb: bounds_distr$ub) %>%
     mutate( y = dpois(x - Kn[j] , lambda = params_richness_EFPF_fixed_PoissonBB$lambda_prime[j])) %>%
-    add_column(Model = "PoissonBB", PM = "fixed",
+    add_column(Model = "Poisson BB", PM = "fixed",
                n_train = params_richness_EFPF_fixed_PoissonBB$n_train[j])
 ))
 
@@ -970,13 +1024,13 @@ for (var_fct_NegBinBB in vars_fct_NegBinBB){
   
   # est
   params_richness_EFPF_est_NegBinBB_var <- params_richness_EFPF_est_NegBinBB %>%
-    filter(Model == paste0("NegBinBB x", var_fct_NegBinBB))
+    filter(Model == paste0("NegBinomial BB x", var_fct_NegBinBB))
   
   dens_richness_EFPF_est_NegBinBB_var <- bind_rows(lapply(1:length(Ns), function(j) 
     tibble( x = bounds_distr$lb: bounds_distr$ub) %>%
       mutate( y = dnbinom(x - Kn[j], size = params_richness_EFPF_est_NegBinBB_var$n0_prime[j], 
                           prob = params_richness_EFPF_est_NegBinBB_var$p_prime[j])) %>%
-      add_column(Model = paste0("NegBinBB x", var_fct_NegBinBB), 
+      add_column(Model = paste0("NegBinomial BB x", var_fct_NegBinBB), 
                  PM = "est",
                  n_train = params_richness_EFPF_est_NegBinBB_var$n_train[j])
   ))
@@ -987,13 +1041,13 @@ for (var_fct_NegBinBB in vars_fct_NegBinBB){
   
   # fixed
   params_richness_EFPF_fixed_NegBinBB_var <- params_richness_EFPF_fixed_NegBinBB %>%
-    filter(Model == paste0("NegBinBB x", var_fct_NegBinBB))
+    filter(Model == paste0("NegBinomial BB x", var_fct_NegBinBB))
   
   dens_richness_EFPF_fixed_NegBinBB_var <- bind_rows(lapply(1:length(Ns), function(j) 
     tibble( x = bounds_distr$lb: bounds_distr$ub) %>%
       mutate( y = dnbinom(x - Kn[j], size = params_richness_EFPF_fixed_NegBinBB_var$n0_prime[j], 
                           prob = params_richness_EFPF_fixed_NegBinBB_var$p_prime[j])) %>%
-      add_column(Model = paste0("NegBinBB x", var_fct_NegBinBB),
+      add_column(Model = paste0("NegBinomial BB x", var_fct_NegBinBB),
                  PM = "fixed",
                  n_train = params_richness_EFPF_fixed_NegBinBB_var$n_train[j])
   ))
@@ -1016,8 +1070,8 @@ dens_richnesses <- rbind(dens_richness_EFPF_est_PoissonBB,
 
 
 dens_richnesses$Model <- factor(dens_richnesses$Model, 
-                                levels = c("PoissonBB",
-                                           paste0("NegBinBB x", vars_fct_NegBinBB)))
+                                levels = c("Poisson BB",
+                                           paste0("NegBinomial BB x", vars_fct_NegBinBB)))
 
 n_train.labs <- paste0("n = ", Ns_plot,", Kn = ", Kn_plot )
 names(n_train.labs) <- Ns_plot
@@ -1045,7 +1099,7 @@ ggsave(filename = paste0("R_script_paper/Paper_plots/richness_distr_", mechanism
 
 if (!file.exists(paste0("R_script_paper/eb_Freq_",mechanism,"_fit_estimate_singledataset.RData"))) {
   
-  M <- 500
+  M <- 300 # per custom
   
   # List to store Chao's estimates
   list_rare_extr_Chao <- vector(mode="list")
@@ -1130,7 +1184,7 @@ extr_EFPF_PoissonBB_df <- tibble(lambda = unname(unlist(lapply(list_eb_EFPF_Pois
   add_row(means = 0, lb = 0, ub = 0, n_train = Ns, Kn = Kn) %>%
   mutate(means = means + Kn, lb = lb + Kn, ub = ub + Kn) %>%
   add_column(x = c(unlist(sapply(Ns, function(n) (n+1):(M+n))), Ns),
-             Model = "PoissonBB")
+             Model = "Poisson BB")
 
 extr_EFPF_PoissonBB_df$x <- as.integer(extr_EFPF_PoissonBB_df$x)
 extr_EFPF_PoissonBB_df <- extr_EFPF_PoissonBB_df %>%
@@ -1161,7 +1215,7 @@ for (var_fct_NegBinBB in vars_fct_NegBinBB){
     add_row(means = 0, lb = 0, ub = 0, n_train = Ns, Kn = Kn) %>%
     mutate(means = means + Kn, lb = lb + Kn, ub = ub + Kn) %>%
     add_column(x = c(unlist(sapply(Ns, function(n) (n+1):(M+n))), Ns),
-               Model = paste0("NegBinBB x", var_fct_NegBinBB))
+               Model = paste0("NegBinomial BB x", var_fct_NegBinBB))
   
   extr_EFPF_NegBinBB_df_var$x <- as.integer(extr_EFPF_NegBinBB_df_var$x)
   extr_EFPF_NegBinBB_df_var <- extr_EFPF_NegBinBB_df_var %>%
@@ -1235,8 +1289,8 @@ extr_all_df <- rbind(extr_EFPF_PoissonBB_df,
                      
 
 extr_all_df$Model <- factor(extr_all_df$Model, 
-                            levels = c("PoissonBB", 
-                                       paste0("NegBinBB x", vars_fct_NegBinBB),
+                            levels = c("Poisson BB", 
+                                       paste0("NegBinomial BB x", vars_fct_NegBinBB),
                                        paste0("GammaIBP, var = ", vars_GammaIBP)))
 
 accum_df_train <- accum_df_train %>%
@@ -1247,15 +1301,15 @@ accum_df_test <- accum_df_test %>%
 n_train.labs <- paste0("n = ", Ns_plot,", Kn = ", Kn_plot )
 names(n_train.labs) <- Ns_plot
 
-ggplot(extr_all_df, aes(x, means, color = Model)) +
-  geom_line(linetype = "dashed", linewidth = 1) +
-  geom_ribbon(aes(ymin = lb, ymax = ub, color = Model), linewidth = 0.8, alpha = 0) +
-  geom_point( data = accum_df_train, aes(x = x, y = n_feat),
-              color="black", shape = 21, size = 1) +
+plot_means <- ggplot() +
+  geom_point(data = accum_df_train, aes(x = x, y = n_feat),
+             color="black", shape = 21, size = 1) +
   geom_point( data = accum_df_test, aes(x = x, y = n_feat),
               color="black", shape = 21, size = 0.5) +
-  geom_line(data = df_extr_GT_long, aes(t, value), linetype = "dashed", linewidth = 0.9) +
-  geom_line(data = df_extr_Chao_long, aes(t, medians), linetype = "dashed", linewidth = 0.9) +
+  geom_line(data = extr_all_df, aes(x = x, y = means, color = Model),
+            linetype = "dashed") +
+  geom_line(data = df_extr_GT_long, aes(t, value, color = Model), linetype = "dashed") +
+  geom_line(data = df_extr_Chao_long, aes(t, medians, color = Model), linetype = "dashed") +
   facet_grid(.~ n_train,
              labeller = labeller(n_train = n_train.labs),
              scales = "free_x")  +
@@ -1267,6 +1321,30 @@ ggplot(extr_all_df, aes(x, means, color = Model)) +
   scale_x_continuous(breaks = pretty_breaks()) +
   theme(aspect.ratio = 1) +
   scale_color_tableau()
+
+
+plot_ribbons <- ggplot() +
+  geom_point(data = accum_df_train, aes(x = x, y = n_feat),
+             color="black", shape = 21, size = 1) +
+  geom_point( data = accum_df_test, aes(x = x, y = n_feat),
+              color="black", shape = 21, size = 0.5) +
+  geom_ribbon(data = extr_all_df, aes(x = x, ymin = lb, ymax = ub, fill = Model), color = NA, alpha = 0.4) +
+  scale_fill_manual(values = c("Poisson BB" = "grey10", "NegBinomial BB x10" = "grey50", "NegBinomial BB x1000" = "grey80")) +
+  facet_grid(.~ n_train, labeller = labeller(n_train = n_train.labs),
+             scales = "free_x")  +
+  geom_vline(data = temp, mapping =  aes(xintercept = xvalues) , linetype = "dashed", color = "grey") +
+  xlab("# observations") + ylab("# distinct features") + 
+  theme_light() + 
+  theme(legend.position = "top") +
+  scale_y_continuous(breaks = pretty_breaks()) +
+  scale_x_continuous(breaks = pretty_breaks()) +
+  theme(aspect.ratio = 1) +
+  scale_color_tableau()
+  
+
+combined_plot <- plot_means / plot_ribbons
+combined_plot
+
 ggsave(filename = paste0("R_script_paper/Paper_plots/extr_", mechanism, "_eb_EFPF.pdf"), width = 9, height = 5, dpi = 300, units = "in", device='pdf')
 
 

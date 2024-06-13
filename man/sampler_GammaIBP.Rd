@@ -23,7 +23,9 @@ sampler_GammaIBP(
   S,
   n_burnin,
   thin,
-  seed
+  seed,
+  fix_a,
+  fix_b
 )
 }
 \arguments{

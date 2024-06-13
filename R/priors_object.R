@@ -32,18 +32,35 @@ prior <- function(model, hyper){
     
   }
   
-  if (model == "GammaIBP") {
+  if (model == "GammaIBP_more_prior") {
     
     if (!all(names(hyper) == c("a_alpha","b_alpha","a_s","b_s","q","r","t")) ){
-      stop("Incorrect set of hyperparameters for GammaIBP.")
+      stop("Incorrect set of hyperparameters for GammaIBP (more prior).")
     }
     
     if (hyper$a_alpha <= 0 | hyper$b_alpha <=0 | hyper$a_s <= 0 | hyper$b_s <= 0 | 
         hyper$q <= 0 | hyper$q >= 1 | hyper$r <=0 | hyper$t <= 0){
-      stop("Invalid value of some hyperparameters for GammaIBP.")
+      stop("Invalid value of some hyperparameters for GammaIBP (more prior).")
     }
     
-    class(hyper) <- c("prior", "GammaIBP")
+    class(hyper) <- c("prior", "GammaIBP_more_prior")
+    return(hyper)
+    
+  }
+  
+  
+  if (model == "GammaIBP_single_prior") {
+    
+    if (!all(names(hyper) == c("a", "b", "a_alpha","b_alpha","a_s","b_s")) ){
+      stop("Incorrect set of hyperparameters for GammaIBP (single prior).")
+    }
+    
+    if (hyper$a <= 0 | hyper$b <=0 | 
+        hyper$a_alpha <= 0 | hyper$b_alpha <=0 | hyper$a_s <= 0 | hyper$b_s <= 0){
+      stop("Invalid value of some hyperparameters for GammaIBP (single prior).")
+    }
+    
+    class(hyper) <- c("prior", "GammaIBP_single_prior")
     return(hyper)
     
   }

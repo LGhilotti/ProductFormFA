@@ -59,7 +59,7 @@ vars_GammaIBP <- c(0.01, 100)
 eb_init_BB <- list(alpha = -10, s = 100, Nhat_prime = 200)
 eb_known_BB <- list()
 
-eb_init_IBP <- list(alpha = 0.5, s = 1, Gamma = 10)
+eb_init_IBP <- list(alpha = 0.4, s = 2, Gamma = 10)
 eb_known_IBP <- list()
 
 eb_params_obj_BB <- eb_params(model = "BB", 
@@ -303,7 +303,7 @@ print(paste0("mean = ", a_gamma/b_gamma))
 print(paste0("var = ", a_gamma/b_gamma^2))  
 
 # Extract accumulation curve of the observed sample (or average accumulation)
-M = 500
+M = 1000
 
 accum_df <- tibble( x = 0:n,
                     n_feat = c(0,rarefaction(data_mat, n_reorderings = 20)))
@@ -427,8 +427,8 @@ ggsave(filename = paste0("R_script_paper/Paper_plots/extr_", type, "_eb_EFPF.pdf
 
 
 extr_EFPF_GammaIBP_df %>%
-  filter(Model == "GammaIBP, var = 100",
-         x %in% c(n + 1, n + 10, n + 100)) %>%
+  filter(Model == "GammaIBP, var = 0.01",
+         x %in% c(n + 1, n + 10, n + 100, n + 1000)) %>%
   mutate(means_new = means - Kn,
          lb_new = lb -Kn,
          ub_new = ub - Kn)
@@ -443,36 +443,52 @@ list_prior_fit_GammaIBP <-  vector(mode = "list", length = length(vars_GammaIBP)
 names(list_prior_fit_GammaIBP) <- paste0("var.", vars_GammaIBP)
 
 # Initialization and MCMC setting 
-init_GammaIBP <- list(alpha_0 = 0.5, s_0 = 15, a_0 = 5, b_0 = 1)
-init_obj_GammaIBP <- initialization(model = "GammaIBP", init = init_GammaIBP )
-mcmcparams_GammaIBP <- list(sigq_alpha = 0.1, sigq_s = 0.1, 
-                            S = 300, n_burnin = 100, thin = 2)
+mcmcparams_GammaIBP <- list(sigq_alpha = 0.5, sigq_s = 0.5, 
+                            S = 3*10^4, n_burnin = 100, thin = 2)
 mcmcparams_obj_GammaIBP <- mcmcparameters(model = "GammaIBP", mcmcparams = mcmcparams_GammaIBP)
 
+# 1) more_prior
+# init_GammaIBP <- list(alpha_0 = 0.5, s_0 = 15, a_0 = 5, b_0 = 1)
+# init_obj_GammaIBP <- initialization(model = "GammaIBP_more_prior", init = init_GammaIBP )
+
+# 2) single_prior
+init_GammaIBP <- list(alpha_0 = 0.5, s_0 = 15)
+init_obj_GammaIBP <- initialization(model = "GammaIBP_single_prior", init = init_GammaIBP )
+
+# EB estimates
+small_val <- 2
+alpha_eb <- list_eb_EFPF_fit_GammaIBP[[1]]$alpha
+theta_eb <- list_eb_EFPF_fit_GammaIBP[[1]]$theta
+
+t_eb <- (1 - alpha_eb)/alpha_eb
+s_eb <- alpha_eb + theta_eb
+
+print(paste0("Prior variance of alpha: ", 
+             t_eb/(1 + t_eb)^2 /(1 + small_val*(1+t_eb))))
 
 # Fit the model
-for (var_GammaIBP in vars_GammaIBP){
+for (var_GammaIBP in vars_GammaIBP[1]){
   
-  small_val <- 10^(-6)
-  
-  alpha_eb <- list_eb_EFPF_fit_GammaIBP[[paste0("var.", var_GammaIBP)]]$alpha
-  theta_eb <- list_eb_EFPF_fit_GammaIBP[[paste0("var.", var_GammaIBP)]]$theta
   a_eb <- list_eb_EFPF_fit_GammaIBP[[paste0("var.", var_GammaIBP)]]$a
   b_eb <- list_eb_EFPF_fit_GammaIBP[[paste0("var.", var_GammaIBP)]]$b
   
-  t_eb <- (1 - alpha_eb)/alpha_eb
-  s_eb <- alpha_eb + theta_eb
-  
   # Hyperparameters elicitation 
-  hyper_GammaIBP <- list(a_alpha = small_val, b_alpha = t_eb*small_val,
-                         a_s = s_eb*small_val , b_s = small_val,
-                         q = 1/a_eb, r = b_eb*small_val, t = small_val)
-  prior_obj_GammaIBP <- prior(model = "GammaIBP", hyper = hyper_GammaIBP)
+  # 1) more_prior
+  # hyper_GammaIBP <- list(a_alpha = small_val, b_alpha = t_eb*small_val,
+  #                        a_s = s_eb*small_val , b_s = small_val,
+  #                        q = 1/a_eb, r = b_eb*small_val, t = small_val)
+  # prior_obj_GammaIBP <- prior(model = "GammaIBP_more_prior", hyper = hyper_GammaIBP)
+  # 
+  # 2) single_prior
+  hyper_GammaIBP <- list(a = a_eb, b = b_eb,
+                         a_alpha = small_val, b_alpha = t_eb*small_val,
+                         a_s = s_eb*small_val , b_s = small_val)
+  prior_obj_GammaIBP <- prior(model = "GammaIBP_single_prior", hyper = hyper_GammaIBP)
   
   
   list_prior_fit_GammaIBP[[paste0("var.", var_GammaIBP)]] <- 
     GibbsFA(feature_matrix = data_mat,
-            model = "GammaIBP", 
+            model = "GammaIBP_single_prior", 
             prior = prior_obj_GammaIBP,
             initialization = init_obj_GammaIBP,
             mcmcparams = mcmcparams_obj_GammaIBP)
@@ -480,37 +496,85 @@ for (var_GammaIBP in vars_GammaIBP){
 }
 
 
+##### Convergence checks -------------
+library(ggmcmc)
+library(coda)
+
+params_prior_GammaIBP <- list_prior_fit_GammaIBP[[paste0("var.", vars_GammaIBP[1])]][c("a_chain","b_chain", "alpha_chain", "theta_chain")]
+params_prior_GammaIBP_df <- as.data.frame(do.call(cbind, params_prior_GammaIBP))
+
+samples_GammaIBP <- mcmc.list(mcmc(params_prior_GammaIBP_df))
+samples_ggs_GammaIBP <- ggs(samples_GammaIBP, keep_original_order = TRUE)
+ggs_traceplot(samples_ggs_GammaIBP)
+
+effectiveSize(params_prior_GammaIBP_df)
+
+
 ##### Prior: Extrapolation ------
 
 # GammaIBP
 extr_prior_GammaIBP_df <- tibble(means = numeric(), 
-                                lbs = numeric(), ubs = numeric(),
+                                lb = numeric(), ub = numeric(),
                                 x = integer(), Model = character())
 
-for (var_GammaIBP in vars_GammaIBP){
+for (var_GammaIBP in vars_GammaIBP[1]){
   
   extr_prior_GammaIBP_var <- extrapolation(object = list_prior_fit_GammaIBP[[paste0("var.", var_GammaIBP)]],
                                            M = M) 
   
   extr_prior_GammaIBP_var_df_tmp <- as_tibble(t(bind_rows(as.data.frame(lapply(extr_prior_GammaIBP_var, quantile, prob = c(0.025, 0.975))),
                                                   as.data.frame(lapply(extr_prior_GammaIBP_var, mean))))) 
-  colnames(extr_prior_GammaIBP_var_df_tmp) <- c("lbs", "ubs", "means")
+  colnames(extr_prior_GammaIBP_var_df_tmp) <- c("lb", "ub", "means")
   
   extr_prior_GammaIBP_var_df <- extr_prior_GammaIBP_var_df_tmp %>%
     add_column(x = 1:nrow(extr_prior_GammaIBP_var_df_tmp),
                Model = paste0("GammaIBP, var = ", var_GammaIBP)) %>%
     mutate( x = x + n ) %>%
-    add_row(means = Kn, ubs = Kn, lbs = Kn, x=n, 
+    add_row(means = Kn, ub = Kn, lb = Kn, x=n, 
             Model = paste0("GammaIBP, var = ", var_GammaIBP))
   
   extr_prior_GammaIBP_var_df$x <- as.integer(extr_prior_GammaIBP_var_df$x)
   
   extr_prior_GammaIBP_var_df <- extr_prior_GammaIBP_var_df %>%
-    select(means, lbs, ubs, x, Model)
+    select(means, lb, ub, x, Model)
   
   extr_prior_GammaIBP_df <- bind_rows(extr_prior_GammaIBP_df, 
                                       extr_prior_GammaIBP_var_df)
 }
+
+# Join the df related to prior and EFPF to compare in the plot
+extr_EFPF_GammaIBP_df_final <- extr_EFPF_GammaIBP_df %>%
+  add_column(Type = "EFPF")
+
+extr_prior_GammaIBP_df_final <- extr_prior_GammaIBP_df %>%
+  add_column(Type = "Prior")
+
+extr_joint_GammaIBP_df <- bind_rows(extr_EFPF_GammaIBP_df_final,
+                                    extr_prior_GammaIBP_df_final)
+
+extr_prior_GammaIBP_df$Model <- factor(extr_prior_GammaIBP_df$Model,
+                                       levels = paste0("GammaIBP, var = ", vars_GammaIBP))
+
+
+
+ggplot(extr_joint_GammaIBP_df, aes(x, means, color = Type )) +
+  geom_line(linetype = "dashed", linewidth = 1) +
+  facet_wrap(. ~ Model,  scales = "free_x") +
+  geom_point( data = accum_df, aes(x = x, y = n_feat),
+              color="black", shape = 1, size = 1) +
+  geom_ribbon(aes(ymin = lb, ymax = ub, color = Type), linewidth = 0.8, alpha = 0) +
+  #geom_line(data = df_extr_GT_long, aes(t, value)) +
+  #geom_line(data = df_extr_Chao_long, aes(t, medians), linetype = "dashed", linewidth = 1) +
+  geom_vline(aes(xintercept = n) , linetype = "dashed", color = "grey") +
+  xlab("# observations") + ylab("# distinct features") + 
+  theme_light() + 
+  #facet_wrap(~"Extrapolation") +
+  theme(legend.position = "top") +
+  scale_y_continuous(breaks = pretty_breaks()) +
+  scale_x_continuous(breaks = pretty_breaks()) +
+  theme(aspect.ratio = 1) +
+  scale_color_tableau()
+ggsave(filename = paste0("R_script_paper/Paper_plots/extr_", type, "_prior.pdf"), width = 4.5, height = 4.5, dpi = 300, units = "in", device='pdf')
 
 
 

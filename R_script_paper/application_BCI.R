@@ -342,7 +342,7 @@ Kn + qnbinom(c(0.025, 0.975), size = rich_pars$n0_prime, prob = rich_pars$p_prim
 ## Extrapolation (EFPF version) -----
 
 # Extract accumulation curve of the observed sample (or average accumulation)
-M = 100
+M = 1000
 
 accum_df <- tibble( x = 0:n,
                     n_feat = c(0,rarefaction(data_mat, n_reorderings = 20)))
@@ -465,14 +465,14 @@ ggsave(filename = "R_script_paper/Paper_plots/extr_BCI_eb_EFPF.pdf", width = 4.5
 
 
 extr_EFPF_NegBinBB_df %>%
-  filter(Model == "NegBinBB x1000",
-         x %in% c(n + 1, n + 10, n + 100)) %>%
+  filter(Model == "NegBinBB x10",
+         x %in% c(n + 1, n + 10, n + 100, n + 1000)) %>%
   mutate(means_new = means - Kn,
          lb_new = lb -Kn,
          ub_new = ub - Kn)
 
 extr_EFPF_PoissonBB_df %>%
-  filter(x %in% c(n + 1, n + 10, n + 100)) %>%
+  filter(x %in% c(n + 1, n + 10, n + 100, n + 1000)) %>%
   mutate(means_new = means - Kn,
          lb_new = lb -Kn,
          ub_new = ub - Kn)
