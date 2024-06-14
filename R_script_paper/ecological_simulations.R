@@ -1169,6 +1169,7 @@ load(paste0("R_script_paper/eb_Freq_",mechanism,"_fit_estimate_singledataset.RDa
 accum_df <- tibble(n_feat = unlist(sapply(Ns, function(n) 
   c(0,rarefaction(data_mat[1:(n + M), ], n_reorderings = 1)))),
   n_train = rep(Ns, times = Ns + M +1),
+  n_train_idx = rep(c(1,2,3), times = Ns + M +1 ),
   type = unlist(sapply(Ns, function(n) c(rep("train", n +1), rep("test", M)))),
   x = unlist(sapply(Ns, function(n) 0:(n + M))))
 
@@ -1183,24 +1184,26 @@ list_eb_EFPF_PoissonBB <- list_eb_EFPF_fit_PoissonBB[grepl("Nbar.emp", names(lis
 extr_EFPF_PoissonBB_df <- tibble(lambda = unname(unlist(lapply(list_eb_EFPF_PoissonBB, function(x)
   extrapolation(object = x, M = M, seed = seed)$lambda_post ))),
   n_train = rep(Ns, each = M),
+  n_train_idx = rep(c(1,2,3), each = M),
   Kn = rep(Kn, each = M)) %>%
   mutate(lb = qpois(0.025, lambda, lower.tail = TRUE, log.p = FALSE),
          ub = qpois(0.975, lambda, lower.tail = TRUE, log.p = FALSE)) %>%
   rename(means = lambda) %>%
-  add_row(means = 0, lb = 0, ub = 0, n_train = Ns, Kn = Kn) %>%
+  add_row(means = 0, lb = 0, ub = 0, n_train = Ns, n_train_idx = c(1,2,3), Kn = Kn) %>%
   mutate(means = means + Kn, lb = lb + Kn, ub = ub + Kn) %>%
   add_column(x = c(unlist(sapply(Ns, function(n) (n+1):(M+n))), Ns),
              Model = "Poisson BB")
 
 extr_EFPF_PoissonBB_df$x <- as.integer(extr_EFPF_PoissonBB_df$x)
 extr_EFPF_PoissonBB_df <- extr_EFPF_PoissonBB_df %>%
-  select(means, lb, ub, n_train, x, Model)
+  select(means, lb, ub, n_train, n_train_idx, x, Model)
 
 
 # NegBin
 extr_EFPF_NegBinBB_df <- tibble(means = numeric(), 
                                 lb = numeric(), ub = numeric(),
                                 n_train = integer(), 
+                                n_train_idx = integer(), 
                                 x = integer(), Model = character())
 
 for (var_fct_NegBinBB in vars_fct_NegBinBB){
@@ -1213,19 +1216,20 @@ for (var_fct_NegBinBB in vars_fct_NegBinBB){
     n0 = unname(unlist(lapply(list_eb_EFPF_NegBinBB_var, function(x)
       extrapolation(object = x, M = M, seed = seed)$n0_post ))),
     n_train = rep(Ns, each = M),
+    n_train_idx = rep(c(1,2,3), each = M),
     Kn = rep(Kn, each = M)) %>%
     mutate(p = 1/(mu0/n0 + 1),
            lb = qnbinom(0.025, size = n0, prob = p, lower.tail = TRUE, log.p = FALSE),
            ub = qnbinom(0.975, size = n0, prob = p, lower.tail = TRUE, log.p = FALSE)) %>%
     rename(means = mu0) %>%
-    add_row(means = 0, lb = 0, ub = 0, n_train = Ns, Kn = Kn) %>%
+    add_row(means = 0, lb = 0, ub = 0, n_train = Ns, n_train_idx = c(1,2,3), Kn = Kn) %>%
     mutate(means = means + Kn, lb = lb + Kn, ub = ub + Kn) %>%
     add_column(x = c(unlist(sapply(Ns, function(n) (n+1):(M+n))), Ns),
                Model = paste0("NegBinomial BB x", var_fct_NegBinBB))
   
   extr_EFPF_NegBinBB_df_var$x <- as.integer(extr_EFPF_NegBinBB_df_var$x)
   extr_EFPF_NegBinBB_df_var <- extr_EFPF_NegBinBB_df_var %>%
-    select(means, lb, ub, n_train, x, Model)
+    select(means, lb, ub, n_train, n_train_idx, x, Model)
   
   extr_EFPF_NegBinBB_df <- bind_rows(extr_EFPF_NegBinBB_df, 
                                      extr_EFPF_NegBinBB_df_var)
@@ -1270,11 +1274,12 @@ for (var_fct_NegBinBB in vars_fct_NegBinBB){
 # }
 
 # Set Ns and Kn to plot
-Ns_plot <- Ns[1:2]
+Ns_plot <- Ns[1:2] # [1:2] for "custom"
 Kn_plot <- Kn[1:2]
 
 df_extr_GT_long <- list_extr_competitor_to_long(list_extr_GT, model = "GT") %>%
   rename(Model = model) %>%
+  add_column(n_train_idx = rep(c(1,2,3), each = M + 1)) %>%
   filter(t < n_train + M + 1, n_train %in% Ns_plot)
 df_extr_Chao_long <- list_extr_competitor_to_long(list_rare_extr_Chao, model = "Chao") %>%
   rename(Model = model) %>%
@@ -1304,21 +1309,48 @@ accum_df_train <- accum_df_train %>%
 accum_df_test <- accum_df_test %>%
   filter(n_train %in% Ns_plot)
 
-n_train.labs <- paste0("n = ", Ns_plot,", Kn = ", Kn_plot )
-names(n_train.labs) <- Ns_plot
+# n_train.labs <- paste0("n = ", Ns_plot,", Kn = ", Kn_plot )
+# names(n_train.labs) <- Ns_plot
+
+accum_df_train <- accum_df_train %>%
+  mutate(n_train_latex = factor(paste0(r"($n = $)", n_train, r"($, K_n =$)", Kn[n_train_idx])))
+
+accum_df_test <- accum_df_test %>%
+  mutate(n_train_latex = factor(paste0(r"($n = $)", n_train, r"($, K_n =$)", Kn[n_train_idx])))
+
+extr_all_df <- extr_all_df %>%
+  mutate(n_train_latex = factor(paste0(r"($n = $)", n_train, r"($, K_n =$)", Kn[n_train_idx])))
+
+df_extr_GT_long <- df_extr_GT_long %>%
+  mutate(n_train_latex = factor(paste0(r"($n = $)", n_train, r"($, K_n =$)", Kn[n_train_idx])))
+
+levels(accum_df_train$n_train_latex) <-
+  levels(accum_df_test$n_train_latex) <- 
+  levels(extr_all_df$n_train_latex) <-
+  levels(df_extr_GT_long$n_train_latex) <- c(
+  paste0("Scenario C: $n = $", Ns[3], "$, K_n =$", Kn[3]),
+  paste0("Scenario B: $n = $", Ns[2], "$, K_n =$", Kn[2]),
+  paste0("Scenario A: $n = $", Ns[1], "$, K_n =$", Kn[1])
+)
+
+accum_df_train$n_train_latex <- as.character(accum_df_train$n_train_latex)
+accum_df_test$n_train_latex <- as.character(accum_df_test$n_train_latex)
+extr_all_df$n_train_latex <- as.character(extr_all_df$n_train_latex)
+df_extr_GT_long$n_train_latex <- as.character(df_extr_GT_long$n_train_latex)
+
 
 plot_means <- ggplot() +
   geom_point(data = accum_df_train, aes(x = x, y = n_feat),
-             color="black", shape = 21, size = 1) +
+             color="black", shape = 19, size = 0.1) +
+  facet_grid(~ TeX(n_train_latex, output = "character"),
+             labeller = labeller(n_train_latex),
+             scales = "free_x")  +
   geom_point( data = accum_df_test, aes(x = x, y = n_feat),
-              color="black", shape = 21, size = 0.5) +
+              color="black", shape = 19, size = 0.1) +
   geom_line(data = extr_all_df, aes(x = x, y = means, color = Model),
             linetype = "dashed") +
   geom_line(data = df_extr_GT_long, aes(t, value, color = Model), linetype = "dashed") +
-  geom_line(data = df_extr_Chao_long, aes(t, medians, color = Model), linetype = "dashed") +
-  facet_grid(.~ n_train,
-             labeller = labeller(n_train = n_train.labs),
-             scales = "free_x")  +
+  #geom_line(data = df_extr_Chao_long, aes(t, medians, color = Model), linetype = "dashed") +
   geom_vline(data = temp, mapping =  aes(xintercept = xvalues) , linetype = "dashed", color = "grey") +
   xlab("# observations") + ylab("# distinct features") + 
   theme_light() + 
@@ -1331,12 +1363,13 @@ plot_means <- ggplot() +
 
 plot_ribbons <- ggplot() +
   geom_point(data = accum_df_train, aes(x = x, y = n_feat),
-             color="black", shape = 21, size = 1) +
+             color="black", shape = 19, size = 0.1) +
   geom_point( data = accum_df_test, aes(x = x, y = n_feat),
-              color="black", shape = 21, size = 0.5) +
+              color="black", shape = 19, size = 0.1) +
   geom_ribbon(data = extr_all_df, aes(x = x, ymin = lb, ymax = ub, fill = Model), color = NA, alpha = 0.4) +
   scale_fill_manual(values = c("Poisson BB" = "grey10", "NegBinomial BB x10" = "grey50", "NegBinomial BB x1000" = "grey80")) +
-  facet_grid(.~ n_train, labeller = labeller(n_train = n_train.labs),
+  facet_grid(~ TeX(n_train_latex, output = "character"),
+             labeller = label_parsed,
              scales = "free_x")  +
   geom_vline(data = temp, mapping =  aes(xintercept = xvalues) , linetype = "dashed", color = "grey") +
   xlab("# observations") + ylab("# distinct features") + 

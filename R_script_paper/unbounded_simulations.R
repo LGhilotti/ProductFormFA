@@ -495,18 +495,23 @@ df_rare <- rbind(rare_EFPF_mixtureBB,
 df_rare$Model <- factor(df_rare$Model,
                         levels = c("PoissonBB/NegBinBB", "GammaIBP"))
 
-ggplot(df_rare, aes(x = x, y = means, color = Model)) +
-  geom_line(linetype = "dashed", linewidth = 1) + 
+ggplot(accum_df, aes(x = x, y = n_feat)) +
+  geom_point(color="black", shape = 18, size = 0.4) + 
   #facet_wrap(.~ Model, scales = "free_x", nrow = 1) +
   #geom_ribbon(aes(ymin = lb_bands, ymax = ub_bands), color = "red" , linewidth = 0.8, alpha = 0.1) +
-  geom_point( data = accum_df, aes(x = x, y = n_feat), color="black", shape = 21, size = 0.5) +
+  geom_line(data = df_rare, aes(x = x, y = means, color = Model), linetype = "dashed") + 
   xlab("# observations") + ylab("# distinct features") + 
   theme_light() + 
   theme(legend.position = "top") +
   scale_y_continuous(breaks = pretty_breaks()) +
   scale_x_continuous(breaks = pretty_breaks()) +
   theme(aspect.ratio = 1) + 
-  scale_color_tableau()
+  scale_color_tableau(
+    labels = c(
+      "PoissonBB/NegBinBB" = "Mixtures of BBs",
+      "GammaIBP" = "Mixtures of IBPs"
+    )
+  ) 
 ggsave(filename = paste0("R_script_paper/Paper_plots/rarefaction_poly_", xi, "_eb_EFPF.pdf"), width = 4, height = 4, dpi = 300, units = "in", device='pdf')
 
 
@@ -564,16 +569,21 @@ df_K_n_r_plot <- df_K_n_r %>%
 observed_K_n_r_plot <- observed_K_n_r %>%
   filter(r %in% c(r_positive$r))
 
-ggplot(df_K_n_r_plot, aes(x = r, y = means, color = Model)) +
-  geom_line( linetype = "dashed") +
-  geom_point( data = observed_K_n_r_plot, aes(x = r, y = k_n_r), color="black", shape = 21, size = 1) +
+ggplot(observed_K_n_r_plot,  aes(x = r, y = k_n_r)) +
+  geom_point(color="black", shape = 19, size = 0.5) +
+  geom_line( data = df_K_n_r_plot, aes(x = r, y = means, color = Model), linetype = "dashed") +
   scale_y_log10() +
   xlab("r") + ylab(expression(m[r])) + 
   theme_light() + 
   theme(legend.position = "top") +
   scale_x_continuous(breaks = pretty_breaks()) +
   theme(aspect.ratio = 1) + 
-  scale_color_tableau()
+  scale_color_tableau(
+    labels = c(
+      "PoissonBB/NegBinBB" = "Mixtures of BBs",
+      "GammaIBP" = "Mixtures of IBPs"
+    )
+  )
 ggsave(filename = paste0("R_script_paper/Paper_plots/knr_poly_", xi, "_eb_EFPF.pdf"), width = 4, height = 4, dpi = 300, units = "in", device='pdf')
 
 
