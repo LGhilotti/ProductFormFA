@@ -9,8 +9,6 @@ library(ggthemes)
 source("R_script_paper/Routine_Chao.R")
 source("R_script_paper/utils.R")
 
-# Fit models -----
-
 #data(birds, package="jSDM")
 library(vegan)
 data("BCI")
@@ -50,10 +48,11 @@ ggplot(accum_df, aes(x = x, y = n_feat)) +
 ggsave(filename = "R_script_paper/Paper_plots/accumulation_BCI.pdf", width = 4, height = 4, dpi = 300, units = "in", device='pdf')
 
 
-# 2) Run the models on the data
-
 vars_fct_NegBinBB <- c(10, 1000)
 vars_GammaIBP <- c(1, 1000)
+
+
+# EFPF approach: fit models -----
 
 eb_init_BB <- list(alpha = -10, s = 100, Nhat_prime = 200)
 eb_known_BB <- list()
@@ -342,7 +341,7 @@ Kn + qnbinom(c(0.025, 0.975), size = rich_pars$n0_prime, prob = rich_pars$p_prim
 ## Extrapolation (EFPF version) -----
 
 # Extract accumulation curve of the observed sample (or average accumulation)
-M = 1000
+M = 400
 
 accum_df <- tibble( x = 0:n,
                     n_feat = c(0,rarefaction(data_mat, n_reorderings = 20)))
@@ -477,62 +476,258 @@ extr_EFPF_PoissonBB_df %>%
          lb_new = lb -Kn,
          ub_new = ub - Kn)
 
-## Extrapolation (prior approach)- to be done ----
-
-PoissonBB_extr <- extrapolation(object = PoissonBB_fit, M = M) 
-NegBinBB_extr <- extrapolation(object = NegBinBB_fit, M = M) 
 
 
-# PoissonBB
-df_extr_PoissonBB <- as_tibble(t(bind_rows(as.data.frame(lapply(PoissonBB_extr, quantile, prob = c(0.025, 0.975))),
-                                           as.data.frame(lapply(PoissonBB_extr, mean))))) 
-colnames(df_extr_PoissonBB) <- c("lbs", "ubs", "means")
-df_extr_PoissonBB <- df_extr_PoissonBB %>%
-  add_column(t = 1:nrow(df_extr_PoissonBB),
-             model = "Poisson") %>%
-  mutate( t = t + n ) %>%
-  add_row(means = Kn, ubs = Kn, lbs = Kn, t=n, model = "Poisson")
+
+# Prior approach ----------
+# We focus on NegBinBB's + priors (since it is selected from model-checking)
+
+# Fit and estimate richness, rarefaction and extrapolation for GibbsFA's (save workspace)
+if (!file.exists("R_script_paper/prior_BCI_fit_estimate_singledataset.RData")) {
+  
+  list_prior_fit_NegBinBB <-  vector(mode = "list", length = length(vars_fct_NegBinBB))
+  names(list_prior_fit_NegBinBB) <- paste0("var_fct.", vars_fct_NegBinBB)
+  
+  # Initialization and MCMC setting 
+  mcmcparams_NegBinBB <- list(tau = 0.1, 
+                              S = 5*10^4, n_burnin = 5*10^3, thin = 2)
+  mcmcparams_obj_NegBinBB <- mcmcparameters(model = "NegBinBB", mcmcparams = mcmcparams_NegBinBB)
+  
+  init_NegBinBB <- list(alpha_0 = - 1, s_0 = 15)
+  init_obj_NegBinBB <- initialization(model = "NegBinBB", init = init_NegBinBB )
+  
+  # EB estimates
+  small_val <- 2
+  alpha_eb <- list_eb_EFPF_fit_NegBinBB[[1]]$alpha
+  theta_eb <- list_eb_EFPF_fit_NegBinBB[[1]]$theta
+  
+  s_eb <- alpha_eb + theta_eb
+  
+  print(paste0("Prior variance of -alpha: ", - alpha_eb/small_val  ))
+  
+  # Fit the model
+  for (var_fct in vars_fct_NegBinBB){
+    
+    n0_eb <- list_eb_EFPF_fit_NegBinBB[[paste0("var_fct.", var_fct)]]$n0
+    mu0_eb <- list_eb_EFPF_fit_NegBinBB[[paste0("var_fct.", var_fct)]]$mu0
+    
+    hyper_NegBinBB <- list(a_alpha = - alpha_eb*small_val, b_alpha = small_val,
+                           a_s = s_eb*small_val , b_s = small_val,
+                           n0 = n0_eb, mu0 = mu0_eb)
+    prior_obj_NegBinBB <- prior(model = "NegBinBB", hyper = hyper_NegBinBB)
+    
+    
+    list_prior_fit_NegBinBB[[paste0("var_fct.", var_fct)]] <- 
+      GibbsFA(feature_matrix = data_mat,
+              model = "NegBinBB", 
+              prior = prior_obj_NegBinBB,
+              initialization = init_obj_NegBinBB,
+              mcmcparams = mcmcparams_obj_NegBinBB)
+    
+  }
+  
+  # Save the entire workspace related to the type just performed
+  save(list = ls(all.names = TRUE), file =  "R_script_paper/prior_BCI_fit_estimate_singledataset.RData")
+  
+}
 
 
-# NegBinBB
-df_extr_NegBinBB <- as_tibble(t(bind_rows(as.data.frame(lapply(NegBinBB_extr, quantile, prob = c(0.025, 0.975))),
-                                          as.data.frame(lapply(NegBinBB_extr, mean))))) 
-colnames(df_extr_NegBinBB) <- c("lbs", "ubs", "means")
-df_extr_NegBinBB <- df_extr_NegBinBB %>%
-  add_column(t = 1:nrow(df_extr_NegBinBB),
-             model = "NegBin") %>%
-  mutate( t = t + n ) %>%
-  add_row(means = Kn, ubs = Kn, lbs = Kn, t=n, model = "NegBin")
+# Load the Work space
+load("R_script_paper/prior_BCI_fit_estimate_singledataset.RData")
 
 
-# Accumulation curve
-accum <- rarefaction(data_mat)
-accum_df <- data.frame("accum" = c(0, accum),
-                       "t" = 0:length(accum))
+##### Convergence checks -------------
+library(ggmcmc)
+library(coda)
+
+params_prior_NegBinBB <- list_prior_fit_NegBinBB[[paste0("var_fct.", vars_fct_NegBinBB[1])]][c("n0_chain","mu0_chain", "alpha_chain", "theta_chain")]
+params_prior_NegBinBB_df <- as.data.frame(do.call(cbind, params_prior_NegBinBB))
+
+samples_NegBinBB <- mcmc.list(mcmc(params_prior_NegBinBB_df))
+samples_ggs_NegBinBB <- ggs(samples_NegBinBB, keep_original_order = TRUE)
+ggs_traceplot(samples_ggs_NegBinBB)
+
+effectiveSize(params_prior_NegBinBB_df)
 
 
-joint_df_extr_bayes <- rbind(df_extr_PoissonBB,df_extr_NegBinBB)
+##### Prior: Extrapolation ------
 
-# plot
-ggplot(joint_df_extr_bayes, aes(x = t, y = means, color = model)) +
-  geom_line(linetype = "dashed", linewidth = 0.8) +
-  geom_ribbon(aes(ymin = lbs, ymax = ubs), linewidth = 0.8, alpha = 0.1) +
-  geom_line(data = accum_df, aes(t, accum), color="black", linetype="solid") +
-  geom_line(data = df_extr_Chao, aes(t, value), linewidth = 0.8) +
-  geom_line(data = df_extr_GT, aes(t, value), linewidth = 0.8) +
-  geom_vline(aes(xintercept = n), linetype="dashed", color = "grey") +
+if (!file.exists("R_script_paper/prior_BCI_extrapolation.RData")) {
+  
+  M <- 400
+  
+  # NegBinBB
+  extr_prior_NegBinBB_df <- tibble(means = numeric(), 
+                                   lb = numeric(), ub = numeric(),
+                                   x = integer(), Model = character())
+  
+  
+  
+  for (var_fct in vars_fct_NegBinBB){
+    
+    extr_prior_NegBinBB_var <- extrapolation(object = list_prior_fit_NegBinBB[[paste0("var_fct.", var_fct)]],
+                                             M = M) 
+    
+    extr_prior_NegBinBB_var_df_tmp <- as_tibble(t(bind_rows(as.data.frame(lapply(extr_prior_NegBinBB_var, quantile, prob = c(0.025, 0.975))),
+                                                            as.data.frame(lapply(extr_prior_NegBinBB_var, mean))))) 
+    colnames(extr_prior_NegBinBB_var_df_tmp) <- c("lb", "ub", "means")
+    
+    extr_prior_NegBinBB_var_df <- extr_prior_NegBinBB_var_df_tmp %>%
+      add_column(x = 1:nrow(extr_prior_NegBinBB_var_df_tmp),
+                 Model = paste0("NegBinBB x", var_fct)) %>%
+      mutate( x = x + n ) %>%
+      add_row(means = Kn, ub = Kn, lb = Kn, x=n, 
+              Model = paste0("NegBinBB x", var_fct))
+    
+    extr_prior_NegBinBB_var_df$x <- as.integer(extr_prior_NegBinBB_var_df$x)
+    
+    extr_prior_NegBinBB_var_df <- extr_prior_NegBinBB_var_df %>%
+      select(means, lb, ub, x, Model)
+    
+    extr_prior_NegBinBB_df <- bind_rows(extr_prior_NegBinBB_df, 
+                                        extr_prior_NegBinBB_var_df)
+  }
+  
+  
+  # Save the entire workspace related to the type just performed
+  save(list = ls(all.names = TRUE), file =  "R_script_paper/prior_BCI_extrapolation.RData")
+  
+}
+
+# Load the Work space
+load("R_script_paper/prior_BCI_extrapolation.RData")
+
+
+# Join the df related to prior and EFPF to compare in the plot
+extr_EFPF_NegBinBB_df_final <- extr_EFPF_NegBinBB_df %>%
+  add_column(Type = "EFPF")
+
+extr_prior_NegBinBB_df_final <- extr_prior_NegBinBB_df %>%
+  add_column(Type = "Prior")
+
+extr_joint_NegBinBB_df <- bind_rows(extr_EFPF_NegBinBB_df_final,
+                                    extr_prior_NegBinBB_df_final)
+
+extr_prior_NegBinBB_df$Model <- factor(extr_prior_NegBinBB_df$Model,
+                                       levels = paste0("NegBinBB x", vars_fct_NegBinBB))
+
+
+
+ggplot(extr_joint_NegBinBB_df, aes(x, means, color = Type )) +
+  geom_line(linetype = "dashed", linewidth = 1) +
+  facet_wrap(. ~ Model,  scales = "free_x") +
+  geom_point( data = accum_df, aes(x = x, y = n_feat),
+              color="black", shape = 1, size = 1) +
+  geom_ribbon(aes(ymin = lb, ymax = ub, color = Type), linewidth = 0.8, alpha = 0) +
+  #geom_line(data = df_extr_GT_long, aes(t, value)) +
+  #geom_line(data = df_extr_Chao_long, aes(t, medians), linetype = "dashed", linewidth = 1) +
+  geom_vline(aes(xintercept = n) , linetype = "dashed", color = "grey") +
   xlab("# observations") + ylab("# distinct features") + 
   theme_light() + 
+  #facet_wrap(~"Extrapolation") +
   theme(legend.position = "top") +
   scale_y_continuous(breaks = pretty_breaks()) +
   scale_x_continuous(breaks = pretty_breaks()) +
+  theme(aspect.ratio = 1) +
+  scale_color_tableau()
+ggsave(filename = "R_script_paper/Paper_plots/extr_BCI_prior.pdf", width = 4.5, height = 4.5, dpi = 300, units = "in", device='pdf')
+
+
+
+
+##### Prior: Richness ------
+
+# NegBinBB
+# richness_prior_NegBinBB_df <- tibble(Model = character(),
+#                                      lb = numeric(), ub = numeric())
+# 
+# for (var_fct_NegBinBB in vars_fct_NegBinBB){
+#   
+#   prior_NegBinBB_var <- list_prior_fit_NegBinBB[[paste0("var_fct.", var_fct_NegBinBB)]]
+#   
+#   richness_prior_NegBinBB_var <- total_richness(object = prior_NegBinBB_var)
+#   
+#   richness_prior_NegBinBB_df_var_tmp <-  as_tibble(t(bind_rows(as.data.frame(lapply(richness_prior_NegBinBB_var, quantile, prob = c(0.025, 0.975)))))) 
+#   colnames(richness_prior_NegBinBB_df_var_tmp) <- c("lb", "ub")
+#   
+#   richness_prior_NegBinBB_df_var <- richness_prior_NegBinBB_df_var_tmp %>%
+#     add_column(Model = paste0("NegBinBB x", var_fct_NegBinBB)) %>%
+#   
+#   
+#   richness_prior_NegBinBB_df <- bind_rows(richness_prior_NegBinBB_df,
+#                                           richness_prior_NegBinBB_df_var)
+#   
+# }
+
+
+bounds <- list("lb" = 250, "ub" = 400)
+
+# for EFPF approach
+richness_EFPF_NegBinBB_df <- tibble(x = integer(), y = numeric(),
+                                    Model = character() )
+
+for (var_fct_NegBinBB in vars_fct_NegBinBB){
+  
+  params_richness_EFPF_NegBinBB_var <- params_richness_EFPF_NegBinBB %>%
+    filter(Model == paste0("NegBinBB x", var_fct_NegBinBB))
+  
+  dens_richness_NegBinBB_var <- tibble( x = bounds$lb : bounds$ub) %>%
+    mutate( y = dnbinom(x - Kn, size = params_richness_EFPF_NegBinBB_var$n0_prime, 
+                        prob = params_richness_EFPF_NegBinBB_var$p_prime)) %>%
+    add_column(Model = paste0("NegBinBB x", var_fct_NegBinBB))
+  
+  richness_EFPF_NegBinBB_df <- bind_rows(richness_EFPF_NegBinBB_df,
+                                         dens_richness_NegBinBB_var)
+  
+}
+
+richness_EFPF_NegBinBB_df$Model <- factor(richness_EFPF_NegBinBB_df$Model, 
+                                           levels = paste0("NegBinBB x", vars_fct_NegBinBB))
+
+
+# for Prior approach
+richness_prior_NegBinBB_df <- tibble(Model = character(),
+                                     y = numeric())
+           
+for (var_fct_NegBinBB in vars_fct_NegBinBB){
+
+  prior_NegBinBB_var <- list_prior_fit_NegBinBB[[paste0("var_fct.", var_fct_NegBinBB)]]
+  
+  richness_prior_NegBinBB_df_var <- tibble(
+    y = total_richness(object = prior_NegBinBB_var),
+    Model = paste0("NegBinBB x", var_fct_NegBinBB)
+  ) 
+  
+  richness_prior_NegBinBB_df <- bind_rows(richness_prior_NegBinBB_df,
+                                          richness_prior_NegBinBB_df_var)
+
+}
+
+
+richness_prior_NegBinBB_df$Model <- factor(richness_prior_NegBinBB_df$Model, 
+                                           levels = paste0("NegBinBB x", vars_fct_NegBinBB))
+
+# prepare final df
+richness_EFPF_NegBinBB_df_final <- richness_EFPF_NegBinBB_df %>%
+  add_column(Type = "EFPF")
+
+richness_prior_NegBinBB_df_final <- richness_prior_NegBinBB_df %>%
+  add_column(Type = "Prior")
+
+
+# plot
+ggplot() +
+  geom_line(data = richness_EFPF_NegBinBB_df_final, aes(x = x, y = y, color = Type) ) +
+  stat_density(data = richness_prior_NegBinBB_df_final, aes(x=y, color = Type), geom="line",position="identity", bw = 2) +
+  theme_light() +
+  facet_wrap(~Model) +
+  theme(legend.position = "top") +
+  scale_y_continuous(breaks = pretty_breaks()) +
+  scale_x_continuous(
+    limits = c(250, 400) 
+    ) +
+  xlab("# distinct features") + rremove("ylab") +
   scale_color_tableau() +
   theme(aspect.ratio = 1)
 
-
-
-
-
-
-
-
+  

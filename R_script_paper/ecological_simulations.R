@@ -713,7 +713,7 @@ df_rare$Model <- factor(df_rare$Model,
 
 
 ggplot(accum_df, aes(x = x, y = n_feat)) +
-  geom_point(color="black", shape = 18, size = 0.01) + 
+  geom_point(color="black", shape = 18, size = 0.2) + 
   #facet_wrap(.~ Model, scales = "free_x", nrow = 1) +
   #geom_ribbon(aes(ymin = lb_bands, ymax = ub_bands), color = "red" , linewidth = 0.8, alpha = 0.1) +
   geom_line(data = df_rare, aes(x = x, y = means, color = Model), linetype = "dashed") + 
@@ -847,32 +847,27 @@ joint_richness_long <- bind_rows(richness_EFPF_PoissonBB_df,
   mutate(Model = fct_relevel(Model, c("Poisson BB", 
                              paste0("NegBinomial BB x", vars_fct_NegBinBB))) )
 
-n_train.labs <- paste0("n = ", Ns,", Kn = ", Kn )
-names(n_train.labs) <- Ns
+# n_train.labs <- paste0("n = ", Ns,", Kn = ", Kn )
+# names(n_train.labs) <- Ns
 
 
 joint_richness_long <- joint_richness_long %>%
-  mutate(n_train_latex = paste0(r"($n = $)", n_train, r"($, K_n =$)", Kn[n_train_idx])) %>%
-  mutate(n_train_latex = factor(n_train_latex, levels = c(
-           paste0(r"($n = $)", n_train[1], r"($, K_n =$)", Kn[1]),
-           paste0(r"($n = $)", n_train[2], r"($, K_n =$)", Kn[2]),
-           paste0(r"($n = $)", n_train[3], r"($, K_n =$)", Kn[3]))))
+  mutate(n_train_latex = factor(paste0(r"($n = $)", n_train, r"($, K_n =$)", Kn[n_train_idx])))
 
+levels(joint_richness_long$n_train_latex) <- c(
+  paste0("Scenario C: $n = $", Ns[3], "$, K_n =$", Kn[3]),
+  paste0("Scenario B: $n = $", Ns[2], "$, K_n =$", Kn[2]),
+  paste0("Scenario A: $n = $", Ns[1], "$, K_n =$", Kn[1])
+  )
 
-custom_labeller <- function(labels) {
-  labels <- sapply(labels, function(x) latex2exp::TeX(x))
-  return(labels)
-}
-
+joint_richness_long$n_train_latex <- as.character(joint_richness_long$n_train_latex)
 
 # plots estimator
 ggplot(joint_richness_long, aes( y=estimate, x=Model, shape = Nbar)) +
   geom_point(size = 2) +
-  facet_wrap(~ n_train_latex, labeller = as_labeller(custom_labeller), 
+  facet_wrap(~ TeX(n_train_latex, output = "character"),
+             labeller = label_parsed, #custom_labeller,
              scales = "free_x", nrow = 1) +
-  # facet_wrap(~ TeX(n_train_latex, output = "character"), 
-  #            labeller = label_parsed, #custom_labeller,
-  #            scales = "free_x", nrow = 1) +
   theme_light() +
   geom_hline(aes(yintercept = H), linetype = "dashed") +
   theme(legend.position = "top") +
@@ -886,22 +881,7 @@ ggsave(filename = paste0("R_script_paper/Paper_plots/richness_points_", mechanis
 
 
 
-ggplot(joint_richness_long, aes( y=estimate, x=Model, shape = Nbar)) +
-  geom_point(size = 2) +
-  facet_wrap(~ n_train_idx, 
-             labeller = labeller(n_train_idx = lab_graph),
-             scales = "free_x", nrow = 1) +
-  theme_light() +
-  geom_hline(aes(yintercept = H), linetype = "dashed") +
-  theme(legend.position = "top") +
-  ylab("Posterior mean of N") +
-  scale_y_continuous(breaks = pretty_breaks()) +
-  rremove("xlab") +
-  scale_shape_discrete(name = "Prior mean of N") +
-  theme(aspect.ratio = 1) + 
-  theme(axis.text.x = element_text(angle = 45, hjust = 1))
-
-# 2) Plot Richness: whole distributions for Nbar = 600 
+# 2) Plot Richness: whole distributions for given Nbar  
 Nbar_plot <- 400
 
 # compute parametes of richness
@@ -910,14 +890,18 @@ Nbar_plot <- 400
 list_eb_EFPF_est_PoissonBB <- list_eb_EFPF_fit_PoissonBB[grepl("Nbar.emp", names(list_eb_EFPF_fit_PoissonBB) )]
 params_richness_EFPF_est_PoissonBB <- tibble( lambda_prime = unname(sapply(list_eb_EFPF_est_PoissonBB, function(x)
   total_richness(x)$lambda_post))) %>%
-  add_column(n_train = Ns, Model = "Poisson BB", PM = "est") %>%
+  add_column(n_train = Ns,
+             n_train_idx = rep(c(1,2,3), each = 1),
+             Model = "Poisson BB", PM = "est") %>%
   mutate(lb = qpois(0.025, lambda_prime, lower.tail = TRUE, log.p = FALSE),
          ub = qpois(0.975, lambda_prime, lower.tail = TRUE, log.p = FALSE) )
 
 list_eb_EFPF_fixed_PoissonBB <- list_eb_EFPF_fit_PoissonBB[grepl(paste0("Nbar.",Nbar_plot), names(list_eb_EFPF_fit_PoissonBB) )]
 params_richness_EFPF_fixed_PoissonBB <- tibble( lambda_prime = unname(sapply(list_eb_EFPF_fixed_PoissonBB, function(x)
   total_richness(x)$lambda_post))) %>%
-  add_column(n_train = Ns, Model = "Poisson BB", PM = "fixed") %>%
+  add_column(n_train = Ns,
+             n_train_idx = rep(c(1,2,3), each = 1),
+             Model = "Poisson BB", PM = "fixed") %>%
   mutate(lb = qpois(0.025, lambda_prime, lower.tail = TRUE, log.p = FALSE),
          ub = qpois(0.975, lambda_prime, lower.tail = TRUE, log.p = FALSE) )
 
@@ -925,6 +909,7 @@ params_richness_EFPF_fixed_PoissonBB <- tibble( lambda_prime = unname(sapply(lis
 params_richness_EFPF_est_NegBinBB <- tibble( n0_prime = numeric(),
                                              mu0_prime = numeric(),
                                              n_train = integer(),
+                                             n_train_idx = integer(),
                                              Model = character(),
                                              PM = character(),
                                              p_prime = numeric(),
@@ -932,6 +917,7 @@ params_richness_EFPF_est_NegBinBB <- tibble( n0_prime = numeric(),
 params_richness_EFPF_fixed_NegBinBB <- tibble( n0_prime = numeric(),
                                              mu0_prime = numeric(),
                                              n_train = integer(),
+                                             n_train_idx = integer(),
                                              Model = character(),
                                              PM = character(),
                                              p_prime = numeric(),
@@ -947,7 +933,9 @@ for (var_fct_NegBinBB in vars_fct_NegBinBB){
     total_richness(x)$n0_post)),
     mu0_prime = unname(sapply(list_eb_EFPF_est_NegBinBB_var, function(x)
       total_richness(x)$mu0_post))) %>%
-    add_column(n_train = Ns, Model = paste0("NegBinomial BB x", var_fct_NegBinBB),
+    add_column(n_train = Ns,
+               n_train_idx = rep(c(1,2,3), each = 1),
+               Model = paste0("NegBinomial BB x", var_fct_NegBinBB),
                PM = "est") %>%
     mutate(p_prime = 1/(mu0_prime/n0_prime + 1),
            lb = qnbinom(0.025, size = n0_prime, prob = p_prime, lower.tail = TRUE, log.p = FALSE),
@@ -965,7 +953,9 @@ for (var_fct_NegBinBB in vars_fct_NegBinBB){
     total_richness(x)$n0_post)),
     mu0_prime = unname(sapply(list_eb_EFPF_fixed_NegBinBB_var, function(x)
       total_richness(x)$mu0_post))) %>%
-    add_column(n_train = Ns, Model = paste0("NegBinomial BB x", var_fct_NegBinBB),
+    add_column(n_train = Ns,
+               n_train_idx = rep(c(1,2,3), each = 1),
+               Model = paste0("NegBinomial BB x", var_fct_NegBinBB),
                PM = "fixed") %>%
     mutate(p_prime = 1/(mu0_prime/n0_prime + 1),
            lb = qnbinom(0.025, size = n0_prime, prob = p_prime, lower.tail = TRUE, log.p = FALSE),
@@ -998,26 +988,30 @@ dens_richness_EFPF_est_PoissonBB <- bind_rows(lapply(1:length(Ns), function(j)
   tibble( x = bounds_distr$lb: bounds_distr$ub) %>%
     mutate( y = dpois(x - Kn[j] , lambda = params_richness_EFPF_est_PoissonBB$lambda_prime[j])) %>%
     add_column(Model = "Poisson BB", PM = "est",
-               n_train = params_richness_EFPF_est_PoissonBB$n_train[j])
+               n_train = params_richness_EFPF_est_PoissonBB$n_train[j],
+               n_train_idx = params_richness_EFPF_est_PoissonBB$n_train_idx[j])
 ))
 
 dens_richness_EFPF_fixed_PoissonBB <- bind_rows(lapply(1:length(Ns), function(j) 
   tibble( x = bounds_distr$lb: bounds_distr$ub) %>%
     mutate( y = dpois(x - Kn[j] , lambda = params_richness_EFPF_fixed_PoissonBB$lambda_prime[j])) %>%
     add_column(Model = "Poisson BB", PM = "fixed",
-               n_train = params_richness_EFPF_fixed_PoissonBB$n_train[j])
+               n_train = params_richness_EFPF_fixed_PoissonBB$n_train[j],
+               n_train_idx = params_richness_EFPF_fixed_PoissonBB$n_train_idx[j] )
 ))
 
 # NegBinBB
 dens_richness_EFPF_est_NegBinBB <- tibble(x = integer(), y = numeric(),
                                           Model = character(),
                                           PM = character(),
-                                          n_train = integer())
+                                          n_train = integer(),
+                                          n_train_idx = integer())
 
 dens_richness_EFPF_fixed_NegBinBB <- tibble(x = integer(), y = numeric(),
                                             Model = character(),
                                             PM = character(),
-                                            n_train = integer())
+                                            n_train = integer(),
+                                            n_train_idx = integer())
 
 
 for (var_fct_NegBinBB in vars_fct_NegBinBB){
@@ -1032,7 +1026,8 @@ for (var_fct_NegBinBB in vars_fct_NegBinBB){
                           prob = params_richness_EFPF_est_NegBinBB_var$p_prime[j])) %>%
       add_column(Model = paste0("NegBinomial BB x", var_fct_NegBinBB), 
                  PM = "est",
-                 n_train = params_richness_EFPF_est_NegBinBB_var$n_train[j])
+                 n_train = params_richness_EFPF_est_NegBinBB_var$n_train[j],
+                 n_train_idx = params_richness_EFPF_est_NegBinBB_var$n_train_idx[j])
   ))
   
   dens_richness_EFPF_est_NegBinBB <- bind_rows(dens_richness_EFPF_est_NegBinBB,
@@ -1049,7 +1044,8 @@ for (var_fct_NegBinBB in vars_fct_NegBinBB){
                           prob = params_richness_EFPF_fixed_NegBinBB_var$p_prime[j])) %>%
       add_column(Model = paste0("NegBinomial BB x", var_fct_NegBinBB),
                  PM = "fixed",
-                 n_train = params_richness_EFPF_fixed_NegBinBB_var$n_train[j])
+                 n_train = params_richness_EFPF_fixed_NegBinBB_var$n_train[j],
+                 n_train_idx = params_richness_EFPF_fixed_NegBinBB_var$n_train_idx[j])
   ))
   
   dens_richness_EFPF_fixed_NegBinBB <- bind_rows(dens_richness_EFPF_fixed_NegBinBB,
@@ -1059,8 +1055,8 @@ for (var_fct_NegBinBB in vars_fct_NegBinBB){
 
 
 # Set Ns and Kn to plot
-Ns_plot <- Ns
-Kn_plot <- Kn
+Ns_plot <- Ns[1:2] # [1:2] for "custom"
+Kn_plot <- Kn[1:2]
 
 dens_richnesses <- rbind(dens_richness_EFPF_est_PoissonBB,
                          dens_richness_EFPF_est_NegBinBB,
@@ -1073,15 +1069,25 @@ dens_richnesses$Model <- factor(dens_richnesses$Model,
                                 levels = c("Poisson BB",
                                            paste0("NegBinomial BB x", vars_fct_NegBinBB)))
 
-n_train.labs <- paste0("n = ", Ns_plot,", Kn = ", Kn_plot )
-names(n_train.labs) <- Ns_plot
+# n_train.labs <- paste0("n = ", Ns_plot,", Kn = ", Kn_plot )
+# names(n_train.labs) <- Ns_plot
 PM.labs <- c("est" = "EB", "fixed" = Nbar_plot )
+
+dens_richnesses <- dens_richnesses %>%
+  mutate(n_train_latex = factor(paste0(r"($n = $)", n_train, r"($, K_n =$)", Kn[n_train_idx])))
+
+levels(dens_richnesses$n_train_latex) <- c(
+  paste0("Scenario~B:~$n = $", Ns[2], "$, K_n = $", Kn[2]),
+  paste0("Scenario~A:~$n = $", Ns[1], "$, K_n = $", Kn[1])
+)
+
+dens_richnesses$n_train_latex <- as.character(dens_richnesses$n_train_latex)
 
 ggplot(dens_richnesses, aes(x = x, y = y, color = Model)) +
   geom_line() +
   geom_vline(aes(xintercept = H), linetype="dashed") +
-  facet_grid(PM ~ n_train,  
-             labeller = labeller(n_train = n_train.labs, PM = PM.labs),
+  facet_grid(PM~n_train_latex,   
+             labeller = labeller(PM = PM.labs, n_train_latex = label_parsed),
              scales = "free") +
   theme_light() +
   theme(legend.position = "top") +
