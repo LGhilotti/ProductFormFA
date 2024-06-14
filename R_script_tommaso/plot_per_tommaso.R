@@ -185,7 +185,6 @@ for (var_fct_NegBinBB in vars_fct_NegBinBB){
   
 }
 
-
 # Set Ns and Kn to plot
 Ns_plot <- Ns[1:2] # [1:2] for "custom"
 Kn_plot <- Kn[1:2]
@@ -201,44 +200,19 @@ dens_richnesses$Model <- factor(dens_richnesses$Model,
                                 levels = c("Poisson BB",
                                            paste0("NegBinomial BB x", vars_fct_NegBinBB)))
 
-PM.labs <- c("est" = "EB", "fixed" = Nbar_plot )
-
+dens_richnesses$PM <- factor(dens_richnesses$PM)
+levels(dens_richnesses$PM) <- c("EB", "Bayesian")
 dens_richnesses <- dens_richnesses %>%
-  mutate(n_train_latex = factor(paste0(r"($n = $)", n_train, r"($, K_n =$)", Kn[n_train_idx])))
-
-levels(dens_richnesses$n_train_latex) <- c(
-  paste0("Scenario~B:~$n = $", Ns[2], "$, K_n = $", Kn[2]),
-  paste0("Scenario~A:~$n = $", Ns[1], "$, K_n = $", Kn[1])
-)
-
-dens_richnesses$n_train_latex <- as.character(dens_richnesses$n_train_latex)
+  mutate(n_train_latex = paste("Scenario~", LETTERS[n_train_idx], "~~(n == ", n_train, "~~ K[n] == ", Kn[n_train_idx], ")", sep = ""))
 
 ggplot(dens_richnesses, aes(x = x, y = y, color = Model)) +
   geom_line() +
   geom_vline(aes(xintercept = H), linetype="dashed") +
-  facet_grid(PM~n_train_latex,   
-             labeller = labeller(PM = PM.labs, n_train_latex = label_parsed),
+  facet_grid(PM ~ n_train_latex,
+             labeller = label_parsed,
              scales = "free") +
   theme_light() +
   theme(legend.position = "top") +
   scale_y_continuous(breaks = pretty_breaks()) +
-  xlab("# distinct features") + rremove("ylab") +
-  scale_color_tableau() +
-  theme(aspect.ratio = 1)
-
-# Sketch of the plot
-n_train.labs <- paste0("n = ", Ns_plot,", Kn = ", Kn_plot )
-names(n_train.labs) <- Ns_plot
-
-ggplot(dens_richnesses, aes(x = x, y = y, color = Model)) +
-  geom_line() +
-  geom_vline(aes(xintercept = H), linetype="dashed") +
-  facet_grid(PM~n_train_latex,   
-             labeller = labeller(PM = PM.labs, n_train_latex = n_train.labs),
-             scales = "free") +
-  theme_light() +
-  theme(legend.position = "top") +
-  scale_y_continuous(breaks = pretty_breaks()) +
-  xlab("# distinct features") + rremove("ylab") +
-  scale_color_tableau() +
-  theme(aspect.ratio = 1)
+  xlab("# distinct features") + ylab("Probability") + 
+  scale_color_tableau()
