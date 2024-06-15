@@ -630,7 +630,7 @@ fit_estimate_ecological_scenario_repeateddataset <- function(mechanism, n_datase
 ## EFPF approach -------
 
 # Choose mechanism
-mechanism = "custom" # c("homogeneous", "random_uniform", "broken_stick", "log-normal")
+mechanism = "beta_pis" # c("homogeneous", "random_uniform", "broken_stick", "log-normal")
 
 # Fit and estimate richness, rarefaction and extrapolation for GibbsFA's (save workspace)
 if (!file.exists(paste0("R_script_paper/eb_EFPF_",mechanism,"_fit_estimate_singledataset.RData"))) {
@@ -847,25 +847,15 @@ joint_richness_long <- bind_rows(richness_EFPF_PoissonBB_df,
   mutate(Model = fct_relevel(Model, c("Poisson BB", 
                              paste0("NegBinomial BB x", vars_fct_NegBinBB))) )
 
-# n_train.labs <- paste0("n = ", Ns,", Kn = ", Kn )
-# names(n_train.labs) <- Ns
-
 
 joint_richness_long <- joint_richness_long %>%
-  mutate(n_train_latex = factor(paste0(r"($n = $)", n_train, r"($, K_n =$)", Kn[n_train_idx])))
+  mutate(n_train_latex = paste("Scenario~", LETTERS[n_train_idx], ":", "~n == ", n_train, "~','~K[n] == ", Kn[n_train_idx], sep = ""))
 
-levels(joint_richness_long$n_train_latex) <- c(
-  paste0("Scenario C: $n = $", Ns[3], "$, K_n =$", Kn[3]),
-  paste0("Scenario B: $n = $", Ns[2], "$, K_n =$", Kn[2]),
-  paste0("Scenario A: $n = $", Ns[1], "$, K_n =$", Kn[1])
-  )
-
-joint_richness_long$n_train_latex <- as.character(joint_richness_long$n_train_latex)
 
 # plots estimator
 ggplot(joint_richness_long, aes( y=estimate, x=Model, shape = Nbar)) +
   geom_point(size = 2) +
-  facet_wrap(~ TeX(n_train_latex, output = "character"),
+  facet_wrap(~ n_train_latex,
              labeller = label_parsed, #custom_labeller,
              scales = "free_x", nrow = 1) +
   theme_light() +
@@ -1055,8 +1045,9 @@ for (var_fct_NegBinBB in vars_fct_NegBinBB){
 
 
 # Set Ns and Kn to plot
-Ns_plot <- Ns[1:2] # [1:2] for "custom"
-Kn_plot <- Kn[1:2]
+idx_plot <- c(1,2,3) # [1:2] for "custom"
+Ns_plot <- Ns[idx_plot] 
+Kn_plot <- Kn[idx_plot]
 
 dens_richnesses <- rbind(dens_richness_EFPF_est_PoissonBB,
                          dens_richness_EFPF_est_NegBinBB,
@@ -1069,33 +1060,23 @@ dens_richnesses$Model <- factor(dens_richnesses$Model,
                                 levels = c("Poisson BB",
                                            paste0("NegBinomial BB x", vars_fct_NegBinBB)))
 
-# n_train.labs <- paste0("n = ", Ns_plot,", Kn = ", Kn_plot )
-# names(n_train.labs) <- Ns_plot
-PM.labs <- c("est" = "EB", "fixed" = Nbar_plot )
-
+dens_richnesses$PM <- factor(dens_richnesses$PM)
+levels(dens_richnesses$PM) <- c("EB", "Bayesian")
 dens_richnesses <- dens_richnesses %>%
-  mutate(n_train_latex = factor(paste0(r"($n = $)", n_train, r"($, K_n =$)", Kn[n_train_idx])))
-
-levels(dens_richnesses$n_train_latex) <- c(
-  paste0("Scenario~B:~$n = $", Ns[2], "$, K_n = $", Kn[2]),
-  paste0("Scenario~A:~$n = $", Ns[1], "$, K_n = $", Kn[1])
-)
-
-dens_richnesses$n_train_latex <- as.character(dens_richnesses$n_train_latex)
+  mutate(n_train_latex = paste("Scenario~", LETTERS[n_train_idx], ":", "~n == ", n_train, "~','~K[n] == ", Kn[n_train_idx], sep = ""))
 
 ggplot(dens_richnesses, aes(x = x, y = y, color = Model)) +
   geom_line() +
   geom_vline(aes(xintercept = H), linetype="dashed") +
-  facet_grid(PM~n_train_latex,   
-             labeller = labeller(PM = PM.labs, n_train_latex = label_parsed),
+  facet_grid(PM ~ n_train_latex,
+             labeller = label_parsed,
              scales = "free") +
   theme_light() +
   theme(legend.position = "top") +
   scale_y_continuous(breaks = pretty_breaks()) +
-  xlab("# distinct features") + rremove("ylab") +
-  scale_color_tableau() +
-  theme(aspect.ratio = 1)
-ggsave(filename = paste0("R_script_paper/Paper_plots/richness_distr_", mechanism, "_eb_EFPF.pdf"), width = 6, height = 6, dpi = 300, units = "in", device='pdf')
+  xlab("# distinct features") + ylab("Probability") + 
+  scale_color_tableau()
+ggsave(filename = paste0("R_script_paper/Paper_plots/richness_distr_", mechanism, "_eb_EFPF.pdf"), width = 10, height = 6, dpi = 300, units = "in", device='pdf')
 
 
 
@@ -1274,8 +1255,9 @@ for (var_fct_NegBinBB in vars_fct_NegBinBB){
 # }
 
 # Set Ns and Kn to plot
-Ns_plot <- Ns[1:2] # [1:2] for "custom"
-Kn_plot <- Kn[1:2]
+idx_plot <- c(1,2) # [1:2] for both "custom" and "beta_pis"
+Ns_plot <- Ns[idx_plot] 
+Kn_plot <- Kn[idx_plot]
 
 df_extr_GT_long <- list_extr_competitor_to_long(list_extr_GT, model = "GT") %>%
   rename(Model = model) %>%
@@ -1283,10 +1265,14 @@ df_extr_GT_long <- list_extr_competitor_to_long(list_extr_GT, model = "GT") %>%
   filter(t < n_train + M + 1, n_train %in% Ns_plot)
 df_extr_Chao_long <- list_extr_competitor_to_long(list_rare_extr_Chao, model = "Chao") %>%
   rename(Model = model) %>%
-  filter(t < n_train + M + 1, n_train %in% Ns_plot)
+  filter(t < n_train + M + 1, n_train %in% Ns_plot) %>%
+  mutate(n_train_idx = match(n_train, Ns_plot))
 
 # Plot
-temp <- tibble(n_train = Ns_plot, xvalues = Ns_plot)
+temp <- tibble(n_train_latex = paste("Scenario~", LETTERS[c(1,2,3)], ":", "~n == ", Ns, "~','~K[n] == ", Kn, sep = ""), 
+               xvalues = Ns) %>%
+  filter(xvalues %in% Ns_plot)
+
 extr_EFPF_PoissonBB_df <- extr_EFPF_PoissonBB_df %>%
   add_column(Model_gen = "PoissonBB/NegBinBB")
 extr_EFPF_NegBinBB_df <- extr_EFPF_NegBinBB_df %>%
@@ -1309,48 +1295,34 @@ accum_df_train <- accum_df_train %>%
 accum_df_test <- accum_df_test %>%
   filter(n_train %in% Ns_plot)
 
-# n_train.labs <- paste0("n = ", Ns_plot,", Kn = ", Kn_plot )
-# names(n_train.labs) <- Ns_plot
 
 accum_df_train <- accum_df_train %>%
-  mutate(n_train_latex = factor(paste0(r"($n = $)", n_train, r"($, K_n =$)", Kn[n_train_idx])))
+  mutate(n_train_latex = paste("Scenario~", LETTERS[n_train_idx], ":", "~n == ", n_train, "~','~K[n] == ", Kn[n_train_idx], sep = ""))
 
 accum_df_test <- accum_df_test %>%
-  mutate(n_train_latex = factor(paste0(r"($n = $)", n_train, r"($, K_n =$)", Kn[n_train_idx])))
+  mutate(n_train_latex = paste("Scenario~", LETTERS[n_train_idx], ":", "~n == ", n_train, "~','~K[n] == ", Kn[n_train_idx], sep = ""))
 
 extr_all_df <- extr_all_df %>%
-  mutate(n_train_latex = factor(paste0(r"($n = $)", n_train, r"($, K_n =$)", Kn[n_train_idx])))
+  mutate(n_train_latex = paste("Scenario~", LETTERS[n_train_idx], ":", "~n == ", n_train, "~','~K[n] == ", Kn[n_train_idx], sep = ""))
 
 df_extr_GT_long <- df_extr_GT_long %>%
-  mutate(n_train_latex = factor(paste0(r"($n = $)", n_train, r"($, K_n =$)", Kn[n_train_idx])))
+  mutate(n_train_latex = paste("Scenario~", LETTERS[n_train_idx], ":", "~n == ", n_train, "~','~K[n] == ", Kn[n_train_idx], sep = ""))
 
-levels(accum_df_train$n_train_latex) <-
-  levels(accum_df_test$n_train_latex) <- 
-  levels(extr_all_df$n_train_latex) <-
-  levels(df_extr_GT_long$n_train_latex) <- c(
-  paste0("Scenario C: $n = $", Ns[3], "$, K_n =$", Kn[3]),
-  paste0("Scenario B: $n = $", Ns[2], "$, K_n =$", Kn[2]),
-  paste0("Scenario A: $n = $", Ns[1], "$, K_n =$", Kn[1])
-)
-
-accum_df_train$n_train_latex <- as.character(accum_df_train$n_train_latex)
-accum_df_test$n_train_latex <- as.character(accum_df_test$n_train_latex)
-extr_all_df$n_train_latex <- as.character(extr_all_df$n_train_latex)
-df_extr_GT_long$n_train_latex <- as.character(df_extr_GT_long$n_train_latex)
-
+df_extr_Chao_long <- df_extr_Chao_long %>%
+  mutate(n_train_latex = paste("Scenario~", LETTERS[n_train_idx], ":", "~n == ", n_train, "~','~K[n] == ", Kn[n_train_idx], sep = ""))
 
 plot_means <- ggplot() +
   geom_point(data = accum_df_train, aes(x = x, y = n_feat),
              color="black", shape = 19, size = 0.1) +
-  facet_grid(~ TeX(n_train_latex, output = "character"),
-             labeller = labeller(n_train_latex),
+  facet_grid(~ n_train_latex,
+             labeller = label_parsed,
              scales = "free_x")  +
   geom_point( data = accum_df_test, aes(x = x, y = n_feat),
               color="black", shape = 19, size = 0.1) +
   geom_line(data = extr_all_df, aes(x = x, y = means, color = Model),
             linetype = "dashed") +
   geom_line(data = df_extr_GT_long, aes(t, value, color = Model), linetype = "dashed") +
-  #geom_line(data = df_extr_Chao_long, aes(t, medians, color = Model), linetype = "dashed") +
+  geom_line(data = df_extr_Chao_long, aes(t, medians, color = Model), linetype = "dashed") +
   geom_vline(data = temp, mapping =  aes(xintercept = xvalues) , linetype = "dashed", color = "grey") +
   xlab("# observations") + ylab("# distinct features") + 
   theme_light() + 
@@ -1368,7 +1340,7 @@ plot_ribbons <- ggplot() +
               color="black", shape = 19, size = 0.1) +
   geom_ribbon(data = extr_all_df, aes(x = x, ymin = lb, ymax = ub, fill = Model), color = NA, alpha = 0.4) +
   scale_fill_manual(values = c("Poisson BB" = "grey10", "NegBinomial BB x10" = "grey50", "NegBinomial BB x1000" = "grey80")) +
-  facet_grid(~ TeX(n_train_latex, output = "character"),
+  facet_grid(~ n_train_latex,
              labeller = label_parsed,
              scales = "free_x")  +
   geom_vline(data = temp, mapping =  aes(xintercept = xvalues) , linetype = "dashed", color = "grey") +
@@ -1384,7 +1356,8 @@ plot_ribbons <- ggplot() +
 combined_plot <- plot_means / plot_ribbons
 combined_plot
 
-ggsave(filename = paste0("R_script_paper/Paper_plots/extr_", mechanism, "_eb_EFPF.pdf"), width = 9, height = 5, dpi = 300, units = "in", device='pdf')
+ggsave(filename = paste0("R_script_paper/Paper_plots/extr_", mechanism, "_eb_EFPF.pdf"), width = 9, height = 9, dpi = 300, units = "in", device='pdf')
+
 
 
 
