@@ -40,7 +40,7 @@ accum_df <- tibble( x = 0:n,
                     n_feat = c(0,rarefaction(data_mat[1:n,], n_reorderings = 1)))
 
 ggplot(accum_df, aes(x = x, y = n_feat)) +
-  geom_point(color="black", shape = 21, size = 1) + 
+  geom_point(color="black", shape = 19, size = 0.1) + 
   xlab("# observations") + ylab("# distinct features") + 
   theme_light() + 
   theme(legend.position = "top") +
@@ -469,7 +469,9 @@ if (!file.exists(paste0("R_script_paper/prior_",type,"_fit_estimate_singledatase
   init_obj_GammaIBP <- initialization(model = "GammaIBP_single_prior", init = init_GammaIBP )
   
   # EB estimates
-  small_val <- 2
+  small_val_alpha <- 2
+  small_val_s <- 10^(-2)
+  
   alpha_eb <- list_eb_EFPF_fit_GammaIBP[[1]]$alpha
   theta_eb <- list_eb_EFPF_fit_GammaIBP[[1]]$theta
   
@@ -477,7 +479,10 @@ if (!file.exists(paste0("R_script_paper/prior_",type,"_fit_estimate_singledatase
   s_eb <- alpha_eb + theta_eb
   
   print(paste0("Prior variance of alpha: ", 
-               t_eb/(1 + t_eb)^2 /(1 + small_val*(1+t_eb))))
+               t_eb/(1 + t_eb)^2 /(1 + small_val_alpha*(1+t_eb))))
+  
+  print(paste0("Prior variance of s: ", 
+               s_eb/small_val_s))
   
   # Fit the model
   for (var_GammaIBP in vars_GammaIBP){
@@ -494,8 +499,8 @@ if (!file.exists(paste0("R_script_paper/prior_",type,"_fit_estimate_singledatase
     # 
     # 2) single_prior
     hyper_GammaIBP <- list(a = a_eb, b = b_eb,
-                           a_alpha = small_val, b_alpha = t_eb*small_val,
-                           a_s = s_eb*small_val , b_s = small_val)
+                           a_alpha = small_val_alpha, b_alpha = t_eb*small_val_alpha,
+                           a_s = s_eb*small_val_s , b_s = small_val_s)
     prior_obj_GammaIBP <- prior(model = "GammaIBP_single_prior", hyper = hyper_GammaIBP)
     
     

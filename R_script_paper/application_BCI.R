@@ -37,7 +37,7 @@ accum_df <- tibble( x = 0:n,
                     n_feat = c(0,rarefaction(data_mat[1:n,], n_reorderings = 1)))
 
 ggplot(accum_df, aes(x = x, y = n_feat)) +
-  geom_point(color="black", shape = 21, size = 1) + 
+  geom_point(color="black", shape = 19, size = 0.1) + 
   xlab("# observations") + ylab("# distinct features") + 
   theme_light() + 
   theme(legend.position = "top") +
@@ -340,7 +340,7 @@ Kn + qpois(c(0.025, 0.975), lambda = rich_pars$lambda_prime)
 
 # NegBinBB
 rich_pars <- params_richness_EFPF_NegBinBB %>%
-  filter(Model == "NegBinBB x1000")
+  filter(Model == "NegBinomial BB x10")
 
 print(paste0("mean richness = ", rich_pars$mu0_prime + Kn ))
 Kn + qnbinom(c(0.025, 0.975), size = rich_pars$n0_prime, prob = rich_pars$p_prime)
@@ -505,13 +505,14 @@ if (!file.exists("R_script_paper/prior_BCI_fit_estimate_singledataset.RData")) {
   init_obj_NegBinBB <- initialization(model = "NegBinBB", init = init_NegBinBB )
   
   # EB estimates
-  small_val <- 2
+  small_val <- 10^(-3)
   alpha_eb <- list_eb_EFPF_fit_NegBinBB[[1]]$alpha
   theta_eb <- list_eb_EFPF_fit_NegBinBB[[1]]$theta
   
   s_eb <- alpha_eb + theta_eb
   
   print(paste0("Prior variance of -alpha: ", - alpha_eb/small_val  ))
+  print(paste0("Prior variance of s: ", s_eb/small_val  ))
   
   # Fit the model
   for (var_fct in vars_fct_NegBinBB){
@@ -739,4 +740,11 @@ ggplot() +
   theme(aspect.ratio = 1)
 ggsave(filename = "R_script_paper/Paper_plots/richness_BCI_prior.pdf", width = 6, height = 4, dpi = 300, units = "in", device='pdf')
 
-  
+
+# mean and variance of richness
+
+rich_draws <- richness_prior_NegBinBB_df %>%
+  filter(Model == "NegBinomial BB x1000")
+
+print(paste0("mean of N: ", mean(rich_draws$y)))
+quantile(rich_draws$y, prob = c(0.025, 0.975))
