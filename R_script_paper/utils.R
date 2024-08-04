@@ -1,53 +1,5 @@
 
-# Function for accuracy metrics -----
-
-compute_accuracy <- function(obs_n, est_n, obs_t) {
-  # res <- 1/(1 + abs(obs_n - est_n))
-  res <- abs(obs_n - est_n)/obs_t
-  return ( res )
-}
-
 # Function for extrapolation plots -----
-
-list_extr_GibbsFA_to_long <- function(list_extr, model){
-  
-  if (!model %in% c("Poisson", "NegBin", "Gamma")){
-    stop("Error: invalid model type.")
-  }
-  
-  df_extr <- tibble()
-  
-  for (j in 1:length(list_extr)){
-    
-    df_ci <- as_tibble(t(bind_rows(as.data.frame(lapply(list_extr[[j]], quantile, prob = c(0.025, 0.975))),
-                                   as.data.frame(lapply(list_extr[[j]], mean))))) 
-    colnames(df_ci) <- c("lbs", "ubs", "means")
-    df_ci <- df_ci %>%
-      add_column("t" = 1:nrow(df_ci)) 
-    
-    if (model == "Gamma"){
-      df_ci <- df_ci %>% 
-        add_column(Setting = names(list_extr[j])) %>%
-        extract(Setting, c("n_train"), "n_train\\.([[:digit:]]+)") %>%
-        add_column(Nbar = "Not applicable")
-      
-    } else {
-      df_ci <- df_ci %>% 
-        add_column(Setting = names(list_extr[j])) %>%
-        extract(Setting, c("n_train","Nbar"), "n_train\\.([[:digit:]]+)\\:Nbar\\.([[:alnum:]]+)")
-    }
-    
-    df_extr <- bind_rows(df_extr, df_ci)
-  }
-  
-  df_extr$n_train <- as.integer(df_extr$n_train)
-  df_extr <- df_extr %>%
-    mutate( t = t + n_train ) %>%
-    add_column("model" = model)
-  
-  return(df_extr)
-  
-}
 
 list_extr_competitor_to_long <- function(list_extr, model){
   

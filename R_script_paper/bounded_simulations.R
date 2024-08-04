@@ -1,3 +1,6 @@
+#
+# Bounded scenario simulations ####
+#
 
 rm(list=ls())
 library(ProductFormFA)
@@ -13,87 +16,35 @@ source("R_script_paper/Routine_Chao.R")
 source("R_script_paper/utils.R")
 
 
-# Function to generate binary matrix according to 4 different mechanisms ----
+# Function to generate binary matrix for scenario A and C ----
 
 generate_data <- function(mechanism, n, H = 100, seed = 1234){
   
-  if (!mechanism %in% c("custom", "beta_pis", "homogeneous", "random_uniform", "broken_stick", "log-normal")){
+  if (!mechanism %in% c("custom", "beta_pis")){
     stop("Invalid generating mechanism.")
   }
   
   set.seed(seed)
   
   if (mechanism == "custom"){
+    
     mul <- 1
     data_mat <- cbind(
-      
-      # matrix(rbinom(n * 200*mul, size = 1, prob = 0.02), n, 200*mul),
-      # matrix(rbinom(n * 200*mul, size = 1, prob = 0.01), n, 200*mul),
-      # matrix(rbinom(n * 200*mul, size = 1, prob = 0.005), n, 200*mul)
+    
       matrix(rbinom(n * 200*mul, size = 1, prob = 0.015), n, 200*mul),
       matrix(rbinom(n * 200*mul, size = 1, prob = 0.01), n, 200*mul),
       matrix(rbinom(n * 200*mul, size = 1, prob = 0.005), n, 200*mul)
       
     )
-  
-    # This is good for GammaIBP
-    
-    # data_mat <- cbind(
-    #   matrix(rbinom(n * 5, size = 1, prob = 0.8), n, 5),
-    #   #matrix(rbinom(n * 5, size = 1, prob = 0.7), n, 5),
-    #   matrix(rbinom(n * 10, size = 1, prob = 0.6), n, 10),
-    #   #matrix(rbinom(n * 10, size = 1, prob = 0.5), n, 10),
-    #   matrix(rbinom(n * 10, size = 1, prob = 0.4), n, 10),
-    #   #matrix(rbinom(n * 10, size = 1, prob = 0.3), n, 10),
-    #   matrix(rbinom(n * 10, size = 1, prob = 0.2), n, 10),
-    #   #matrix(rbinom(n * 10, size = 1, prob = 0.1), n, 10),
-    #   matrix(rbinom(n * 40, size = 1, prob = 0.05), n, 40),
-    #   matrix(rbinom(n * 80, size = 1, prob = 0.01), n, 80),
-    #   matrix(rbinom(n * 200, size = 1, prob = 0.001), n, 200)
-    # )
-    
 
   } else if (mechanism == "beta_pis"){
     
-    pis <- rbeta(H, 1, 100) # 1,20 is good
+    pis <- rbeta(H, 1, 100) 
     
     data_mat <- matrix(rbinom(n*H, size = 1, prob = rep(pis, n)),
                        nrow = n, ncol = H, byrow = T )
     
-  } else if (mechanism == "homogeneous"){ 
-    
-    pres_prob <- 0.05
-    
-    data_mat <- matrix(rbinom(n*H, size = 1, prob = pres_prob), nrow = n, ncol = H)
-    
-  } else if (mechanism == "random_uniform"){
-    
-    as <- runif(H, 0, 1)
-    c <- 0.5 / max(as)
-    pis <- c*as
-    
-    data_mat <- matrix(rbinom(n*H, size = 1, prob = rep(pis, n)),
-                       nrow = n, ncol = H, byrow = T )
-    
-  } else if (mechanism == "broken_stick"){
-    
-    as <- rexp(H, 1)
-    c <- 0.5 / max(as)
-    pis <- c*as
-    
-    data_mat <- matrix(rbinom(n*H, size = 1, prob = rep(pis, n)),
-                       nrow = n, ncol = H, byrow = T )
-    
-  } else if (mechanism == "log-normal"){
-    
-    as <- exp(rnorm(H, 0, 1))
-    c <- 1 / max(as)
-    pis <- c*as
-    
-    data_mat <- matrix(rbinom(n*H, size = 1, prob = rep(pis, n)),
-                       nrow = n, ncol = H, byrow = T )
-    
-  }
+  } 
   
   return(data_mat)
   
@@ -101,222 +52,16 @@ generate_data <- function(mechanism, n, H = 100, seed = 1234){
 
 
 
-# Single dataset: function to produce fit and estimate on specific ecological scenario ------
+# Function to produce fit and estimate on specific bounded scenarios ------
 
-fit_estimate_ecological_scenario_singledataset <- function(mechanism, 
-                                                           init_obj_PoissonBB, mcmcparams_obj_PoissonBB, prior_obj_PoissonBB,
-                                                           init_obj_NegBinBB, mcmcparams_obj_NegBinBB, prior_obj_NegBinBB, c_fr,
-                                                           init_obj_GammaIBP, mcmcparams_obj_GammaIBP, prior_obj_GammaIBP,
-                                                           seed = 1234){
+eb_EFPF_fit_estimate_bounded_scenario <- function(mechanism,
+                                                  vars_fct_NegBinBB,
+                                                  vars_GammaIBP,
+                                                  eb_init_BB, eb_known_BB,
+                                                  eb_init_IBP, eb_known_IBP,
+                                                  seed = 1234){
   
-  if (!mechanism %in% c("homogeneous", "random_uniform", "broken_stick", "log-normal")){
-    stop("Invalid generating mechanism.")
-  }
-  
-  # Set training dimensions and dimension of the whole sample 
-  Ns <- c(20, 40, 80)
-  if (mechanism == "log-normal"){
-    L <- 300
-  } else {
-    L <- 150
-  }
-  # Set maximum number of features
-  H <- 500
-  
-  # Generate data 
-  data_mat <- generate_data(mechanism = mechanism, n = L, H = H, seed = seed)
-  
-  # Set grid of desired value of E[N] = Nbar, with the empirical case to be added
-  Nbars <- c(200, 400, 600)
-  
-  # Structures to save fit and estimates 
-  
-  # List to store the MCMC chains for PoissonBB, NegBinBB and GammaIBP, under different settings 
-  list_params_PoissonBB <- vector(mode = "list")
-  list_params_NegBinBB <-  vector(mode = "list")
-  list_params_GammaIBP <-  vector(mode = "list")
-  
-  # List to store richness draws for PoissonBB and NegBinBB, for different settings
-  list_richness_PoissonBB <- vector(mode = "list")
-  list_richness_NegBinBB <-  vector(mode = "list")
-  
-  # List to store rarefaction draws for PoissonBB, NegBinBB and GammaIBP, for different settings
-  list_rare_PoissonBB <- vector(mode = "list")
-  list_rare_NegBinBB <-  vector(mode = "list")
-  list_rare_GammaIBP <-  vector(mode = "list")
-  
-  # List to store extrapolation draws for PoissonBB, NegBinBB and GammaIBP, for different settings
-  list_extr_PoissonBB <- vector(mode = "list")
-  list_extr_NegBinBB <-  vector(mode = "list")
-  list_extr_GammaIBP <-  vector(mode = "list")
-  
-  # List of Nbar_emp for the different training sets
-  list_Nbar_emp <- vector(mode = "list")
-  
-  # List to store Chao's estimates
-  list_rare_extr_Chao <- vector(mode="list")
-  # List to store smoothed GT's estimates
-  list_extr_GT <- vector(mode="list")
-  
-  
-  
-  # Loop over the different training set dimensions 
-  
-  for (j in 1:length(Ns)){
-    
-    n_train <- Ns[j]
-    M <- L - n_train
-    
-    train_mat <- data_mat[1:n_train,]
-    
-    lab_comb_bb <- paste0("n_train.",n_train,":Nbar.emp")
-    lab_comb_ibp <- paste("n_train", n_train, sep = ".")
-    
-    # Empirical estimate of E(N) is obtained by Chiu
-    Nbar_emp <- beta_binomial_estimator(train_mat)
-    list_Nbar_emp[[paste0("n_train.",n_train)]] <- Nbar_emp
-    
-    # Fit the models
-    # PoissonBB
-    prior_obj_PoissonBB$lambda <- Nbar_emp
-    PoissonBB_fit <- GibbsFA(feature_matrix = train_mat, 
-                             model = "PoissonBB", 
-                             prior = prior_obj_PoissonBB, 
-                             initialization = init_obj_PoissonBB, 
-                             mcmcparams = mcmcparams_obj_PoissonBB)
-    # NegBinBB
-    prior_obj_NegBinBB$n0 <- Nbar_emp/(c_fr - 1)
-    prior_obj_NegBinBB$mu0 <- Nbar_emp
-    NegBinBB_fit <- GibbsFA(feature_matrix = train_mat, 
-                            model = "NegBinBB", 
-                            prior = prior_obj_NegBinBB, 
-                            initialization = init_obj_NegBinBB, 
-                            mcmcparams = mcmcparams_obj_NegBinBB)    
-    # GammaIBP
-    GammaIBP_fit <- GibbsFA(feature_matrix = train_mat, 
-                            model = "GammaIBP", 
-                            prior = prior_obj_GammaIBP, 
-                            initialization = init_obj_GammaIBP, 
-                            mcmcparams = mcmcparams_obj_GammaIBP)  
-    
-    # Fill the structures of MCMC chains of the parameters
-    list_params_PoissonBB[[lab_comb_bb]] <- list("alpha" = PoissonBB_fit$alpha_chain, 
-                                                 "theta" = PoissonBB_fit$theta_chain)
-    
-    list_params_NegBinBB[[lab_comb_bb]] <- list("alpha" = NegBinBB_fit$alpha_chain, 
-                                                "theta" = NegBinBB_fit$theta_chain)
-    
-    list_params_GammaIBP[[lab_comb_ibp]] <- list("alpha" = GammaIBP_fit$alpha_chain, 
-                                                 "theta" = GammaIBP_fit$theta_chain,
-                                                 "a" = GammaIBP_fit$a_chain,
-                                                 "b" = GammaIBP_fit$b_chain)
-    
-    # Fill the richness structures
-    list_richness_PoissonBB[[lab_comb_bb]] <- total_richness(object = PoissonBB_fit)
-    list_richness_NegBinBB[[lab_comb_bb]] <- total_richness(object = NegBinBB_fit)
-    
-    # Fill the rarefaction structures
-    list_rare_PoissonBB[[lab_comb_bb]] <- rarefaction(object = PoissonBB_fit, seed = seed)
-    list_rare_NegBinBB[[lab_comb_bb]] <- rarefaction(object = NegBinBB_fit, seed = seed)
-    list_rare_GammaIBP[[lab_comb_ibp]] <- rarefaction(object = GammaIBP_fit, seed = seed)
-    
-    # Fill the extrapolation structures
-    list_extr_PoissonBB[[lab_comb_bb]] <- extrapolation(object = PoissonBB_fit, M = M, seed = seed)
-    list_extr_NegBinBB[[lab_comb_bb]] <- extrapolation(object = NegBinBB_fit, M = M, seed = seed)
-    list_extr_GammaIBP[[lab_comb_ibp]] <- extrapolation(object = GammaIBP_fit, M = M, seed = seed)
-    
-    
-    # Loop over the different Nbar hyperparameters (only for BB mixtures) 
-    
-    for (v in 1:length(Nbars)){
-      
-      Nbar <- Nbars[v]
-      
-      # Fit the models
-      # PoissonBB
-      prior_obj_PoissonBB$lambda <- Nbar
-      PoissonBB_fit <- GibbsFA(feature_matrix = train_mat, 
-                               model = "PoissonBB", 
-                               prior = prior_obj_PoissonBB, 
-                               initialization = init_obj_PoissonBB, 
-                               mcmcparams = mcmcparams_obj_PoissonBB)
-      # NegBinBB
-      prior_obj_NegBinBB$n0 <- Nbar/(c_fr - 1)
-      prior_obj_NegBinBB$mu0 <- Nbar
-      NegBinBB_fit <- GibbsFA(feature_matrix = train_mat, 
-                              model = "NegBinBB", 
-                              prior = prior_obj_NegBinBB, 
-                              initialization = init_obj_NegBinBB, 
-                              mcmcparams = mcmcparams_obj_NegBinBB)  
-      
-      # Fill the structures of MCMC chains of the parameters
-      lab_comb_bb <- paste0("n_train.",n_train,":Nbar.", Nbar)
-      
-      list_params_PoissonBB[[lab_comb_bb]] <- list("alpha" = PoissonBB_fit$alpha_chain, 
-                                                   "theta" = PoissonBB_fit$theta_chain)
-      
-      list_params_NegBinBB[[lab_comb_bb]] <- list("alpha" = NegBinBB_fit$alpha_chain, 
-                                                  "theta" = NegBinBB_fit$theta_chain)
-      
-      # Fill the richness structures
-      list_richness_PoissonBB[[lab_comb_bb]] <- total_richness(object = PoissonBB_fit)
-      list_richness_NegBinBB[[lab_comb_bb]] <- total_richness(object = NegBinBB_fit)
-      
-      # Fill the rarefaction structures
-      list_rare_PoissonBB[[lab_comb_bb]] <- rarefaction(object = PoissonBB_fit)
-      list_rare_NegBinBB[[lab_comb_bb]] <- rarefaction(object = NegBinBB_fit)
-      
-      # Fill the extrapolation structures
-      list_extr_PoissonBB[[lab_comb_bb]] <- extrapolation(object = PoissonBB_fit, M = M)
-      list_extr_NegBinBB[[lab_comb_bb]] <- extrapolation(object = NegBinBB_fit, M = M)
-      
-      
-    }
-    
-    # Competitors 
-    
-    # A) Chao's rarefaction and extrapolation
-    
-    # Determine the frequency vector of the training sets
-    Q_vec <- colSums(train_mat)
-    Q_vec <- Q_vec[Q_vec>0]
-    
-    # Compute the curves with confidence intervals
-    fit_Chao <- iNEXT.Sam(Spec = Q_vec, T = n_train, endpoint = L)
-    
-    rare_Chao <- as_tibble(fit_Chao[["q=0"]]) %>%
-      select(-Cov.hat) %>%
-      rename(medians = D0.hat, lbs = Norm.CI.Low, ubs = Norm.CI.High)
-    
-    list_rare_extr_Chao[[lab_comb_ibp]] <- as.data.frame(rare_Chao)
-    
-    
-    # B) Smoothed Good-Toulmin extrapolation
-    
-    # Compute SFS vector and CTS vector
-    sfs <- tabulate(colSums(train_mat))
-    cts <- sapply(2:n_train, function(n) ncol(train_mat[1:n,colSums(train_mat[1:n,]) > 0])   )
-    cts <- c(0, sum(train_mat[1,]) , cts)
-    
-    list_extr_GT[[lab_comb_ibp]] <- predict_good_toulmin(n_train, M, sfs, cts, alternative = 0)$preds
-    
-  }
-  
-  # Save the entire workspace related to the mechanism just performed
-  save(list = ls(all.names = TRUE), file =  paste0("R_script_paper/",mechanism,"_fit_estimate_singledataset.RData"))
-}
-
-
-
-
-eb_EFPF_fit_estimate_ecological_scenario_singledataset <- function(mechanism,
-                                                                   vars_fct_NegBinBB,
-                                                                   vars_GammaIBP,
-                                                                   eb_init_BB, eb_known_BB,
-                                                                   eb_init_IBP, eb_known_IBP,
-                                                                   seed = 1234){
-  
-  if (!mechanism %in% c("custom", "beta_pis", "homogeneous", "random_uniform", "broken_stick", "log-normal")){
+  if (!mechanism %in% c("custom", "beta_pis")){
     stop("Invalid generating mechanism.")
   }
   
@@ -326,19 +71,15 @@ eb_EFPF_fit_estimate_ecological_scenario_singledataset <- function(mechanism,
   } else {
     Ns <- c(200, 1000, 5000) 
   }
-  
   N_max <- Ns[length(Ns)]
+  L <- N_max + 600
   
-  if (mechanism == "log-normal"){
-    L <- 600
-  } else {
-    L <- N_max + 600
-  }
   # Set maximum number of features
   H <- 500
-  
+
   # Generate data 
   data_mat <- generate_data(mechanism = mechanism, n = L, H = H, seed = seed)
+  
   if (mechanism == "custom"){
     H <- ncol(data_mat) # total features, counting absent ones
   }
@@ -461,179 +202,20 @@ eb_EFPF_fit_estimate_ecological_scenario_singledataset <- function(mechanism,
   }
   
   # Save the entire workspace related to the mechanism just performed
-  save(list = ls(all.names = TRUE), file =  paste0("R_script_paper/eb_EFPF_",mechanism,"_fit_estimate_singledataset.RData"))
-}
-
-
-# Repeated dataset: function to produce fit and estimate on specific ecological scenario ------
-
-fit_estimate_ecological_scenario_repeateddataset <- function(mechanism, n_dataset = 10, 
-                                                             init_obj_PoissonBB, mcmcparams_obj_PoissonBB, prior_obj_PoissonBB,
-                                                             init_obj_NegBinBB, mcmcparams_obj_NegBinBB, prior_obj_NegBinBB, c_fr,
-                                                             init_obj_GammaIBP, mcmcparams_obj_GammaIBP, prior_obj_GammaIBP,
-                                                             seed = 1234){
-  
-  if (!mechanism %in% c("homogeneous", "random_uniform", "broken_stick", "log-normal")){
-    stop("Invalid generating mechanism.")
-  }
-  
-  # Set training dimensions and dimension of the whole sample 
-  Ns <- c(20, 40, 80)
-  L <- 150
-  # Set maximum number of features
-  H <- 500
-  
-  # Structures to save fit and estimates 
-  labels_comb_bb <- paste(paste("n_train", Ns, sep = "."),"Nbar.emp", sep=":")
-  labels_comb_ibp <- paste("n_train", Ns, sep = ".")
-  
-  # Dataframe to store the E(richness) for PoissonBB and NegBinBB, under different settings ad datasets
-  df_ev_richness_PoissonBB <- data.frame(matrix(nrow = n_dataset, ncol = length(Ns)))
-  colnames(df_ev_richness_PoissonBB) <- labels_comb_bb
-  df_ev_richness_NegBinBB <- data.frame(matrix(nrow = n_dataset, ncol = length(Ns)))
-  colnames(df_ev_richness_NegBinBB) <- labels_comb_bb
-  
-  # Dataframe to store the number of hitherto unseen features in the test and the number of distinct in training
-  df_obs_new <- data.frame(matrix(nrow = n_dataset, ncol = length(Ns)))
-  colnames(df_obs_new) <- labels_comb_ibp
-  df_obs_train <- data.frame(matrix(nrow = n_dataset, ncol = length(Ns)))
-  colnames(df_obs_train) <- labels_comb_ibp
-  
-  # Dataframe to store the extrapolation at the last test subject
-  df_extr_last_PoissonBB <- data.frame(matrix(nrow = n_dataset, ncol = length(Ns)))
-  colnames(df_extr_last_PoissonBB) <- labels_comb_bb
-  df_extr_last_NegBinBB <- data.frame(matrix(nrow = n_dataset, ncol = length(Ns)))
-  colnames(df_extr_last_NegBinBB) <- labels_comb_bb
-  df_extr_last_GammaIBP <- data.frame(matrix(nrow = n_dataset, ncol = length(Ns)))
-  colnames(df_extr_last_GammaIBP) <- labels_comb_ibp
-  
-  # Dataframe to store the Nbar_emp's
-  df_Nbar_emp <- data.frame(matrix(nrow = n_dataset, ncol = length(Ns)))
-  colnames(df_Nbar_emp) <- labels_comb_bb
-  
-  # List to store Chao's extrapolation at the last test subject
-  df_extr_last_Chao <- data.frame(matrix(nrow = n_dataset, ncol = length(Ns)))
-  colnames(df_extr_last_Chao) <- labels_comb_bb
-  # List to store smoothed GT's extrapolation at the last test subject
-  df_extr_last_GT <- data.frame(matrix(nrow = n_dataset, ncol = length(Ns)))
-  colnames(df_extr_last_GT) <- labels_comb_bb
-  
-  
-  # Loop over the different datasets 
-  
-  for (d in 1:n_dataset){
-    
-    # Generate data 
-    data_mat <- generate_data(mechanism = mechanism, n = L, H = H, seed = seed + d)
-    
-    # Loop over the different training set dimensions 
-    
-    for (j in 1:length(Ns)){
-      
-      n_train <- Ns[j]
-      M <- L - n_train
-      
-      train_mat <- data_mat[1:n_train,]
-      train_list <- convert_features_list(train_mat)
-      
-      test_mat <- data_mat[(n_train+1):L, ]
-      test_list <- convert_features_list(test_mat)
-      
-      # Empirical estimate of E(N) is obtained by Chiu
-      Nbar_emp <- beta_binomial_estimator(train_mat)
-      df_Nbar_emp[d,j] <- Nbar_emp
-      
-      # Fit the models
-      # PoissonBB
-      prior_obj_PoissonBB$lambda <- Nbar_emp
-      PoissonBB_fit <- GibbsFA(feature_matrix = train_mat, 
-                               model = "PoissonBB", 
-                               prior = prior_obj_PoissonBB, 
-                               initialization = init_obj_PoissonBB, 
-                               mcmcparams = mcmcparams_obj_PoissonBB)
-      # NegBinBB
-      prior_obj_NegBinBB$n0 <- Nbar_emp/(c_fr - 1)
-      prior_obj_NegBinBB$mu0 <- 1/c_fr
-      NegBinBB_fit <- GibbsFA(feature_matrix = train_mat, 
-                              model = "NegBinBB", 
-                              prior = prior_obj_NegBinBB, 
-                              initialization = init_obj_NegBinBB, 
-                              mcmcparams = mcmcparams_obj_NegBinBB)    
-      # GammaIBP
-      GammaIBP_fit <- GibbsFA(feature_matrix = train_mat, 
-                              model = "GammaIBP", 
-                              prior = prior_obj_GammaIBP, 
-                              initialization = init_obj_GammaIBP, 
-                              mcmcparams = mcmcparams_obj_GammaIBP)  
-      
-      # Fill the expected value richness structures
-      df_ev_richness_PoissonBB[d,j] <- mean(total_richness(object = PoissonBB_fit))
-      df_ev_richness_NegBinBB[d,j] <- mean(total_richness(object = NegBinBB_fit))
-      
-      # Fill the structures about number of features in train and test
-      feat_train <- unique(unlist(train_list))
-      feat_test <- unique(unlist(test_list))
-      df_obs_train[d,j] <- length(feat_train)
-      obs_new_features <- setdiff(feat_test, feat_train)
-      df_obs_new[d,j] <- length(obs_new_features)
-      
-      # Fill the extrapolation (last subject) structures
-      extr_PoissonBB <- extrapolation(object = PoissonBB_fit, M = M, only_last = TRUE)
-      extr_NegBinBB <- extrapolation(object = NegBinBB_fit, M = M, only_last = TRUE)
-      extr_GammaIBP <- extrapolation(object = GammaIBP_fit, M = M, only_last = TRUE)
-      
-      df_extr_last_PoissonBB[d, j] <- mean(unlist(extr_PoissonBB))
-      df_extr_last_NegBinBB[d, j] <- mean(unlist(extr_NegBinBB))
-      df_extr_last_GammaIBP[d, j] <- mean(unlist(extr_GammaIBP))
-      
-      
-      # Competitors
-      
-      # A) Chao's rarefaction and extrapolation
-      
-      # Determine the frequency vector of the training sets
-      Q_vec <- colSums(train_mat)
-      Q_vec <- Q_vec[Q_vec>0]
-      
-      # Compute the curves with confidence intervals
-      fit_Chao <- iNEXT.Sam(Spec = Q_vec, T = n_train, endpoint = L)
-      
-      rare_Chao <- as_tibble(fit_Chao[["q=0"]]) %>%
-        select(-Cov.hat) %>%
-        rename(medians = D0.hat, lbs = Norm.CI.Low, ubs = Norm.CI.High)
-      tmp <- as.data.frame(rare_Chao)
-      
-      df_extr_last_Chao[d ,j ] <- tmp[nrow(tmp), "medians"]
-      
-      # B) Smoothed Good-Toulmin extrapolation
-      sfs <- tabulate(colSums(train_mat))
-      cts <- sapply(2:n_train, function(n) ncol(train_mat[1:n,colSums(train_mat[1:n,]) > 0])   )
-      cts <- c(0, sum(train_mat[1,]) , cts)
-      
-      df_extr_last_GT[d, j] <- predict_good_toulmin(n_train, M, sfs, cts, alternative = 0)$preds [n_train+M+1]
-      
-      
-    }
-    
-  }
-  
-  
-  # Save the entire workspace related to the mechanism just performed
-  save(list = ls(all.names = TRUE), file =  paste0("R_script_paper/",mechanism,"_fit_estimate_repeateddataset.RData"))
+  save(list = ls(all.names = TRUE), file =  paste0("R_script_paper/eb_EFPF_",mechanism,"_fit_estimate.RData"))
 }
 
 
 
-# 1) Main script single-dataset -------
 
+# Main script: EFPF approach -------
 
-## EFPF approach -------
 
 # Choose mechanism
-mechanism = "beta_pis" # c("homogeneous", "random_uniform", "broken_stick", "log-normal")
+mechanism = "beta_pis" # "custom"
 
 # Fit and estimate richness, rarefaction and extrapolation for GibbsFA's (save workspace)
-if (!file.exists(paste0("R_script_paper/eb_EFPF_",mechanism,"_fit_estimate_singledataset.RData"))) {
+if (!file.exists(paste0("R_script_paper/eb_EFPF_",mechanism,"_fit_estimate.RData"))) {
   
   vars_fct_NegBinBB <- c(10, 1000) 
   vars_GammaIBP <- c(1, 1000)
@@ -645,27 +227,22 @@ if (!file.exists(paste0("R_script_paper/eb_EFPF_",mechanism,"_fit_estimate_singl
   eb_known_IBP <- list()
   
   # Call the routine to perform simulations
-  eb_EFPF_fit_estimate_ecological_scenario_singledataset(mechanism = mechanism, 
-                                                         vars_fct_NegBinBB,
-                                                         vars_GammaIBP,
-                                                         eb_init_BB, eb_known_BB,
-                                                         eb_init_IBP, eb_known_IBP, 
-                                                         seed = 123456) #for beta_pis
-                                                         #seed = 123) # for custom
+  eb_EFPF_fit_estimate_bounded_scenario(mechanism = mechanism, 
+                                        vars_fct_NegBinBB,
+                                        vars_GammaIBP,
+                                        eb_init_BB, eb_known_BB,
+                                        eb_init_IBP, eb_known_IBP,
+                                        seed = 123) # seed = 123456 for "custom"
   
 }
 
 # Load the Work space
-load(paste0("R_script_paper/eb_EFPF_",mechanism,"_fit_estimate_singledataset.RData"))
-
-Ns
+load(paste0("R_script_paper/eb_EFPF_",mechanism,"_fit_estimate.RData"))
 Kn <- sapply(Ns, function(n) sum(colSums(data_mat[1:n,]) > 0)  )
-sum(colSums(data_mat) > 0)
-plot(rarefaction(data_mat))
-print(paste0("features totali: ", H))
-### Comparison Poisson, NegBin and Gamma ------
 
-# 0.B) Check on rarefaction
+
+
+## Model-checking on rarefaction ----
 n_rare <- Ns[2]
 lab_comb_bb <- paste0("n_train.",n_rare,":Nbar.emp")
 lab_comb_ibp <- paste0("n_train.",n_rare)
@@ -701,7 +278,7 @@ rare_EFPF_GammaIBP <- tibble( mu0_post = unname(unlist(
   add_column(Model = "GammaIBP",
              x = c(1:n_rare,0))
 
-# for plot
+# define quantities for plot
 rare_EFPF_mixtureBB <- rare_EFPF_NegBinBB %>%
   mutate(Model = "PoissonBB/NegBinBB")
 
@@ -711,11 +288,9 @@ df_rare <- rbind(rare_EFPF_mixtureBB,
 df_rare$Model <- factor(df_rare$Model,
                         levels = c( "PoissonBB/NegBinBB", "GammaIBP"))
 
-
+# for plot
 ggplot(accum_df, aes(x = x, y = n_feat)) +
   geom_point(color="black", shape = 18, size = 0.2) + 
-  #facet_wrap(.~ Model, scales = "free_x", nrow = 1) +
-  #geom_ribbon(aes(ymin = lb_bands, ymax = ub_bands), color = "red" , linewidth = 0.8, alpha = 0.1) +
   geom_line(data = df_rare, aes(x = x, y = means, color = Model), linetype = "dashed") + 
   xlab("# observations") + ylab("# distinct features") + 
   theme_light() + 
@@ -729,10 +304,9 @@ ggplot(accum_df, aes(x = x, y = n_feat)) +
       "GammaIBP" = "Mixtures of IBPs"
     )
   ) 
-ggsave(filename = paste0("R_script_paper/Paper_plots/rarefaction_",mechanism,"_eb_EFPF.pdf"), width = 4, height = 4, dpi = 300, units = "in", device='pdf')
 
 
-# 0.c) Check on K_n_r
+## Model-checking on K_n_r -------
 n_knr <- Ns[2]
 lab_comb_bb <- paste0("n_train.",n_knr,":Nbar.emp")
 lab_comb_ibp <- paste0("n_train.",n_knr)
@@ -766,7 +340,7 @@ K_n_r_EFPF_GammaIBP <- tibble( mu0_est = unname(unlist(
   add_column(Model = "GammaIBP",
              r = 1:n_knr)
 
-# for plot
+# define quantities for plot
 K_n_r_EFPF_mixtureBB <- K_n_r_EFPF_PoissonBB %>%
   mutate(Model = "PoissonBB/NegBinBB")
 
@@ -787,6 +361,7 @@ df_K_n_r_plot <- df_K_n_r %>%
 observed_K_n_r_plot <- observed_K_n_r %>%
   filter(r %in% c(r_positive$r))
 
+# for plot
 ggplot(observed_K_n_r_plot,  aes(x = r, y = k_n_r)) +
   geom_point(color="black", shape = 19, size = 1) +
   geom_line( data = df_K_n_r_plot, aes(x = r, y = means, color = Model), linetype = "dashed") +
@@ -802,13 +377,12 @@ ggplot(observed_K_n_r_plot,  aes(x = r, y = k_n_r)) +
     "GammaIBP" = "Mixtures of IBPs"
     )
   )
-ggsave(filename = paste0("R_script_paper/Paper_plots/knr_", mechanism, "_eb_EFPF.pdf"), width = 4, height = 4, dpi = 300, units = "in", device='pdf')
 
 
 
-### Prediction -----------
+## Prediction: richness and extrapolation -----------
 
-#### Richness -------
+### Richness -------
 
 # 1) Plot Richness: Point plot expected value (number of features)
 labels_comb_bb <- paste(rep(paste("n_train", Ns, sep = "."), each = length(Nbars)+1),
@@ -852,11 +426,11 @@ joint_richness_long <- joint_richness_long %>%
   mutate(n_train_latex = paste("Scenario~", LETTERS[n_train_idx], ":", "~n == ", n_train, "~','~K[n] == ", Kn[n_train_idx], sep = ""))
 
 
-# plots estimator
+# for plot
 ggplot(joint_richness_long, aes( y=estimate, x=Model, shape = Nbar)) +
   geom_point(size = 2) +
   facet_wrap(~ n_train_latex,
-             labeller = label_parsed, #custom_labeller,
+             labeller = label_parsed,
              scales = "free_x", nrow = 1) +
   theme_light() +
   geom_hline(aes(yintercept = H), linetype = "dashed") +
@@ -867,14 +441,11 @@ ggplot(joint_richness_long, aes( y=estimate, x=Model, shape = Nbar)) +
   scale_shape_discrete(name = "Prior mean of N") +
   theme(aspect.ratio = 1) + 
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
-ggsave(filename = paste0("R_script_paper/Paper_plots/richness_points_", mechanism,"_eb_EFPF.pdf"), width = 9, height = 5, dpi = 300, units = "in", device='pdf')
 
 
 
-# 2) Plot Richness: whole distributions for given Nbar  
+# 2) Plot Richness: posterior distributions for given Nbar  
 Nbar_plot <- 400
-
-# compute parametes of richness
 
 # PoissonBB
 list_eb_EFPF_est_PoissonBB <- list_eb_EFPF_fit_PoissonBB[grepl("Nbar.emp", names(list_eb_EFPF_fit_PoissonBB) )]
@@ -1045,7 +616,7 @@ for (var_fct_NegBinBB in vars_fct_NegBinBB){
 
 
 # Set Ns and Kn to plot
-idx_plot <- c(1,2,3) # [1:2] for "custom"
+idx_plot <- c(1,2,3) 
 Ns_plot <- Ns[idx_plot] 
 Kn_plot <- Kn[idx_plot]
 
@@ -1065,6 +636,7 @@ levels(dens_richnesses$PM) <- c("EB", "Bayesian")
 dens_richnesses <- dens_richnesses %>%
   mutate(n_train_latex = paste("Scenario~", LETTERS[n_train_idx], ":", "~n == ", n_train, "~','~K[n] == ", Kn[n_train_idx], sep = ""))
 
+# for plot
 ggplot(dens_richnesses, aes(x = x, y = y, color = Model)) +
   geom_line() +
   geom_vline(aes(xintercept = H), linetype="dashed") +
@@ -1076,17 +648,15 @@ ggplot(dens_richnesses, aes(x = x, y = y, color = Model)) +
   scale_y_continuous(breaks = pretty_breaks()) +
   xlab("# distinct features") + ylab("Probability") + 
   scale_color_tableau()
-ggsave(filename = paste0("R_script_paper/Paper_plots/richness_distr_", mechanism, "_eb_EFPF.pdf"), width = 10, height = 6, dpi = 300, units = "in", device='pdf')
 
 
 
-#### Extrapolation -----
+### Extrapolation -----
 
-# GT and Chao estimators
-
-if (!file.exists(paste0("R_script_paper/eb_Freq_",mechanism,"_fit_estimate_singledataset.RData"))) {
+# read or compute GT and Chao estimators
+if (!file.exists(paste0("R_script_paper/eb_Freq_",mechanism,"_fit_estimate.RData"))) {
   
-  M <- 300 # per custom
+  M <- 300 
   
   # List to store Chao's estimates
   list_rare_extr_Chao <- vector(mode="list")
@@ -1136,12 +706,12 @@ if (!file.exists(paste0("R_script_paper/eb_Freq_",mechanism,"_fit_estimate_singl
   }
   
   # Save the entire workspace related to the mechanism just performed
-  save(list = ls(all.names = TRUE), file =  paste0("R_script_paper/eb_Freq_",mechanism,"_fit_estimate_singledataset.RData"))
+  save(list = ls(all.names = TRUE), file =  paste0("R_script_paper/eb_Freq_",mechanism,"_fit_estimate.RData"))
   
 }
 
 # Load the Work space
-load(paste0("R_script_paper/eb_Freq_",mechanism,"_fit_estimate_singledataset.RData"))
+load(paste0("R_script_paper/eb_Freq_",mechanism,"_fit_estimate.RData"))
 
 
 
@@ -1218,44 +788,9 @@ for (var_fct_NegBinBB in vars_fct_NegBinBB){
 }
 
 
-# # GammaIBP
-# extr_EFPF_GammaIBP_df <- tibble(means = numeric(), 
-#                                 lb = numeric(), ub = numeric(),
-#                                 n_train = integer(), 
-#                                 x = integer(), Model = character())
-# 
-# for (var_GammaIBP in vars_GammaIBP){
-#   
-#   list_eb_EFPF_GammaIBP_var <- 
-#     list_eb_EFPF_fit_GammaIBP[[paste0("var.", var_GammaIBP)]]
-#   
-#   extr_EFPF_GammaIBP_df_var <- tibble(mu0 = unname(unlist(lapply(list_eb_EFPF_GammaIBP_var, function(x)
-#     extrapolation(object = x, M = M, seed = seed)$mu0_post ))),
-#     n0 = unname(unlist(lapply(list_eb_EFPF_GammaIBP_var, function(x)
-#       extrapolation(object = x, M = M, seed = seed)$n0_post ))),
-#     n_train = rep(Ns, each = M),
-#     Kn = rep(Kn, each = M)) %>%
-#     mutate(p = 1/(mu0/n0 + 1),
-#            lb = qnbinom(0.025, size = n0, prob = p, lower.tail = TRUE, log.p = FALSE),
-#            ub = qnbinom(0.975, size = n0, prob = p, lower.tail = TRUE, log.p = FALSE)) %>%
-#     rename(means = mu0) %>%
-#     add_row(means = 0, lb = 0, ub = 0, n_train = Ns, Kn = Kn) %>%
-#     mutate(means = means + Kn, lb = lb + Kn, ub = ub + Kn) %>%
-#     add_column(x = c(unlist(sapply(Ns, function(n) (n+1):(M+n))), Ns),
-#                Model = paste0("GammaIBP, var = ", var_GammaIBP))
-#   
-#   extr_EFPF_GammaIBP_df_var$x <- as.integer(extr_EFPF_GammaIBP_df_var$x)
-#   extr_EFPF_GammaIBP_df_var <- extr_EFPF_GammaIBP_df_var %>%
-#     select(means, lb, ub, n_train, x, Model)
-#   
-#   
-#   extr_EFPF_GammaIBP_df <- bind_rows(extr_EFPF_GammaIBP_df, 
-#                                      extr_EFPF_GammaIBP_df_var)
-# 
-# }
 
 # Set Ns and Kn to plot
-idx_plot <- c(1,2) # [1:2] for both "custom" and "beta_pis"
+idx_plot <- c(1,2) 
 Ns_plot <- Ns[idx_plot] 
 Kn_plot <- Kn[idx_plot]
 
@@ -1268,7 +803,6 @@ df_extr_Chao_long <- list_extr_competitor_to_long(list_rare_extr_Chao, model = "
   filter(t < n_train + M + 1, n_train %in% Ns_plot) %>%
   mutate(n_train_idx = match(n_train, Ns_plot))
 
-# Plot
 temp <- tibble(n_train_latex = paste("Scenario~", LETTERS[c(1,2,3)], ":", "~n == ", Ns, "~','~K[n] == ", Kn, sep = ""), 
                xvalues = Ns) %>%
   filter(xvalues %in% Ns_plot)
@@ -1277,8 +811,6 @@ extr_EFPF_PoissonBB_df <- extr_EFPF_PoissonBB_df %>%
   add_column(Model_gen = "PoissonBB/NegBinBB")
 extr_EFPF_NegBinBB_df <- extr_EFPF_NegBinBB_df %>%
   add_column(Model_gen = "PoissonBB/NegBinBB")
-# extr_EFPF_GammaIBP_df <- extr_EFPF_GammaIBP_df %>%
-#   add_column(Model_gen = "GammaIBP")
 
 extr_all_df <- rbind(extr_EFPF_PoissonBB_df, 
                      extr_EFPF_NegBinBB_df) %>%
@@ -1311,6 +843,7 @@ df_extr_GT_long <- df_extr_GT_long %>%
 df_extr_Chao_long <- df_extr_Chao_long %>%
   mutate(n_train_latex = paste("Scenario~", LETTERS[n_train_idx], ":", "~n == ", n_train, "~','~K[n] == ", Kn[n_train_idx], sep = ""))
 
+# for plot
 plot_means <- ggplot() +
   geom_point(data = accum_df_train, aes(x = x, y = n_feat),
              color="black", shape = 19, size = 0.1) +
@@ -1331,7 +864,6 @@ plot_means <- ggplot() +
   scale_x_continuous(breaks = pretty_breaks()) +
   theme(aspect.ratio = 1) +
   scale_color_tableau()
-
 
 plot_ribbons <- ggplot() +
   geom_point(data = accum_df_train, aes(x = x, y = n_feat),
@@ -1356,152 +888,6 @@ plot_ribbons <- ggplot() +
 combined_plot <- plot_means / plot_ribbons
 combined_plot
 
-ggsave(filename = paste0("R_script_paper/Paper_plots/extr_", mechanism, "_eb_EFPF.pdf"), width = 9, height = 9, dpi = 300, units = "in", device='pdf')
 
-
-
-
-# 2) Main script repeated-dataset -------
-
-
-mechanism = "broken_stick" # c("homogeneous", "random_uniform", "broken_stick", "log-normal")
-n_dataset = 2
-
-# Fit and estimate richness, rarefaction and extrapolation for GibbsFA's (save workspace)
-if (!file.exists(paste0("R_script_paper/",mechanism,"_fit_estimate_repeateddataset.RData"))) {
-  
-  # 1) PoissonBB 
-  
-  # Initialization and MCMC setting 
-  init_PoissonBB <- list(alpha_0 = -1, s_0 = 1)
-  init_obj_PoissonBB <- initialization(model = "PoissonBB", init = init_PoissonBB )
-  mcmcparams_PoissonBB <- list(tau = 0.1, S = 300, n_burnin = 100, thin = 2)
-  mcmcparams_obj_PoissonBB <- mcmcparameters(model = "PoissonBB", mcmcparams = mcmcparams_PoissonBB)
-  
-  # Hyperparameters elicitation 
-  hyper_PoissonBB <- list(a_alpha = 1, b_alpha = 0.1,
-                          a_s = 2, b_s = 0.2,
-                          lambda = 1)
-  prior_obj_PoissonBB <- prior(model = "PoissonBB", hyper = hyper_PoissonBB) 
-  
-  
-  # 2) NegBinBB
-  
-  # Initialization and MCMC setting
-  init_NegBinBB <- list(alpha_0 = -1, s_0 = 1)
-  init_obj_NegBinBB <- initialization(model = "NegBinBB", init = init_NegBinBB )
-  mcmcparams_NegBinBB <- list(tau = 0.1, S = 300, n_burnin = 100, thin = 2)
-  mcmcparams_obj_NegBinBB <- mcmcparameters(model = "NegBinBB", mcmcparams = mcmcparams_NegBinBB)
-  
-  # Hyperparameters elicitation 
-  c_fr <- 10
-  
-  hyper_NegBinBB <- list(a_alpha = 1, b_alpha = 0.1,
-                         a_s = 2, b_s = 0.2,
-                         n0 = 1, # n0, mu0 are set s.t. E(N) = Nbar, Var(N) = c_fr*E(N)
-                         mu0 = 0.5)
-  prior_obj_NegBinBB <- prior(model = "NegBinBB", hyper = hyper_NegBinBB) 
-  
-  # 3) GammaIBP
-  
-  # Initialization and MCMC setting 
-  init_GammaIBP <- list(alpha_0 = 0.5, s_0 = 15, a_0 = 5, b_0 = 1)
-  init_obj_GammaIBP <- initialization(model = "GammaIBP", init = init_GammaIBP )
-  mcmcparams_GammaIBP <- list(sigq_alpha = 0.1, sigq_s = 0.1, 
-                              S = 300, n_burnin = 100, thin = 2)
-  mcmcparams_obj_GammaIBP <- mcmcparameters(model = "GammaIBP", mcmcparams = mcmcparams_GammaIBP)
-  
-  # Hyperparameters elicitation 
-  hyper_GammaIBP <- list(a_alpha = 2, b_alpha = 2,
-                         a_s = 2, b_s = 0.2,
-                         q = 0.05, r = 1, t = 0.1)
-  prior_obj_GammaIBP <- prior(model = "GammaIBP", hyper = hyper_GammaIBP) 
-  
-  # 4) Call the routine to perform simulations
-  
-  fit_estimate_ecological_scenario_repeateddataset(mechanism = mechanism, n_dataset = n_dataset,
-                                                   init_obj_PoissonBB, mcmcparams_obj_PoissonBB, prior_obj_PoissonBB,
-                                                   init_obj_NegBinBB, mcmcparams_obj_NegBinBB, prior_obj_NegBinBB, c_fr,
-                                                   init_obj_GammaIBP, mcmcparams_obj_GammaIBP, prior_obj_GammaIBP)
-  
-}
-
-# Load the Work space
-load(paste0("R_script_paper/",mechanism,"_fit_estimate_repeateddataset.RData"))
-
-
-# 1) Plot richness boxplot 
-
-df_ev_richness_PoissonBB_long <- df_ev_richness_PoissonBB %>% 
-  pivot_longer(everything(), names_to = "training", values_to = "estimate") %>%
-  add_column(model = "Poisson", n_train = rep(Ns[1:length(Ns)], each = n_dataset))
-
-df_ev_richness_NegBinBB_long <- df_ev_richness_NegBinBB %>%
-  pivot_longer(everything(), names_to = "training", values_to = "estimate") %>%
-  add_column(model = "NegBin", n_train = rep(Ns[1:length(Ns)], each = n_dataset))
-
-joint_richness_long <- bind_rows(df_ev_richness_PoissonBB_long, df_ev_richness_NegBinBB_long)
-
-# plots
-ggplot(joint_richness_long, aes(x=model, y=estimate)) +
-  geom_boxplot() +
-  facet_wrap(.~n_train, scales = "free_x", nrow = 1) +
-  geom_hline(aes(yintercept = 500), linetype = "dashed") +
-  theme_light() + 
-  rremove("xlab") +
-  ylab("# distinct features") +
-  scale_y_continuous(breaks = pretty_breaks())+
-  theme(aspect.ratio = 1)
-
-
-# 2) Plot boxplots on accuracy 
-
-df_new_PoissonBB <- df_extr_last_PoissonBB - df_obs_train
-df_new_NegBinBB <- df_extr_last_NegBinBB - df_obs_train
-df_new_GammaIBP <- df_extr_last_GammaIBP - df_obs_train
-df_new_GT <- df_extr_last_GT - df_obs_train
-df_new_Chao <- df_extr_last_Chao - df_obs_train
-
-# compute accuracy
-acc_alt_PoissonBB <- compute_accuracy(df_obs_new, df_new_PoissonBB, df_obs_train)
-acc_alt_NegBinBB <- compute_accuracy(df_obs_new, df_new_NegBinBB, df_obs_train)
-acc_alt_GammaIBP <- compute_accuracy(df_obs_new, df_new_GammaIBP, df_obs_train)
-acc_alt_GT <- compute_accuracy(df_obs_new, df_new_GT, df_obs_train)
-acc_alt_Chao <- compute_accuracy(df_obs_new, df_new_Chao, df_obs_train)
-
-# handle the dataframes
-acc_alt_PoissonBB_long <- acc_alt_PoissonBB %>%
-  pivot_longer( everything(), names_to = "training", values_to = "Accuracy") %>%
-  add_column(model = "Poisson", n_train = rep(Ns, each = n_dataset))
-
-acc_alt_NegBinBB_long <- acc_alt_NegBinBB %>%
-  pivot_longer( everything(), names_to = "training", values_to = "Accuracy") %>%
-  add_column(model = "NegBin", n_train = rep(Ns, each = n_dataset))
-
-acc_alt_GammaIBP_long <- acc_alt_GammaIBP %>%
-  pivot_longer( everything(), names_to = "training", values_to = "Accuracy") %>%
-  add_column(model = "Gamma", n_train = rep(Ns, each = n_dataset))
-
-acc_alt_GT_long <- acc_alt_GT %>%
-  pivot_longer( everything(), names_to = "training", values_to = "Accuracy") %>%
-  add_column(model = "GT", n_train = rep(Ns, each = n_dataset))
-
-acc_alt_Chao_long <- acc_alt_Chao %>%
-  pivot_longer( everything(), names_to = "training", values_to = "Accuracy") %>%
-  add_column(model = "Chao", n_train = rep(Ns, each = n_dataset))
-
-
-joint_alt_long <- bind_rows(acc_alt_PoissonBB_long, acc_alt_NegBinBB_long,
-                            acc_alt_GammaIBP_long, acc_alt_GT_long, acc_alt_Chao_long)
-
-# plots
-ggplot(joint_alt_long, aes(x = model, y=Accuracy)) +
-  geom_boxplot() +
-  facet_wrap(.~n_train, scales = "free_x", nrow = 1) +
-  theme_light() +
-  rremove("xlab") +
-  ylab("Error index") +
-  scale_y_continuous(breaks = pretty_breaks())+
-  theme(aspect.ratio = 1)
 
 
