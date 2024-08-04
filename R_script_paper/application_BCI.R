@@ -1,5 +1,8 @@
-rm(list=ls())
+#
+# Application to Barro Colorado Island data ####
+#
 
+rm(list=ls())
 library(ProductFormFA)
 library(tidyverse)
 library(scales)
@@ -9,15 +12,12 @@ library(ggthemes)
 source("R_script_paper/Routine_Chao.R")
 source("R_script_paper/utils.R")
 
-#data(birds, package="jSDM")
+# Load data
 library(vegan)
 data("BCI")
-
 data <- 1*as.matrix(BCI > 0)
-
 data <- data[, colSums(is.na(data))==0]
 data <- data[, colSums(data)!=0]
-
 
 # Number of sites and number of species
 n <- nrow(data)
@@ -25,11 +25,9 @@ Kn <- ncol(data)
 print(paste0("Number of sites: ", n ))
 print(paste0("Number of species: ", Kn))
 
-
 # Randomly reorder sites
 seed <- 12345
 set.seed(seed)
-
 data_mat <- data[sample.int(n, size = n, replace = F),]
 
 # Plot accumulation
@@ -45,15 +43,18 @@ ggplot(accum_df, aes(x = x, y = n_feat)) +
   scale_x_continuous(breaks = pretty_breaks()) +
   theme(aspect.ratio = 1) + 
   scale_color_tableau()
-ggsave(filename = "R_script_paper/Paper_plots/accumulation_BCI.pdf", width = 4, height = 4, dpi = 300, units = "in", device='pdf')
+#ggsave(filename = "R_script_paper/Paper_plots/accumulation_BCI.pdf", width = 4, height = 4, dpi = 300, units = "in", device='pdf')
 
 
+
+
+# EFPF approach -----
+
+# Choices of variances
 vars_fct_NegBinBB <- c(10, 1000)
 vars_GammaIBP <- c(1, 1000)
 
-
-# EFPF approach: fit models -----
-
+# Initial parameters for optimization
 eb_init_BB <- list(alpha = -10, s = 100, Nhat_prime = 200)
 eb_known_BB <- list()
 
@@ -101,9 +102,7 @@ for (var_GammaIBP in vars_GammaIBP){
 
 
 
-# Model Checking ----
-
-# 0.B) Check on rarefaction
+## Model-checking on rarefaction ----
 n_rare <- n
 eb_EFPF_fit_PoissonBB_rare <- eb_EFPF_fit_PoissonBB
 eb_EFPF_fit_NegBinBB_rare <- list_eb_EFPF_fit_NegBinBB[[1]]
@@ -136,7 +135,7 @@ rare_EFPF_GammaIBP <- tibble( mu0_post = unname(unlist(
   add_column(Model = "GammaIBP",
              x = c(1:n_rare,0))
 
-# for plot
+# define quantities for plot
 rare_EFPF_mixtureBB <- rare_EFPF_NegBinBB %>%
   mutate(Model = "PoissonBB/NegBinBB")
 
@@ -146,10 +145,9 @@ df_rare <- rbind(rare_EFPF_mixtureBB,
 df_rare$Model <- factor(df_rare$Model,
                         levels = c("PoissonBB/NegBinBB", "GammaIBP"))
 
+# for plot
 ggplot(accum_df, aes(x = x, y = n_feat)) +
   geom_point(color="black", shape = 19, size = 0.8) + 
-  #facet_wrap(.~ Model, scales = "free_x", nrow = 1) +
-  #geom_ribbon(aes(ymin = lb_bands, ymax = ub_bands), color = "red" , linewidth = 0.8, alpha = 0.1) +
   geom_line(data = df_rare, aes(x = x, y = means, color = Model), linetype = "dashed") + 
   xlab("# observations") + ylab("# distinct features") + 
   theme_light() + 
@@ -163,10 +161,10 @@ ggplot(accum_df, aes(x = x, y = n_feat)) +
       "GammaIBP" = "Mixtures of IBPs"
     )
   ) 
-ggsave(filename = "R_script_paper/Paper_plots/rarefaction_BCI_eb_EFPF.pdf", width = 4, height = 4, dpi = 300, units = "in", device='pdf')
+#ggsave(filename = "R_script_paper/Paper_plots/rarefaction_BCI_eb_EFPF.pdf", width = 4, height = 4, dpi = 300, units = "in", device='pdf')
 
 
-# 0.c) Check on K_n_r
+## Model-checking on K_n_r -------
 n_knr <- n
 eb_EFPF_fit_PoissonBB_knr <- eb_EFPF_fit_PoissonBB
 eb_EFPF_fit_NegBinBB_knr <- list_eb_EFPF_fit_NegBinBB[[1]]
@@ -196,7 +194,7 @@ K_n_r_EFPF_GammaIBP <- tibble( mu0_est = unname(unlist(
   add_column(Model = "GammaIBP",
              r = 1:n_knr)
 
-# for plot
+# define quantities for plot
 K_n_r_EFPF_mixtureBB <- K_n_r_EFPF_PoissonBB %>%
   mutate(Model = "PoissonBB/NegBinBB")
 
@@ -217,6 +215,7 @@ df_K_n_r_plot <- df_K_n_r %>%
 observed_K_n_r_plot <- observed_K_n_r %>%
   filter(r %in% c(r_positive$r))
 
+# for plot
 ggplot(observed_K_n_r_plot,  aes(x = r, y = k_n_r)) +
   geom_point(color="black", shape = 19, size = 1) +
   geom_line( data = df_K_n_r_plot, aes(x = r, y = means, color = Model), linetype = "dashed") +
@@ -232,13 +231,13 @@ ggplot(observed_K_n_r_plot,  aes(x = r, y = k_n_r)) +
       "GammaIBP" = "Mixtures of IBPs"
     )
   )
-ggsave(filename = "R_script_paper/Paper_plots/knr_BCI_eb_EFPF.pdf", width = 4, height = 4, dpi = 300, units = "in", device='pdf')
+#ggsave(filename = "R_script_paper/Paper_plots/knr_BCI_eb_EFPF.pdf", width = 4, height = 4, dpi = 300, units = "in", device='pdf')
 
 
 
-# Prediction ----
+## Prediction: richness and extrapolation -----------
 
-## Richness estimation -----
+### Richness -------
 
 # PoissonBB
 params_richness_EFPF_PoissonBB <- tibble( lambda_prime = 
@@ -309,15 +308,13 @@ for (var_fct_NegBinBB in vars_fct_NegBinBB){
 dens_richnesses <- rbind(dens_richness_PoissonBB,
                          dens_richness_NegBinBB) 
 
-# dens_richnesses$Model[dens_richnesses$Model == paste0("NegBinBB x", vars_fct_NegBinBB)] <-
-#   "NegBinBB"
 
 dens_richnesses$Model <- factor(dens_richnesses$Model, 
-                                levels = c("Poisson BB",# "NegBinBB"))
+                                levels = c("Poisson BB",
                                            paste0("NegBinomial BB x", vars_fct_NegBinBB)))
 
 
-
+# for plot
 ggplot(dens_richnesses, aes(x = x, y = y, color = Model)) +
   geom_line() +
   theme_light() +
@@ -326,10 +323,10 @@ ggplot(dens_richnesses, aes(x = x, y = y, color = Model)) +
   xlab("# distinct features") + rremove("ylab") +
   scale_color_tableau() +
   theme(aspect.ratio = 1)
-ggsave(filename = "R_script_paper/Paper_plots/richness_BCI_eb_EFPF.pdf", width = 5, height = 5, dpi = 300, units = "in", device='pdf')
+#ggsave(filename = "R_script_paper/Paper_plots/richness_BCI_eb_EFPF.pdf", width = 5, height = 5, dpi = 300, units = "in", device='pdf')
 
 
-# mean and variace species richness
+# Compute mean and variance species richness
 
 # PoissonBB
 rich_pars <- params_richness_EFPF_PoissonBB 
@@ -346,10 +343,10 @@ print(paste0("mean richness = ", rich_pars$mu0_prime + Kn ))
 Kn + qnbinom(c(0.025, 0.975), size = rich_pars$n0_prime, prob = rich_pars$p_prime)
 
 
-## Extrapolation (EFPF version) -----
+### Extrapolation -----
 
 # Extract accumulation curve of the observed sample (or average accumulation)
-M = 400
+M <- 400
 
 accum_df <- tibble( x = 0:n,
                     n_feat = c(0,rarefaction(data_mat, n_reorderings = 200)))
@@ -401,77 +398,42 @@ for (var_fct_NegBinBB in vars_fct_NegBinBB){
                                      extr_EFPF_NegBinBB_df_var)
 }
 
-# # GammaIBP
-# extr_EFPF_GammaIBP_df <- tibble(means = numeric(), 
-#                                 lb = numeric(), ub = numeric(),
-#                                 x = integer(), Model = character())
-# 
-# for (var_GammaIBP in vars_GammaIBP){
-#   
-#   eb_EFPF_GammaIBP_var <- list_eb_EFPF_fit_GammaIBP[[paste0("var.", var_GammaIBP)]]
-#   
-#   extr_GammaIBP_df_var <- tibble(mu0 = unname(unlist(
-#     extrapolation(object = eb_EFPF_GammaIBP_var, M = M, seed = seed)$mu0_post )),
-#     n0 = unname(unlist( extrapolation(object = eb_EFPF_GammaIBP_var, M = M, seed = seed)$n0_post )),
-#     Kn = rep(Kn, each = M)) %>%
-#     mutate(p = 1/(mu0/n0 + 1),
-#            lb = qnbinom(0.025, size = n0, prob = p, lower.tail = TRUE, log.p = FALSE),
-#            ub = qnbinom(0.975, size = n0, prob = p, lower.tail = TRUE, log.p = FALSE)) %>%
-#     rename(means = mu0) %>%
-#     add_row(means = 0, lb = 0, ub = 0, Kn = Kn) %>%
-#     mutate(means = means + Kn, lb = lb + Kn, ub = ub + Kn) %>%
-#     add_column(x = c((n+1):(M+n), n),
-#                Model = paste0("GammaIBP, var = ", var_GammaIBP))
-#   
-#   extr_GammaIBP_df_var$x <- as.integer(extr_GammaIBP_df_var$x)
-#   extr_GammaIBP_df_var <- extr_GammaIBP_df_var %>%
-#     select(means, lb, ub, x, Model)
-#   
-#   extr_EFPF_GammaIBP_df <- bind_rows(extr_EFPF_GammaIBP_df, 
-#                                      extr_GammaIBP_df_var)
-# }
 
 extr_EFPF_PoissonBB_df <- extr_EFPF_PoissonBB_df %>%
   add_column(Model_gen = "PoissonBB/NegBinBB")
 extr_EFPF_NegBinBB_df <- extr_EFPF_NegBinBB_df %>%
   add_column(Model_gen = "PoissonBB/NegBinBB") 
-# extr_EFPF_GammaIBP_df <- extr_EFPF_GammaIBP_df %>%
-#   add_column(Model_gen = "GammaIBP")
 
 extr_all_df <- rbind(extr_EFPF_PoissonBB_df, 
-                     extr_EFPF_NegBinBB_df)#,
-                     #extr_EFPF_GammaIBP_df)
-
+                     extr_EFPF_NegBinBB_df)
 
 extr_all_df$Model <- factor(extr_all_df$Model,
-                            levels = c("Poisson BB",#"NegBinBB"))
+                            levels = c("Poisson BB",
                                        paste0("NegBinomial BB x", vars_fct_NegBinBB)))
 
 extr_all_df$Model_gen <- factor(extr_all_df$Model_gen,
                                 levels = c("PoissonBB/NegBinBB", "GammaIBP"))
 
+# for plot
 ggplot(extr_all_df, aes(x, means, color = Model)) +
   geom_line(linetype = "dashed") +
-  #facet_wrap(. ~ Model_gen,  scales = "free_x") +
   geom_point( data = accum_df, aes(x = x, y = n_feat),
               color="black", shape = 19, size = 0.1) +
   geom_ribbon(aes(ymin = lb, ymax = ub, color = Model), alpha = 0) +
-  #geom_line(data = df_extr_GT_long, aes(t, value)) +
-  #geom_line(data = df_extr_Chao_long, aes(t, medians), linetype = "dashed", linewidth = 1) +
   geom_vline(aes(xintercept = n) , linetype = "dashed", color = "grey") +
   xlab("# observations") + ylab("# distinct features") + 
   theme_light() + 
-  #facet_wrap(~"Extrapolation") +
   theme(legend.position = "top") +
   scale_y_continuous(breaks = pretty_breaks()) +
   scale_x_continuous(breaks = pretty_breaks()) +
   theme(aspect.ratio = 1) +
   scale_color_tableau()
-ggsave(filename = "R_script_paper/Paper_plots/extr_BCI_eb_EFPF.pdf", width = 5.2, height = 5.2, dpi = 300, units = "in", device='pdf')
+#ggsave(filename = "R_script_paper/Paper_plots/extr_BCI_eb_EFPF.pdf", width = 5.2, height = 5.2, dpi = 300, units = "in", device='pdf')
 
 
+# Compute extrapolation on a grid: numerical values
 extr_EFPF_NegBinBB_df %>%
-  filter(Model == "NegBinBB x10",
+  filter(Model == "NegBinomial BB x10",
          x %in% c(n + 1, n + 10, n + 100, n + 1000)) %>%
   mutate(means_new = means - Kn,
          lb_new = lb -Kn,
@@ -485,13 +447,12 @@ extr_EFPF_PoissonBB_df %>%
 
 
 
-
-# Prior approach ----------
+# Fully-Bayesian approach ----------
 
 # We focus on NegBinBB's + priors (since it is selected from model-checking)
 
 # Fit and estimate richness, rarefaction and extrapolation for GibbsFA's (save workspace)
-if (!file.exists("R_script_paper/prior_BCI_fit_estimate_singledataset.RData")) {
+if (!file.exists("R_script_paper/fullybayes_BCI_fit_estimate.RData")) {
   
   list_prior_fit_NegBinBB <-  vector(mode = "list", length = length(vars_fct_NegBinBB))
   names(list_prior_fit_NegBinBB) <- paste0("var_fct.", vars_fct_NegBinBB)
@@ -536,16 +497,15 @@ if (!file.exists("R_script_paper/prior_BCI_fit_estimate_singledataset.RData")) {
   }
   
   # Save the entire workspace related to the type just performed
-  save(list = ls(all.names = TRUE), file =  "R_script_paper/prior_BCI_fit_estimate_singledataset.RData")
+  save(list = ls(all.names = TRUE), file =  "R_script_paper/fullybayes_BCI_fit_estimate.RData")
   
 }
 
-
 # Load the Work space
-load("R_script_paper/prior_BCI_fit_estimate_singledataset.RData")
+load("R_script_paper/fullybayes_BCI_fit_estimate.RData")
 
 
-##### Convergence checks -------------
+## Convergence checks --------
 library(ggmcmc)
 library(coda)
 
@@ -559,9 +519,11 @@ ggs_traceplot(samples_ggs_NegBinBB)
 effectiveSize(params_prior_NegBinBB_df)
 
 
-##### Prior: Extrapolation ------
+## Prediction: richness and extrapolation -----------
 
-if (!file.exists("R_script_paper/prior_BCI_extrapolation.RData")) {
+### Extrapolation ------
+
+if (!file.exists("R_script_paper/fullybayes_BCI_extrapolation.RData")) {
   
   M <- 400
   
@@ -599,12 +561,12 @@ if (!file.exists("R_script_paper/prior_BCI_extrapolation.RData")) {
   
   
   # Save the entire workspace related to the type just performed
-  save(list = ls(all.names = TRUE), file =  "R_script_paper/prior_BCI_extrapolation.RData")
+  save(list = ls(all.names = TRUE), file =  "R_script_paper/fullybayes_BCI_extrapolation.RData")
   
 }
 
 # Load the Work space
-load("R_script_paper/prior_BCI_extrapolation.RData")
+load("R_script_paper/fullybayes_BCI_extrapolation.RData")
 extr_prior_NegBinBB_df_final <- extr_prior_NegBinBB_df %>%
   mutate(Model = case_when(
     Model == "NegBinBB x10" ~  "NegBinomial BB x10",
@@ -620,15 +582,13 @@ extr_joint_NegBinBB_df <- bind_rows(extr_EFPF_NegBinBB_df_final,
                                     extr_prior_NegBinBB_df_final)
 
 
-
+# for plot
 ggplot(extr_joint_NegBinBB_df, aes(x, means, color = Type )) +
   geom_line(linetype = "dashed") +
   facet_wrap(. ~ Model,  scales = "free_x") +
   geom_point( data = accum_df, aes(x = x, y = n_feat),
               color="black", shape = 19, size = 0.1) +
   geom_ribbon(aes(ymin = lb, ymax = ub, color = Type), alpha = 0) +
-  #geom_line(data = df_extr_GT_long, aes(t, value)) +
-  #geom_line(data = df_extr_Chao_long, aes(t, medians), linetype = "dashed", linewidth = 1) +
   geom_vline(aes(xintercept = n) , linetype = "dashed", color = "grey") +
   xlab("# observations") + ylab("# distinct features") + 
   theme_light() + 
@@ -638,35 +598,12 @@ ggplot(extr_joint_NegBinBB_df, aes(x, means, color = Type )) +
   scale_x_continuous(breaks = pretty_breaks()) +
   theme(aspect.ratio = 1) +
   scale_color_tableau()
-ggsave(filename = "R_script_paper/Paper_plots/extr_BCI_prior.pdf", width = 6, height = 4, dpi = 300, units = "in", device='pdf')
+#ggsave(filename = "R_script_paper/Paper_plots/extr_BCI_prior.pdf", width = 6, height = 4, dpi = 300, units = "in", device='pdf')
 
 
 
 
-##### Prior: Richness ------
-
-# NegBinBB
-# richness_prior_NegBinBB_df <- tibble(Model = character(),
-#                                      lb = numeric(), ub = numeric())
-# 
-# for (var_fct_NegBinBB in vars_fct_NegBinBB){
-#   
-#   prior_NegBinBB_var <- list_prior_fit_NegBinBB[[paste0("var_fct.", var_fct_NegBinBB)]]
-#   
-#   richness_prior_NegBinBB_var <- total_richness(object = prior_NegBinBB_var)
-#   
-#   richness_prior_NegBinBB_df_var_tmp <-  as_tibble(t(bind_rows(as.data.frame(lapply(richness_prior_NegBinBB_var, quantile, prob = c(0.025, 0.975)))))) 
-#   colnames(richness_prior_NegBinBB_df_var_tmp) <- c("lb", "ub")
-#   
-#   richness_prior_NegBinBB_df_var <- richness_prior_NegBinBB_df_var_tmp %>%
-#     add_column(Model = paste0("NegBinBB x", var_fct_NegBinBB)) %>%
-#   
-#   
-#   richness_prior_NegBinBB_df <- bind_rows(richness_prior_NegBinBB_df,
-#                                           richness_prior_NegBinBB_df_var)
-#   
-# }
-
+### Richness ------
 
 bounds <- list("lb" = 250, "ub" = 400)
 
@@ -693,7 +630,7 @@ richness_EFPF_NegBinBB_df$Model <- factor(richness_EFPF_NegBinBB_df$Model,
                                            levels = paste0("NegBinomial BB x", vars_fct_NegBinBB))
 
 
-# for Prior approach
+# for Fully-Bayes approach
 richness_prior_NegBinBB_df <- tibble(Model = character(),
                                      y = numeric())
            
@@ -723,7 +660,7 @@ richness_prior_NegBinBB_df_final <- richness_prior_NegBinBB_df %>%
   add_column(Type = "Fully Bayesian")
 
 
-# plot
+# for plot
 ggplot() +
   geom_line(data = richness_EFPF_NegBinBB_df_final, aes(x = x, y = y, color = Type) ) +
   stat_density(data = richness_prior_NegBinBB_df_final, aes(x=y, color = Type), geom="line",position="identity", bw = 3) +
@@ -738,10 +675,10 @@ ggplot() +
   xlab("# distinct features") + rremove("ylab") +
   scale_color_tableau() +
   theme(aspect.ratio = 1)
-ggsave(filename = "R_script_paper/Paper_plots/richness_BCI_prior.pdf", width = 6, height = 4, dpi = 300, units = "in", device='pdf')
+#ggsave(filename = "R_script_paper/Paper_plots/richness_BCI_prior.pdf", width = 6, height = 4, dpi = 300, units = "in", device='pdf')
 
 
-# mean and variance of richness
+# Compute mean and variance of richness
 
 rich_draws <- richness_prior_NegBinBB_df %>%
   filter(Model == "NegBinomial BB x1000")

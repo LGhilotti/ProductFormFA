@@ -43,54 +43,6 @@ list_extr_competitor_to_long <- function(list_extr, model){
 }
 
 
-
-# Function for Beta-Binomial estimator ----
-
-beta_binomial_estimator <- function(data_mat){
-  
-  # Compute total number of sites
-  n <- nrow(data_mat)
-  
-  # Delete NA
-  data_mat <- data_mat[, colSums(is.na(data_mat))==0]
-  
-  # Delete zero-columns
-  data_mat <- data_mat[, colSums(data_mat)!=0]
-  
-  # Set K to be the observed number of features
-  K <- ncol(data_mat)
-  
-  # Compute number of species contained in exactly k individuals
-  counts <- colSums(data_mat)
-  
-  Q_1 <- sum(counts == 1)
-  Q_2 <- sum(counts == 2)
-  Q_3 <- sum(counts == 3)
-  
-  # Compute Q_hat_0 
-  if (Q_2 == 0){
-    Q_hat_0 <- (n-1)/n * (Q_1*(Q_1 -1))/2
-  } else {
-    Q_hat_0 <- (n-1)/n * (Q_1^2)/(2*Q_2)
-  }
-  
-  if (Q_1 == 0) { Q_1 <- 1}
-  if (Q_3 == 0) { Q_3 <- 1}
-  
-  # Compute last term
-  if (2*Q_2^2 / (3*Q_1*Q_3) <= 1){
-    last <- 2 - max(0.5, 2*Q_2^2 / (3*Q_1*Q_3))
-  } else {
-    last <- 1
-  }
-  
-  # Compute the statistic
-  res <- K + Q_hat_0 * last
-  
-  return (res)
-  
-}
-
 # Functions for smoothed Good-Toulmin extrapolation ----
 
 predict_good_toulmin <- function(N, M, sfs, cts, alternative = 0){
