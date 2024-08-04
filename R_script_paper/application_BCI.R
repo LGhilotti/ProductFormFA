@@ -598,7 +598,7 @@ ggplot(extr_joint_NegBinBB_df, aes(x, means, color = Type )) +
   scale_x_continuous(breaks = pretty_breaks()) +
   theme(aspect.ratio = 1) +
   scale_color_tableau()
-#ggsave(filename = "R_script_paper/Paper_plots/extr_BCI_prior.pdf", width = 6, height = 4, dpi = 300, units = "in", device='pdf')
+#ggsave(filename = "R_script_paper/Paper_plots/extr_BCI_fullybayes.pdf", width = 6, height = 4, dpi = 300, units = "in", device='pdf')
 
 
 
