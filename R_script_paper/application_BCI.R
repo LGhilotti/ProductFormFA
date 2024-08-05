@@ -685,3 +685,4 @@ rich_draws <- richness_prior_NegBinBB_df %>%
 
 print(paste0("mean of N: ", mean(rich_draws$y)))
 quantile(rich_draws$y, prob = c(0.025, 0.975))
+

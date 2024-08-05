@@ -15,6 +15,5 @@
 Model-based rarefaction for the GibbsFA models
 }
 \details{
-Draw samples from the posterior distribution of K_n,
-for BB with NB(n0,mu0) mixture
+Draw samples from the posterior distribution of K_n.
 }

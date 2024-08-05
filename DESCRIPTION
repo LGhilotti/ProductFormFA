@@ -1,12 +1,12 @@
 Package: ProductFormFA
 Type: Package
-Title: What the Package Does in One 'Title Case' Line
+Title: Product form feature allocation models
 Version: 1.0
-Date: 2023-02-22
-Author: Your Name
-Maintainer: Your Name <your@email.com>
-Description: One paragraph description of what the package does as one or more
-         full sentences.
+Date: 2024-08-05
+Author: Lorenzo Ghilotti
+Maintainer: Lorenzo Ghilotti <lorenzoghilotti96@gmail.com>
+Description: Routines for fitting product form feature allocation models and 
+    files for replicating the simulation study and application of the related paper.
 License: GPL (>= 2)
 Encoding: UTF-8
 LazyData: true
