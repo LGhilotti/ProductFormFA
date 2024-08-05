@@ -1,6 +1,5 @@
 #
-# Functions for computing the rarefaction curve, i.e. the statistic K_n, a posteriori
-# (i.e., using the posterior chains of the parameters).
+# Functions for computing the rarefaction curve, i.e. the statistic K_n, a posteriori.
 # Available for both mixtures of Beta-Bernoulli and Gamma IBP.
 #
 
@@ -61,8 +60,7 @@ rarefaction.array <- function(object, n_reorderings = 1, seed = 1234) {
 #' 
 #' @export
 #' 
-#' @details Draw samples from the posterior distribution of K_n,
-#' for BB with NB(n0,mu0) mixture
+#' @details Draw samples from the posterior distribution of K_n.
 rarefaction.GibbsFA <- function(object, ...) {
   
   # Extract the size of the observed sample "n"

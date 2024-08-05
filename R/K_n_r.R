@@ -200,15 +200,15 @@ prediction_K_n_r.GammaIBP_eb <- function(object, n) {
 
 
 prediction_K_n_r.GammaIBP <- function(object, n, seed) {
-  stop("Not implemented yet")
+  stop("Not implemented")
 }
 
 prediction_K_n_r.PoissonBB <- function(object, n, seed) {
-  stop("Not implemented yet")
+  stop("Not implemented")
 }
 
 prediction_K_n_r.NegBinBB <- function(object, n, seed) {
-  stop("Not implemented yet")
+  stop("Not implemented")
 }
 
 

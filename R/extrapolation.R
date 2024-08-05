@@ -1,6 +1,5 @@
 #
-# Functions for computing the extrapolation curve, i.e. the statistic k_n + K^(n)_m, a posteriori
-# (i.e, using the posterior chains of the parameters).
+# Functions for computing the extrapolation curve, i.e. the statistic k_n + K^(n)_m, a posteriori.
 # Available for both mixtures of Beta-Bernoulli and Gamma IBP.
 #
 
