@@ -235,6 +235,28 @@ ggplot(observed_K_n_r_plot,  aes(x = r, y = k_n_r)) +
 
 
 
+## Formal model-checking via AIC/BIC -------
+n_aic <- n
+
+AICs_list <- vector("list", length = 0)
+
+AICs_list[["PoissonBB"]] <- compute_AICs_BICs(eb_EFPF_fit_PoissonBB)$AIC
+for (var_fct_NegBinBB in vars_fct_NegBinBB){
+  AICs_list[[paste0("NegBinBB.var_fct.", var_fct_NegBinBB)]] <- compute_AICs_BICs(
+    list_eb_EFPF_fit_NegBinBB[[paste0("var_fct.", var_fct_NegBinBB)]]
+  )$AIC
+}
+for (var_GammaIBP in vars_GammaIBP){
+  AICs_list[[paste0("GammaIBP.var.", var_GammaIBP)]] <- compute_AICs_BICs(
+    list_eb_EFPF_fit_GammaIBP[[paste0("var.", var_GammaIBP)]]
+  )$AIC
+}
+
+print(AICs_list) 
+# PoissonBB/NegBinBB are better than GammaIBP (smaller AIC)
+
+
+
 ## Prediction: richness and extrapolation -----------
 
 ### Richness -------

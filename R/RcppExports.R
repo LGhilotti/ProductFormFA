@@ -16,6 +16,8 @@ cpp_rbern <- function(n, prob) {
 #' @return value of the negative logarithm of the EFPF for the sample of 
 #' dimensionality n described by counts
 #' 
+#' @export
+#' 
 neg_log_EFPF_BB <- function(n, counts, pars) {
     .Call(`_ProductFormFA_neg_log_EFPF_BB`, n, counts, pars)
 }
@@ -31,6 +33,8 @@ neg_log_EFPF_BB <- function(n, counts, pars) {
 #' @return value of the negative logarithm of the EFPF for the sample of 
 #' dimensionality n described by counts
 #' 
+#' @export
+#' 
 neg_log_EFPF_IBP <- function(n, counts, pars) {
     .Call(`_ProductFormFA_neg_log_EFPF_IBP`, n, counts, pars)
 }
@@ -45,6 +49,8 @@ neg_log_EFPF_IBP <- function(n, counts, pars) {
 #' 
 #' @return value of the negative logarithm of the EFPF for the sample of 
 #' dimensionality n described by counts
+#' 
+#' @export
 #' 
 neg_log_EFPF_PoissonBB <- function(n, counts, pars) {
     .Call(`_ProductFormFA_neg_log_EFPF_PoissonBB`, n, counts, pars)
@@ -62,6 +68,8 @@ neg_log_EFPF_PoissonBB <- function(n, counts, pars) {
 #' @return value of the negative logarithm of the EFPF for the sample of 
 #' dimensionality n described by counts
 #' 
+#' @export
+#' 
 neg_log_EFPF_NegBinBB <- function(n, counts, pars) {
     .Call(`_ProductFormFA_neg_log_EFPF_NegBinBB`, n, counts, pars)
 }
@@ -77,6 +85,8 @@ neg_log_EFPF_NegBinBB <- function(n, counts, pars) {
 #' 
 #' @return value of the negative logarithm of the EFPF for the sample of 
 #' dimensionality n described by counts
+#' 
+#' @export
 #' 
 neg_log_EFPF_GammaIBP <- function(n, counts, pars) {
     .Call(`_ProductFormFA_neg_log_EFPF_GammaIBP`, n, counts, pars)

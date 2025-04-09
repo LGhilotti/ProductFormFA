@@ -13,6 +13,8 @@ using namespace Rcpp;
 //' @return value of the negative logarithm of the EFPF for the sample of 
 //' dimensionality n described by counts
 //' 
+//' @export
+//' 
 // [[Rcpp::export]]
 double neg_log_EFPF_BB(int n, std::vector<int> counts,
                        std::vector<double> pars ){
@@ -53,6 +55,8 @@ double neg_log_EFPF_BB(int n, std::vector<int> counts,
 //' 
 //' @return value of the negative logarithm of the EFPF for the sample of 
 //' dimensionality n described by counts
+//' 
+//' @export
 //' 
 // [[Rcpp::export]]
 double neg_log_EFPF_IBP(int n, std::vector<int> counts,
@@ -98,6 +102,8 @@ double neg_log_EFPF_IBP(int n, std::vector<int> counts,
 //' @return value of the negative logarithm of the EFPF for the sample of 
 //' dimensionality n described by counts
 //' 
+//' @export
+//' 
 // [[Rcpp::export]]
 double neg_log_EFPF_PoissonBB(int n, std::vector<int> counts,
                               std::vector<double> pars ){
@@ -138,6 +144,8 @@ double neg_log_EFPF_PoissonBB(int n, std::vector<int> counts,
 //' 
 //' @return value of the negative logarithm of the EFPF for the sample of 
 //' dimensionality n described by counts
+//' 
+//' @export
 //' 
 // [[Rcpp::export]]
 double neg_log_EFPF_NegBinBB(int n, std::vector<int> counts,
@@ -180,6 +188,8 @@ double neg_log_EFPF_NegBinBB(int n, std::vector<int> counts,
 //' 
 //' @return value of the negative logarithm of the EFPF for the sample of 
 //' dimensionality n described by counts
+//' 
+//' @export
 //' 
 // [[Rcpp::export]]
 double neg_log_EFPF_GammaIBP(int n, std::vector<int> counts,

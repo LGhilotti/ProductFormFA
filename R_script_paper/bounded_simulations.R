@@ -212,7 +212,7 @@ eb_EFPF_fit_estimate_bounded_scenario <- function(mechanism,
 
 
 # Choose mechanism
-mechanism = "beta_pis" # "custom"
+mechanism =  "custom" # "beta_pis"
 
 # Fit and estimate richness, rarefaction and extrapolation for GibbsFA's (save workspace)
 if (!file.exists(paste0("R_script_paper/eb_EFPF_",mechanism,"_fit_estimate.RData"))) {
@@ -242,7 +242,7 @@ Kn <- sapply(Ns, function(n) sum(colSums(data_mat[1:n,]) > 0)  )
 
 
 
-## Model-checking on rarefaction ----
+## Model-checking on rarefaction for one sample size ----
 n_rare <- Ns[2]
 lab_comb_bb <- paste0("n_train.",n_rare,":Nbar.emp")
 lab_comb_ibp <- paste0("n_train.",n_rare)
@@ -306,7 +306,7 @@ ggplot(accum_df, aes(x = x, y = n_feat)) +
   ) 
 
 
-## Model-checking on K_n_r -------
+## Model-checking on K_n_r for one sample size -------
 n_knr <- Ns[2]
 lab_comb_bb <- paste0("n_train.",n_knr,":Nbar.emp")
 lab_comb_ibp <- paste0("n_train.",n_knr)
@@ -378,6 +378,29 @@ ggplot(observed_K_n_r_plot,  aes(x = r, y = k_n_r)) +
     )
   )
 
+
+## Formal model-checking via AIC/BIC for one sample size -------
+n_aic <- Ns[2]
+lab_comb_bb <- paste0("n_train.",n_aic,":Nbar.emp")
+lab_comb_ibp <- paste0("n_train.",n_aic)
+
+AICs_list <- vector("list", length = 0)
+
+AICs_list[["PoissonBB"]] <- compute_AICs_BICs(list_eb_EFPF_fit_PoissonBB[[lab_comb_bb]])$AIC
+for (var_fct_NegBinBB in vars_fct_NegBinBB){
+  AICs_list[[paste0("NegBinBB.var_fct.", var_fct_NegBinBB)]] <- compute_AICs_BICs(
+    list_eb_EFPF_fit_NegBinBB[[paste0("var_fct.", var_fct_NegBinBB)]][[lab_comb_bb]]
+  )$AIC
+}
+for (var_GammaIBP in vars_GammaIBP){
+  AICs_list[[paste0("GammaIBP.var.", var_GammaIBP)]] <- compute_AICs_BICs(
+    list_eb_EFPF_fit_GammaIBP[[paste0("var.", var_GammaIBP)]][[lab_comb_ibp]]
+  )$AIC
+}
+
+print(AICs_list) 
+# both mechanisms: PoissonBB/NegBinBB are better than GammaIBP (smaller AIC)
+  
 
 
 ## Prediction: richness and extrapolation -----------
