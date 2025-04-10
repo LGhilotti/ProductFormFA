@@ -51,7 +51,7 @@ ggplot(accum_df, aes(x = x, y = n_feat)) +
 
 # Choices of variances
 vars_fct_NegBinBB <- c(10, 1000)
-vars_GammaIBP <- c(0.01, 100)
+vars_GammaIBP <- c(100, 1000, 10000) # c(0.01, 100) - values in the first manuscript
 
 # Initial parameters for optimization
 eb_init_BB <- list(alpha = -10, s = 100, Nhat_prime = 200)
@@ -233,8 +233,6 @@ ggplot(observed_K_n_r_plot,  aes(x = r, y = k_n_r)) +
 
 
 ## Formal model-checking via AIC/BIC -------
-n_aic <- n
-
 AICs_list <- vector("list", length = 0)
 
 AICs_list[["PoissonBB"]] <- compute_AICs_BICs(eb_EFPF_fit_PoissonBB)$AIC
@@ -357,7 +355,7 @@ extr_EFPF_GammaIBP_df %>%
 # We focus on GammaIBP + prior (since it is selected from model-checking)
   
 # Fit for GibbsFA's (save workspace)
-if (!file.exists("R_script_paper/fullybayes_Plants_fit_estimate.RData")) {
+if (!file.exists("R_script_paper/fullybayes_Plants_fit_estimate_GammaIBP.RData")) {
   
   list_prior_fit_GammaIBP <-  vector(mode = "list", length = length(vars_GammaIBP))
   names(list_prior_fit_GammaIBP) <- paste0("var.", vars_GammaIBP)
@@ -409,19 +407,71 @@ if (!file.exists("R_script_paper/fullybayes_Plants_fit_estimate.RData")) {
   }
   
   # Save the entire workspace related to the type just performed
-  save(list = ls(all.names = TRUE), file =  "R_script_paper/fullybayes_Plants_fit_estimate.RData")
+  save(list = ls(all.names = TRUE), file =  "R_script_paper/fullybayes_Plants_fit_estimate_GammaIBP.RData")
+  
+}
+
+# We run also for NegBinBB + prior (in order to check with BF other than visual check)
+if (!file.exists("R_script_paper/fullybayes_Plants_fit_estimate_NegBinBBcompetitor.RData")) {
+  
+  list_prior_fit_NegBinBB <-  vector(mode = "list", length = length(vars_fct_NegBinBB))
+  names(list_prior_fit_NegBinBB) <- paste0("var_fct.", vars_fct_NegBinBB)
+  
+  # Initialization and MCMC setting 
+  mcmcparams_NegBinBB <- list(tau = 0.1, 
+                              S = 5*10^4, n_burnin = 5*10^3, thin = 2)
+  mcmcparams_obj_NegBinBB <- mcmcparameters(model = "NegBinBB", mcmcparams = mcmcparams_NegBinBB)
+  
+  init_NegBinBB <- list(alpha_0 = - 0.01, s_0 = 3)
+  init_obj_NegBinBB <- initialization(model = "NegBinBB", init = init_NegBinBB )
+  
+  # EB estimates
+  small_val <- 10^(-4) # 10^(-3)
+  alpha_eb <- list_eb_EFPF_fit_NegBinBB[[1]]$alpha
+  theta_eb <- list_eb_EFPF_fit_NegBinBB[[1]]$theta
+  
+  s_eb <- alpha_eb + theta_eb
+  
+  print(paste0("Prior variance of -alpha: ", - alpha_eb/small_val  ))
+  print(paste0("Prior variance of s: ", s_eb/small_val  ))
+  
+  # Fit the model
+  for (var_fct in vars_fct_NegBinBB){
+    
+    n0_eb <- list_eb_EFPF_fit_NegBinBB[[paste0("var_fct.", var_fct)]]$n0
+    mu0_eb <- list_eb_EFPF_fit_NegBinBB[[paste0("var_fct.", var_fct)]]$mu0
+    
+    hyper_NegBinBB <- list(a_alpha = - alpha_eb*small_val, b_alpha = small_val,
+                           a_s = s_eb*small_val , b_s = small_val,
+                           n0 = n0_eb, mu0 = mu0_eb)
+    prior_obj_NegBinBB <- prior(model = "NegBinBB", hyper = hyper_NegBinBB)
+    
+    
+    list_prior_fit_NegBinBB[[paste0("var_fct.", var_fct)]] <- 
+      GibbsFA(feature_matrix = data_mat,
+              model = "NegBinBB", 
+              prior = prior_obj_NegBinBB,
+              initialization = init_obj_NegBinBB,
+              mcmcparams = mcmcparams_obj_NegBinBB)
+    
+  }
+  
+  # Save the entire workspace related to the type just performed
+  save(list = ls(all.names = TRUE), file =  "R_script_paper/fullybayes_Plants_fit_estimate_NegBinBBcompetitor.RData")
   
 }
 
 
 # Load the Work space
-load("R_script_paper/fullybayes_Plants_fit_estimate.RData")
+load("R_script_paper/fullybayes_Plants_fit_estimate_GammaIBP.RData")
+load("R_script_paper/fullybayes_Plants_fit_estimate_NegBinBBcompetitor.RData")
 
 
 ## Convergence checks --------
 library(ggmcmc)
 library(coda)
 
+# GammaIBP + prior
 params_prior_GammaIBP <- list_prior_fit_GammaIBP[[paste0("var.", vars_GammaIBP[2])]][c("a_chain","b_chain", "alpha_chain", "theta_chain")]
 params_prior_GammaIBP_df <- as.data.frame(do.call(cbind, params_prior_GammaIBP))
 
@@ -430,6 +480,49 @@ samples_ggs_GammaIBP <- ggs(samples_GammaIBP, keep_original_order = TRUE)
 ggs_traceplot(samples_ggs_GammaIBP)
 
 effectiveSize(params_prior_GammaIBP_df)
+
+# NegBinBB + prior
+params_prior_NegBinBB <- list_prior_fit_NegBinBB[[paste0("var_fct.", vars_fct_NegBinBB[1])]][c("n0_chain","mu0_chain", "alpha_chain", "theta_chain")]
+params_prior_NegBinBB_df <- as.data.frame(do.call(cbind, params_prior_NegBinBB))
+
+samples_NegBinBB <- mcmc.list(mcmc(params_prior_NegBinBB_df))
+samples_ggs_NegBinBB <- ggs(samples_NegBinBB, keep_original_order = TRUE)
+ggs_traceplot(samples_ggs_NegBinBB)
+
+effectiveSize(params_prior_NegBinBB_df)
+
+
+## Formal model-checking via BAYES FACTOR -------
+log_marginal_like_object_list <- vector("list", length = 0)
+
+for (var_fct_NegBinBB in vars_fct_NegBinBB){
+  log_marginal_like_object_list[[paste0("NegBinBB.var_fct.", var_fct_NegBinBB)]] <- compute_log_marginal_likelihood_bridge(
+    list_prior_fit_NegBinBB[[paste0("var_fct.", var_fct_NegBinBB)]]
+  )
+}
+for (var_GammaIBP in vars_GammaIBP){
+  log_marginal_like_object_list[[paste0("GammaIBP.var.", var_GammaIBP)]] <- compute_log_marginal_likelihood_bridge(
+    list_prior_fit_GammaIBP[[paste0("var.", var_GammaIBP)]]
+  )
+}
+
+print(log_marginal_like_object_list) 
+
+### Tables of log-Bayes Factors
+log_marginal_like_list <- lapply(log_marginal_like_object_list, function(x)
+  x$logml)
+# Get all unique unordered combinations of names
+name_combos <- combn(names(log_marginal_like_list), 2)
+
+# Compute logBF and store results
+logBF_names <- apply(name_combos, 2, function(x) paste(x[1], "vs", x[2], sep = "_"))
+logBF_values <- apply(name_combos, 2, function(x) 
+  log_marginal_like_list[[x[1]]] - log_marginal_like_list[[x[2]]])
+
+# Assemble into data frame
+logBF_df <- data.frame(Models = logBF_names, logBF = logBF_values)
+print(logBF_df)
+
 
 
 ## Extrapolation ------

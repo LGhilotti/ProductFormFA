@@ -51,8 +51,8 @@ ggplot(accum_df, aes(x = x, y = n_feat)) +
 # EFPF approach -----
 
 # Choices of variances
-vars_fct_NegBinBB <- c(10, 1000)
-vars_GammaIBP <- c(1, 1000)
+vars_fct_NegBinBB <- c(1.1, 2, 10) # c(10,1000) - values in the first manuscript
+vars_GammaIBP <- c(10, 1000) # c(1, 1000) - values in the first manuscript 
 
 # Initial parameters for optimization
 eb_init_BB <- list(alpha = -10, s = 100, Nhat_prime = 200)
@@ -236,8 +236,6 @@ ggplot(observed_K_n_r_plot,  aes(x = r, y = k_n_r)) +
 
 
 ## Formal model-checking via AIC/BIC -------
-n_aic <- n
-
 AICs_list <- vector("list", length = 0)
 
 AICs_list[["PoissonBB"]] <- compute_AICs_BICs(eb_EFPF_fit_PoissonBB)$AIC
@@ -473,8 +471,8 @@ extr_EFPF_PoissonBB_df %>%
 
 # We focus on NegBinBB's + priors (since it is selected from model-checking)
 
-# Fit and estimate richness, rarefaction and extrapolation for GibbsFA's (save workspace)
-if (!file.exists("R_script_paper/fullybayes_BCI_fit_estimate.RData")) {
+# Fit GibbsFA's (save workspace)
+if (!file.exists("R_script_paper/fullybayes_BCI_fit_estimate_NegBinBB.RData")) {
   
   list_prior_fit_NegBinBB <-  vector(mode = "list", length = length(vars_fct_NegBinBB))
   names(list_prior_fit_NegBinBB) <- paste0("var_fct.", vars_fct_NegBinBB)
@@ -488,7 +486,7 @@ if (!file.exists("R_script_paper/fullybayes_BCI_fit_estimate.RData")) {
   init_obj_NegBinBB <- initialization(model = "NegBinBB", init = init_NegBinBB )
   
   # EB estimates
-  small_val <- 10^(-3)
+  small_val <- 10^(-4) # 10^(-3) - value in the first manuscript
   alpha_eb <- list_eb_EFPF_fit_NegBinBB[[1]]$alpha
   theta_eb <- list_eb_EFPF_fit_NegBinBB[[1]]$theta
   
@@ -519,18 +517,80 @@ if (!file.exists("R_script_paper/fullybayes_BCI_fit_estimate.RData")) {
   }
   
   # Save the entire workspace related to the type just performed
-  save(list = ls(all.names = TRUE), file =  "R_script_paper/fullybayes_BCI_fit_estimate.RData")
+  save(list = ls(all.names = TRUE), file =  "R_script_paper/fullybayes_BCI_fit_estimate_NegBinBB.RData")
   
 }
 
+
+# We run also for GammaIBP + prior (in order to check with BF other than visual check)
+if (!file.exists("R_script_paper/fullybayes_BCI_fit_estimate_GammaIBPcompetitor.RData")) {
+  
+  list_prior_fit_GammaIBP <-  vector(mode = "list", length = length(vars_GammaIBP))
+  names(list_prior_fit_GammaIBP) <- paste0("var.", vars_GammaIBP)
+  
+  # Initialization and MCMC setting 
+  mcmcparams_GammaIBP <- list(sigq_alpha = 0.1, sigq_s = 0.1, 
+                              S = 5*10^4, n_burnin = 5*10^3, thin = 2)
+  mcmcparams_obj_GammaIBP <- mcmcparameters(model = "GammaIBP", mcmcparams = mcmcparams_GammaIBP)
+  
+  init_GammaIBP <- list(alpha_0 = 0.1, s_0 = 2)
+  init_obj_GammaIBP <- initialization(model = "GammaIBP_single_prior", init = init_GammaIBP )
+  
+  # EB estimates
+  small_val_alpha <- 2
+  small_val_s <- 10^(-2)
+  
+  alpha_eb <- list_eb_EFPF_fit_GammaIBP[[1]]$alpha
+  theta_eb <- list_eb_EFPF_fit_GammaIBP[[1]]$theta
+  
+  t_eb <- (1 - alpha_eb)/alpha_eb
+  s_eb <- alpha_eb + theta_eb
+  
+  print(paste0("Prior variance of alpha: ", 
+               t_eb/(1 + t_eb)^2 /(1 + small_val_alpha*(1+t_eb))))
+  
+  print(paste0("Prior variance of s: ", 
+               s_eb/small_val_s))
+  
+  # Fit the model
+  for (var_GammaIBP in vars_GammaIBP){
+    
+    a_eb <- list_eb_EFPF_fit_GammaIBP[[paste0("var.", var_GammaIBP)]]$a
+    b_eb <- list_eb_EFPF_fit_GammaIBP[[paste0("var.", var_GammaIBP)]]$b
+    
+    # Hyperparameters elicitation 
+    hyper_GammaIBP <- list(a = a_eb, b = b_eb,
+                           a_alpha = small_val_alpha, b_alpha = t_eb*small_val_alpha,
+                           a_s = s_eb*small_val_s , b_s = small_val_s)
+    prior_obj_GammaIBP <- prior(model = "GammaIBP_single_prior", hyper = hyper_GammaIBP)
+    
+    
+    list_prior_fit_GammaIBP[[paste0("var.", var_GammaIBP)]] <- 
+      GibbsFA(feature_matrix = data_mat,
+              model = "GammaIBP_single_prior", 
+              prior = prior_obj_GammaIBP,
+              initialization = init_obj_GammaIBP,
+              mcmcparams = mcmcparams_obj_GammaIBP)
+    
+  }
+  
+  # Save the entire workspace related to the type just performed
+  save(list = ls(all.names = TRUE), file =  "R_script_paper/fullybayes_BCI_fit_estimate_GammaIBPcompetitor.RData")
+  
+}
+
+
+
 # Load the Work space
-load("R_script_paper/fullybayes_BCI_fit_estimate.RData")
+load("R_script_paper/fullybayes_BCI_fit_estimate_NegBinBB.RData")
+load("R_script_paper/fullybayes_BCI_fit_estimate_GammaIBPcompetitor.RData")
 
 
 ## Convergence checks --------
 library(ggmcmc)
 library(coda)
 
+# NegBinBB + prior
 params_prior_NegBinBB <- list_prior_fit_NegBinBB[[paste0("var_fct.", vars_fct_NegBinBB[1])]][c("n0_chain","mu0_chain", "alpha_chain", "theta_chain")]
 params_prior_NegBinBB_df <- as.data.frame(do.call(cbind, params_prior_NegBinBB))
 
@@ -539,6 +599,50 @@ samples_ggs_NegBinBB <- ggs(samples_NegBinBB, keep_original_order = TRUE)
 ggs_traceplot(samples_ggs_NegBinBB)
 
 effectiveSize(params_prior_NegBinBB_df)
+
+# GammaIBP + prior
+params_prior_GammaIBP <- list_prior_fit_GammaIBP[[paste0("var.", vars_GammaIBP[1])]][c("a_chain","b_chain", "alpha_chain", "theta_chain")]
+params_prior_GammaIBP_df <- as.data.frame(do.call(cbind, params_prior_GammaIBP))
+
+samples_GammaIBP <- mcmc.list(mcmc(params_prior_GammaIBP_df))
+samples_ggs_GammaIBP <- ggs(samples_GammaIBP, keep_original_order = TRUE)
+ggs_traceplot(samples_ggs_GammaIBP)
+
+effectiveSize(params_prior_GammaIBP_df)
+
+
+## Formal model-checking via BAYES FACTOR -------
+log_marginal_like_object_list <- vector("list", length = 0)
+
+for (var_fct_NegBinBB in vars_fct_NegBinBB){
+  log_marginal_like_object_list[[paste0("NegBinBB.var_fct.", var_fct_NegBinBB)]] <- compute_log_marginal_likelihood_bridge(
+    list_prior_fit_NegBinBB[[paste0("var_fct.", var_fct_NegBinBB)]]
+  )
+}
+for (var_GammaIBP in vars_GammaIBP){
+  log_marginal_like_object_list[[paste0("GammaIBP.var.", var_GammaIBP)]] <- compute_log_marginal_likelihood_bridge(
+    list_prior_fit_GammaIBP[[paste0("var.", var_GammaIBP)]]
+  )
+}
+
+print(log_marginal_like_object_list) 
+
+### Tables of log-Bayes Factors
+log_marginal_like_list <- lapply(log_marginal_like_object_list, function(x)
+  x$logml)
+# Get all unique unordered combinations of names
+name_combos <- combn(names(log_marginal_like_list), 2)
+
+# Compute logBF and store results
+logBF_names <- apply(name_combos, 2, function(x) paste(x[1], "vs", x[2], sep = "_"))
+logBF_values <- apply(name_combos, 2, function(x) 
+  log_marginal_like_list[[x[1]]] - log_marginal_like_list[[x[2]]])
+
+# Assemble into data frame
+logBF_df <- data.frame(Models = logBF_names, logBF = logBF_values)
+print(logBF_df)
+
+
 
 
 ## Prediction: richness and extrapolation -----------

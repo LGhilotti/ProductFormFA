@@ -47,100 +47,95 @@ log_posterior_GammaIBP_cpp <- function(post_sample, data_full) {
 }
 
 
-#' Compute Bayes Factor (BF) for: NegBinBB vs GammaIBP (Fully-Bayesian approach)
+
+
+#' Computes log marginal likelihood via bridge sampling: available models NegBinBB, GammaIBP (Fully-Bayesian approach)
 #'
-#' @param NegBinBB_fit object of class \code{GibbsFA, NegBinBB}
-#' @param GammaIBP_fit object of class \code{GibbsFA, GammaIBP}
+#' @param model_fit object of class \code{GibbsFA, NegBinBB} or \code{GibbsFA, GammaIBP}
 #'
 #' @export
+#' @import bridgesampling
 #'
-compute_BF <- function(NegBinBB_fit, GammaIBP_fit){
+compute_log_marginal_likelihood_bridge <- function(model_fit){
   
-  ### Let assume that NegBinBB = H0 and GammaIBP = H1
   
-  data_summary <- vector("list")
-  # 1) Check if models refer to same data
-  if (all(dim(NegBinBB_fit$feature_matrix) == dim(GammaIBP_fit$feature_matrix)) &
-      all(NegBinBB_fit$feature_matrix == GammaIBP_fit$feature_matrix)){
-    
-    Z <- GammaIBP_fit$feature_matrix[, colSums(is.na(GammaIBP_fit$feature_matrix))==0]
-    Z <- Z[, colSums(Z)!=0]
-    counts <- colSums(Z)
-    data_summary[["counts"]] <- counts
-    data_summary[["n"]] <- nrow(Z)
-    data_summary[["K"]] <- ncol(Z)
-    
-  } else{
-    stop("Models are trained on different datasets")
+  if (!all(class(model_fit) == c("GibbsFA", "NegBinBB")) &
+      !all(class(model_fit) == c("GibbsFA", "GammaIBP"))){
+    stop("Incompatible class object")
   }
   
-  # 2) Posterior samples and data with hyperparameters
+  data_summary <- vector("list")
+  Z <- model_fit$feature_matrix[, colSums(is.na(model_fit$feature_matrix))==0]
+  Z <- Z[, colSums(Z)!=0]
+  counts <- colSums(Z)
+  data_summary[["counts"]] <- counts
+  data_summary[["n"]] <- nrow(Z)
+  data_summary[["K"]] <- ncol(Z)
+  
   
   # NegBinBB: use parametrization (alpha_bar, s)
-  samples_NegBinBB_list <- list("alpha_bar" = - NegBinBB_fit$alpha_chain, 
-                           "s" = NegBinBB_fit$alpha_chain + NegBinBB_fit$theta_chain)
-  
-  samples_NegBinBB <- as.matrix(as.data.frame(samples_NegBinBB_list))
-  
-  data_full_NegBinBB <- append(data_summary,
-        list("n0" = NegBinBB_fit$prior$n0,
-         "mu0" = NegBinBB_fit$prior$mu0,
-         "a_alpha" = NegBinBB_fit$prior$a_alpha,
-         "b_alpha" = NegBinBB_fit$prior$b_alpha,
-         "a_s" = NegBinBB_fit$prior$a_s,
-         "b_s" = NegBinBB_fit$prior$b_s))
-  
+  if (class(model_fit)[2] == "NegBinBB"){
+    
+    # 2) Posterior samples and data with hyperparameters
+    samples_NegBinBB_list <- list("alpha_bar" = - model_fit$alpha_chain, 
+                                  "s" = model_fit$alpha_chain + model_fit$theta_chain)
+    
+    samples_NegBinBB <- as.matrix(as.data.frame(samples_NegBinBB_list))
+    
+    data_full_NegBinBB <- append(data_summary,
+                                 list("n0" = model_fit$prior$n0,
+                                      "mu0" = model_fit$prior$mu0,
+                                      "a_alpha" = model_fit$prior$a_alpha,
+                                      "b_alpha" = model_fit$prior$b_alpha,
+                                      "a_s" = model_fit$prior$a_s,
+                                      "b_s" = model_fit$prior$b_s))
+    
+    # 3) Specify parameter bounds 
+    cn <- colnames(samples_NegBinBB)
+    lb_NegBinBB <- c(0, 0)
+    ub_NegBinBB <- c(Inf, Inf)
+    names(lb_NegBinBB) <- names(ub_NegBinBB) <- cn
+    
+    # 4) Compute log marginal likelihood via bridge sampling 
+    model.bridge <- bridge_sampler(samples = samples_NegBinBB, data = data_full_NegBinBB,
+                                      log_posterior = log_posterior_NegBinBB_cpp, 
+                                      lb = lb_NegBinBB,
+                                      ub = ub_NegBinBB, silent = TRUE)
+    
+  }
   # GammaIBP: use parametrization (alpha, s)
-  samples_GammaIBP_list <- list("alpha" =  GammaIBP_fit$alpha_chain, 
-                                "s" = GammaIBP_fit$alpha_chain + GammaIBP_fit$theta_chain)
+  if (class(model_fit)[2] == "GammaIBP"){
+    
+    # 2) Posterior samples and data with hyperparameters
+    samples_GammaIBP_list <- list("alpha" =  model_fit$alpha_chain, 
+                                  "s" = model_fit$alpha_chain + model_fit$theta_chain)
+    
+    samples_GammaIBP <- as.matrix(as.data.frame(samples_GammaIBP_list))  
+    
+    data_full_GammaIBP <- append(data_summary,
+                                 list("a" = model_fit$prior$a,
+                                      "b" = model_fit$prior$b,
+                                      "a_alpha" = model_fit$prior$a_alpha,
+                                      "b_alpha" = model_fit$prior$b_alpha,
+                                      "a_s" = model_fit$prior$a_s,
+                                      "b_s" = model_fit$prior$b_s))
+    
+    # 3) Specify parameter bounds 
+    cn <- colnames(samples_GammaIBP)
+    lb_GammaIBP <- c(0, 0)
+    ub_GammaIBP <- c(1, Inf)
+    names(lb_GammaIBP) <- names(ub_GammaIBP) <- cn
+    
+    # 4) Compute log marginal likelihood via bridge sampling 
+    model.bridge <- bridge_sampler(samples = samples_GammaIBP, data = data_full_GammaIBP,
+                                      log_posterior = log_posterior_GammaIBP_cpp, lb = lb_GammaIBP,
+                                      ub = ub_GammaIBP, silent = TRUE)
+    
+    
+  }
   
-  samples_GammaIBP <- as.matrix(as.data.frame(samples_GammaIBP_list))  
   
-  data_full_GammaIBP <- append(data_summary,
-                               list("a" = GammaIBP_fit$prior$a,
-                                    "b" = GammaIBP_fit$prior$b,
-                                    "a_alpha" = GammaIBP_fit$prior$a_alpha,
-                                    "b_alpha" = GammaIBP_fit$prior$b_alpha,
-                                    "a_s" = GammaIBP_fit$prior$a_s,
-                                    "b_s" = GammaIBP_fit$prior$b_s))
-  
-  # 3) Specify parameter bounds 
-  # NegBinBB
-  cn <- colnames(samples_NegBinBB)
-  lb_NegBinBB <- c(0, 0)
-  ub_NegBinBB <- c(Inf, Inf)
-  names(lb_NegBinBB) <- names(ub_NegBinBB) <- cn
-
-  # GammaIBP
-  cn <- colnames(samples_GammaIBP)
-  lb_GammaIBP <- c(0, 0)
-  ub_GammaIBP <- c(1, Inf)
-  names(lb_GammaIBP) <- names(ub_GammaIBP) <- cn
-  
-  
-  # 4) Compute log marginal likelihood via bridge sampling 
-  # NegBinBB
-  NegBinBB.bridge <- bridge_sampler(samples = samples_NegBinBB, data = data_full_NegBinBB,
-                              log_posterior = log_posterior_NegBinBB_cpp, 
-                              lb = lb_NegBinBB,
-                              ub = ub_NegBinBB, silent = TRUE)
-  print(NegBinBB.bridge)
-  
-  # GammaIBP
-  GammaIBP.bridge <- bridge_sampler(samples = samples_GammaIBP, data = data_full_GammaIBP,
-                              log_posterior = log_posterior_GammaIBP_cpp, lb = lb_GammaIBP,
-                              ub = ub_GammaIBP, silent = TRUE)
-  print(GammaIBP.bridge)
-  
-  # compute percentage error
-  print(error_measures(NegBinBB.bridge)$percentage)
-  print(error_measures(GammaIBP.bridge)$percentage)
-  
-  # compute Bayes factor
-  BF01 <- bf(NegBinBB.bridge, GammaIBP.bridge, log = T)
-  print(BF01)
-  
-  return(BF01)
+  return(model.bridge)
   
 }
 

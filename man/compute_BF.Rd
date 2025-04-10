@@ -2,15 +2,15 @@
 % Please edit documentation in R/model_choice.R
 \name{compute_BF}
 \alias{compute_BF}
-\title{Compute Bayes Factor (BF) for: NegBinBB vs GammaIBP (Fully-Bayesian approach)}
+\title{Compute Bayes Factor (BF) for NegBinBB/GammaIBP (Fully-Bayesian approach)}
 \usage{
-compute_BF(NegBinBB_fit, GammaIBP_fit)
+compute_BF()
 }
 \arguments{
-\item{NegBinBB_fit}{object of class \code{GibbsFA, NegBinBB}}
+\item{model_0_fit}{object of class \code{GibbsFA, NegBinBB} or \code{GibbsFA, GammaIBP}}
 
-\item{GammaIBP_fit}{object of class \code{GibbsFA, GammaIBP}}
+\item{model_1_fit}{object of class \code{GibbsFA, NegBinBB} or \code{GibbsFA, GammaIBP}}
 }
 \description{
-Compute Bayes Factor (BF) for: NegBinBB vs GammaIBP (Fully-Bayesian approach)
+Compute Bayes Factor (BF) for NegBinBB/GammaIBP (Fully-Bayesian approach)
 }
