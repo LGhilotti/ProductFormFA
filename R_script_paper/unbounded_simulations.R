@@ -264,7 +264,7 @@ df_K_n_r$Model <- factor(df_K_n_r$Model,
 r_positive <- observed_K_n_r %>%
   filter(k_n_r > 0) %>%
   select(r) %>%
-  filter(r < 10)
+  filter(r < 15)
 
 df_K_n_r_plot <- df_K_n_r %>%
   filter(r %in% c(r_positive$r))
@@ -312,6 +312,156 @@ for (var_GammaIBP in vars_GammaIBP){
 
 print(AICs_list) 
 # PoissonBB/NegBinBB are worse than GammaIBP (higher AIC)
+
+
+## Rarefaction and Knr plots with credible bands for best class of mixtures -----------
+
+### Rarefaction intervals for GammaIBP -----
+n_rare <- Ns[2]
+lab_comb_ibp <- paste0("n_train.",n_rare)
+
+accum_df <- tibble( x = 0:n_rare,
+                    n_feat = c(0,rarefaction(data_mat[1:n_rare,], n_reorderings = 20)))
+
+
+
+
+# GammaIBP
+rare_EFPF_GammaIBP_df <- tibble(means = numeric(), 
+                                lb = numeric(), ub = numeric(),
+                                x = integer(), Model = character())
+
+for (var_GammaIBP in vars_GammaIBP){
+  
+  eb_EFPF_fit_GammaIBP_var <- 
+    list_eb_EFPF_fit_GammaIBP[[paste0("var.", var_GammaIBP)]][[lab_comb_ibp]]
+  
+  rare_EFPF_GammaIBP_df_var <- tibble( mu0_post = unname(unlist(
+    rarefaction(object = eb_EFPF_fit_GammaIBP_var, seed = seed)$mu0_post )),
+    n0_post = unname(unlist(
+      rarefaction(object = eb_EFPF_fit_GammaIBP_var, seed = seed)$n0_post ))) %>%
+    mutate(p_post = 1/(mu0_post/n0_post + 1),
+           lb = qnbinom(0.025, size = n0_post, prob = p_post, lower.tail = TRUE, log.p = FALSE),
+           ub = qnbinom(0.975, size = n0_post, prob = p_post, lower.tail = TRUE, log.p = FALSE)) %>%
+    rename(means = mu0_post) %>%
+    add_row(means = 0, lb = 0, ub = 0) %>%
+    add_column(Model = paste0("Gamma IBP, Variance: ", var_GammaIBP),
+               x = c(1:n_rare,0))
+  
+  rare_EFPF_GammaIBP_df_var$x <- as.integer(rare_EFPF_GammaIBP_df_var$x)
+  rare_EFPF_GammaIBP_df_var <- rare_EFPF_GammaIBP_df_var %>%
+    select(means, lb, ub, x, Model)
+  
+  rare_EFPF_GammaIBP_df <- bind_rows(rare_EFPF_GammaIBP_df, 
+                                     rare_EFPF_GammaIBP_df_var)
+  
+}
+
+
+rare_all_df <- rare_EFPF_GammaIBP_df
+
+rare_all_df$Model <- factor(rare_all_df$Model, 
+                            levels = paste0("Gamma IBP, Variance: ", vars_GammaIBP))
+
+
+# for plot
+plot_ribbons_rare <- ggplot() +
+  geom_point(data = accum_df, aes(x = x, y = n_feat),
+             color="black", shape = 18, size = 1) +
+  geom_ribbon(data = rare_all_df, aes(x = x, ymin = lb, ymax = ub, fill = Model), color = NA, alpha = 0.4) +
+  scale_fill_manual(values = c(
+    "Gamma IBP, Variance: 0.01" = "grey10",
+    "Gamma IBP, Variance: 100" = "grey60")) +
+  xlab("# observations") + ylab("# distinct features") + 
+  theme_light() + 
+  theme(legend.position = "top") +
+  scale_y_continuous(breaks = pretty_breaks()) +
+  scale_x_continuous(breaks = pretty_breaks()) +
+  theme(aspect.ratio = 1) +
+  scale_color_tableau()
+
+plot_ribbons_rare
+
+
+### Knr intervals for GammaIBP --------
+n_knr <- Ns[2]
+lab_comb_ibp <- paste0("n_train.",n_rare)
+
+observed_K_n_r <- tibble( r = 1:n_knr,
+                          k_n_r = K_n_r(data_mat[1:n_knr,], n_reorderings = 1)[[paste0('N = ', n_knr)]])
+
+
+# GammaIBP
+knr_EFPF_GammaIBP_df <- tibble(means = numeric(), 
+                               lb = numeric(), ub = numeric(),
+                               r = integer(), Model = character())
+
+for (var_GammaIBP in vars_GammaIBP){
+  
+  eb_EFPF_fit_GammaIBP_var <- 
+    list_eb_EFPF_fit_GammaIBP[[paste0("var.", var_GammaIBP)]][[lab_comb_ibp]]
+  
+  knr_EFPF_GammaIBP_df_var <- tibble( mu0_est = unname(unlist(
+    K_n_r(object = eb_EFPF_fit_GammaIBP_var, n = n_knr)[[paste0('N = ', n_knr)]]$mu0_est )),
+    n0_est = unname(unlist(
+      K_n_r(object = eb_EFPF_fit_GammaIBP_var, n = n_knr)[[paste0('N = ', n_knr)]]$n0_est ))) %>%
+    mutate(p_est = 1/(mu0_est/n0_est + 1),
+           lb = qnbinom(0.025, size = n0_est, prob = p_est, lower.tail = TRUE, log.p = FALSE),
+           ub = qnbinom(0.975, size = n0_est, prob = p_est, lower.tail = TRUE, log.p = FALSE)) %>%
+    rename(means = mu0_est) %>%
+    add_column(Model = paste0("Gamma IBP, Variance: ", var_GammaIBP),
+               r = 1:n_knr)
+  
+  knr_EFPF_GammaIBP_df_var$r <- as.integer(knr_EFPF_GammaIBP_df_var$r)
+  knr_EFPF_GammaIBP_df_var <- knr_EFPF_GammaIBP_df_var %>%
+    select(means, lb, ub, r, Model)
+  
+  knr_EFPF_GammaIBP_df <- bind_rows(knr_EFPF_GammaIBP_df, 
+                                    knr_EFPF_GammaIBP_df_var)
+  
+}
+
+
+knr_all_df <- knr_EFPF_GammaIBP_df
+
+knr_all_df$Model <- factor(knr_all_df$Model,
+                           levels = paste0("Gamma IBP, Variance: ", vars_GammaIBP))
+
+r_positive <- observed_K_n_r %>%
+  filter(k_n_r > 0) %>%
+  select(r) %>%
+  filter(r < 15)
+
+knr_all_df_plot <- knr_all_df %>%
+  filter(r %in% c(r_positive$r)) %>%
+  mutate(lb = ifelse(lb == 0, 8e-1, lb))
+# %>% filter(Model %in% c("Poisson BB", "NegBinomial BB x10"))
+
+observed_K_n_r_plot <- observed_K_n_r %>%
+  filter(r %in% c(r_positive$r))
+
+
+# for plot
+plot_ribbons_knr <- ggplot() +
+  geom_point(data = observed_K_n_r_plot, aes(x = r, y = k_n_r),
+             color="black", shape = 19, size = 1.5) +
+  geom_ribbon(data = knr_all_df_plot, aes(x = r, ymin = lb, ymax = ub, fill = Model), color = NA, alpha = 0.4) +
+  scale_fill_manual(values = c(
+    "Gamma IBP, Variance: 0.01" = "grey10",
+    "Gamma IBP, Variance: 100" = "grey60")) +
+  scale_y_log10() +
+  #scale_x_log10() +
+  xlab("r") + ylab(expression(m[r])) + 
+  theme_light() + 
+  theme(legend.position = "top") +
+  scale_x_continuous(breaks = pretty_breaks()) +
+  theme(aspect.ratio = 1) +
+  scale_color_tableau()
+
+
+plot_ribbons_knr
+
+
 
 
 ## Extrapolation ----

@@ -212,7 +212,7 @@ eb_EFPF_fit_estimate_bounded_scenario <- function(mechanism,
 
 
 # Choose mechanism
-mechanism =  "custom" # "beta_pis"
+mechanism =   "beta_pis" # "custom"
 
 # Fit and estimate richness, rarefaction and extrapolation for GibbsFA's (save workspace)
 if (!file.exists(paste0("R_script_paper/eb_EFPF_",mechanism,"_fit_estimate.RData"))) {
@@ -401,6 +401,173 @@ for (var_GammaIBP in vars_GammaIBP){
 print(AICs_list) 
 # both mechanisms: PoissonBB/NegBinBB are better than GammaIBP (smaller AIC)
   
+
+## Rarefaction and Knr plots with credible bands for best class of mixtures -----------
+
+### Rarefaction intervals for PoissonBB/NegBinBB -----
+n_rare <- Ns[2]
+lab_comb_bb <- paste0("n_train.",n_rare,":Nbar.emp")
+
+accum_df <- tibble( x = 0:n_rare,
+                    n_feat = c(0,rarefaction(data_mat[1:n_rare,], n_reorderings = 20)))
+
+
+# PoissonBB
+eb_EFPF_fit_PoissonBB_rare <- list_eb_EFPF_fit_PoissonBB[[lab_comb_bb]]
+rare_EFPF_PoissonBB_df <- tibble( lambda_post = unname(unlist(
+  rarefaction(object = eb_EFPF_fit_PoissonBB_rare, seed = seed)$lambda_post ))) %>%
+  mutate(lb = qpois(0.025, lambda_post, lower.tail = TRUE, log.p = FALSE),
+         ub = qpois(0.975, lambda_post, lower.tail = TRUE, log.p = FALSE)) %>%
+  rename(means = lambda_post) %>%
+  add_row(means = 0, lb = 0, ub = 0) %>%
+  add_column(Model = "Poisson BB",
+             x = c(1:n_rare,0))
+
+# NegBinBB
+rare_EFPF_NegBinBB_df <- tibble(means = numeric(), 
+                                lb = numeric(), ub = numeric(),
+                                x = integer(), Model = character())
+
+for (var_fct_NegBinBB in vars_fct_NegBinBB){
+  
+  eb_EFPF_fit_NegBinBB_var <- 
+    list_eb_EFPF_fit_NegBinBB[[paste0("var_fct.", var_fct_NegBinBB)]][[lab_comb_bb]]
+  
+  rare_EFPF_NegBinBB_df_var <- tibble( mu0_post = unname(unlist(
+    rarefaction(object = eb_EFPF_fit_NegBinBB_var, seed = seed)$mu0_post )),
+    n0_post = unname(unlist(
+      rarefaction(object = eb_EFPF_fit_NegBinBB_var, seed = seed)$n0_post ))) %>%
+    mutate(p_post = 1/(mu0_post/n0_post + 1),
+           lb = qnbinom(0.025, size = n0_post, prob = p_post, lower.tail = TRUE, log.p = FALSE),
+           ub = qnbinom(0.975, size = n0_post, prob = p_post, lower.tail = TRUE, log.p = FALSE)) %>%
+    rename(means = mu0_post) %>%
+    add_row(means = 0, lb = 0, ub = 0) %>%
+    add_column(Model = paste0("NegBinomial BB x", var_fct_NegBinBB),
+               x = c(1:n_rare,0))
+  
+  rare_EFPF_NegBinBB_df_var$x <- as.integer(rare_EFPF_NegBinBB_df_var$x)
+  rare_EFPF_NegBinBB_df_var <- rare_EFPF_NegBinBB_df_var %>%
+    select(means, lb, ub, x, Model)
+  
+  rare_EFPF_NegBinBB_df <- bind_rows(rare_EFPF_NegBinBB_df, 
+                                     rare_EFPF_NegBinBB_df_var)
+  
+}
+
+
+rare_all_df <- rbind(rare_EFPF_PoissonBB_df, 
+                     rare_EFPF_NegBinBB_df)
+
+rare_all_df$Model <- factor(rare_all_df$Model, 
+                            levels = c("Poisson BB", 
+                                       paste0("NegBinomial BB x", vars_fct_NegBinBB)))
+
+
+# for plot
+plot_ribbons_rare <- ggplot() +
+  geom_point(data = accum_df, aes(x = x, y = n_feat),
+             color="black", shape = 18, size = 0.2) +
+  geom_ribbon(data = rare_all_df, aes(x = x, ymin = lb, ymax = ub, fill = Model), color = NA, alpha = 0.4) +
+  scale_fill_manual(values = c("Poisson BB" = "grey10", "NegBinomial BB x10" = "grey50", "NegBinomial BB x1000" = "grey80")) +
+  xlab("# observations") + ylab("# distinct features") + 
+  theme_light() + 
+  theme(legend.position = "top") +
+  scale_y_continuous(breaks = pretty_breaks()) +
+  scale_x_continuous(breaks = pretty_breaks()) +
+  theme(aspect.ratio = 1) +
+  scale_color_tableau()
+
+plot_ribbons_rare
+
+
+### Knr intervals for PoissonBB/NegBinBB --------
+n_knr <- Ns[2]
+lab_comb_bb <- paste0("n_train.",n_knr,":Nbar.emp")
+
+observed_K_n_r <- tibble( r = 1:n_knr,
+                          k_n_r = K_n_r(data_mat[1:n_knr,], n_reorderings = 1)[[paste0('N = ', n_knr)]])
+
+# PoissonBB
+eb_EFPF_fit_PoissonBB_knr <- list_eb_EFPF_fit_PoissonBB[[lab_comb_bb]]
+knr_EFPF_PoissonBB_df <- tibble( lambda_est = unname(unlist(
+  K_n_r(object = eb_EFPF_fit_PoissonBB_knr, n = n_knr)[[paste0('N = ', n_knr)]]$lambda_est ))) %>%
+  mutate(lb = qpois(0.025, lambda_est, lower.tail = TRUE, log.p = FALSE),
+         ub = qpois(0.975, lambda_est, lower.tail = TRUE, log.p = FALSE)) %>%
+  rename(means = lambda_est) %>%
+  add_column(Model = "Poisson BB",
+             r = 1:n_knr)
+
+
+# NegBinBB
+knr_EFPF_NegBinBB_df <- tibble(means = numeric(), 
+                                lb = numeric(), ub = numeric(),
+                                r = integer(), Model = character())
+
+for (var_fct_NegBinBB in vars_fct_NegBinBB){
+  
+  eb_EFPF_fit_NegBinBB_var <- 
+    list_eb_EFPF_fit_NegBinBB[[paste0("var_fct.", var_fct_NegBinBB)]][[lab_comb_bb]]
+  
+  knr_EFPF_NegBinBB_df_var <- tibble( mu0_est = unname(unlist(
+    K_n_r(object = eb_EFPF_fit_NegBinBB_var, n = n_knr)[[paste0('N = ', n_knr)]]$mu0_est )),
+    n0_est = unname(unlist(
+      K_n_r(object = eb_EFPF_fit_NegBinBB_var, n = n_knr)[[paste0('N = ', n_knr)]]$n0_est ))) %>%
+    mutate(p_est = 1/(mu0_est/n0_est + 1),
+           lb = qnbinom(0.025, size = n0_est, prob = p_est, lower.tail = TRUE, log.p = FALSE),
+           ub = qnbinom(0.975, size = n0_est, prob = p_est, lower.tail = TRUE, log.p = FALSE)) %>%
+    rename(means = mu0_est) %>%
+    add_column(Model = paste0("NegBinomial BB x", var_fct_NegBinBB),
+               r = 1:n_knr)
+  
+  knr_EFPF_NegBinBB_df_var$r <- as.integer(knr_EFPF_NegBinBB_df_var$r)
+  knr_EFPF_NegBinBB_df_var <- knr_EFPF_NegBinBB_df_var %>%
+    select(means, lb, ub, r, Model)
+  
+  knr_EFPF_NegBinBB_df <- bind_rows(knr_EFPF_NegBinBB_df, 
+                                    knr_EFPF_NegBinBB_df_var)
+  
+}
+
+
+knr_all_df <- rbind(knr_EFPF_PoissonBB_df, 
+                    knr_EFPF_NegBinBB_df)
+
+
+knr_all_df$Model <- factor(knr_all_df$Model,
+                           levels = c("Poisson BB", 
+                                       paste0("NegBinomial BB x", vars_fct_NegBinBB)))
+
+r_positive <- observed_K_n_r %>%
+  filter(k_n_r > 0) %>%
+  select(r) %>%
+  filter(r < 15)
+
+knr_all_df_plot <- knr_all_df %>%
+  filter(r %in% c(r_positive$r)) %>%
+  mutate(lb = ifelse(lb == 0, 8e-1, lb))
+# %>% filter(Model %in% c("Poisson BB", "NegBinomial BB x10"))
+
+observed_K_n_r_plot <- observed_K_n_r %>%
+  filter(r %in% c(r_positive$r))
+
+
+# for plot
+plot_ribbons_knr <- ggplot() +
+  geom_point(data = observed_K_n_r_plot, aes(x = r, y = k_n_r),
+             color="black", shape = 19, size = 1.5) +
+  geom_ribbon(data = knr_all_df_plot, aes(x = r, ymin = lb, ymax = ub, fill = Model), color = NA, alpha = 0.4) +
+  scale_fill_manual(values = c("Poisson BB" = "grey10", "NegBinomial BB x10" = "grey50", "NegBinomial BB x1000" = "grey80")) +
+  scale_y_log10() +
+  #scale_x_log10() +
+  xlab("r") + ylab(expression(m[r])) + 
+  theme_light() + 
+  theme(legend.position = "top") +
+  scale_x_continuous(breaks = pretty_breaks()) +
+  theme(aspect.ratio = 1) +
+  scale_color_tableau()
+
+
+plot_ribbons_knr
 
 
 ## Prediction: richness and extrapolation -----------

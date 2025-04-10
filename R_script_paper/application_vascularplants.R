@@ -250,6 +250,30 @@ for (var_GammaIBP in vars_GammaIBP){
 print(AICs_list) 
 # PoissonBB/NegBinBB are worse than GammaIBP (higher AIC)
 
+# Max-log_efpf
+max_log_efpf_list <- vector("list", length = 0)
+
+max_log_efpf_list[["PoissonBB"]] <- compute_AICs_BICs(eb_EFPF_fit_PoissonBB)$max_log_efpf
+for (var_fct_NegBinBB in vars_fct_NegBinBB){
+  max_log_efpf_list[[paste0("NegBinBB.var_fct.", var_fct_NegBinBB)]] <- compute_AICs_BICs(
+    list_eb_EFPF_fit_NegBinBB[[paste0("var_fct.", var_fct_NegBinBB)]]
+  )$max_log_efpf
+}
+for (var_GammaIBP in vars_GammaIBP){
+  max_log_efpf_list[[paste0("GammaIBP.var.", var_GammaIBP)]] <- compute_AICs_BICs(
+    list_eb_EFPF_fit_GammaIBP[[paste0("var.", var_GammaIBP)]]
+  )$max_log_efpf
+}
+
+max_log_efpf_df <- data.frame(
+  Model = names(max_log_efpf_list),
+  Max_log_epfp = unlist(max_log_efpf_list),
+  row.names = NULL
+)
+print(max_log_efpf_df)
+#write.csv(max_log_efpf_df, file = "max_log_efpf_df.csv", row.names = FALSE)
+
+
 
 
 ## Extrapolation -----------
@@ -508,9 +532,18 @@ for (var_GammaIBP in vars_GammaIBP){
 
 print(log_marginal_like_object_list) 
 
-### Tables of log-Bayes Factors
 log_marginal_like_list <- lapply(log_marginal_like_object_list, function(x)
   x$logml)
+log_marginal_like_df <- data.frame(
+  name = names(log_marginal_like_list),
+  value = unlist(log_marginal_like_list),
+  row.names = NULL
+)
+print(log_marginal_like_df)
+#write.csv(log_marginal_like_df, file = "log_marginal_like_df.csv", row.names = FALSE)
+
+
+### Tables of log-Bayes Factors
 # Get all unique unordered combinations of names
 name_combos <- combn(names(log_marginal_like_list), 2)
 

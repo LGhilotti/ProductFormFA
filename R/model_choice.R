@@ -212,7 +212,8 @@ compute_AICs_BICs <- function(eb_model_fit){
   }
   
   return(list("AIC" = AIC,
-              "BIC" = BIC))
+              "BIC" = BIC,
+              "max_log_efpf" = max_log_efpf))
   
 }
 
