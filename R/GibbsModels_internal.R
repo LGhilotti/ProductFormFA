@@ -1,8 +1,4 @@
-# 
-#
-###### Functions for fitting the BB with Poisson(lambda) mixture #####
-#
-#
+
 
 # This function is common to BB with Poisson(lambda) mixture and NB(n0,mu0) mixture 
 compute_log_ratio_q_precond <- function(params_prop, params_curr,
@@ -20,6 +16,12 @@ compute_log_ratio_q_precond <- function(params_prop, params_curr,
   return (res)
 }
 
+
+# 
+#
+###### Functions for fitting the BB with Poisson(lambda) mixture #####
+#
+#
 
 
 neg_log_posterior_poiss <- function(pars,
@@ -646,3 +648,210 @@ sampler_GammaIBP <- function(Z,
                "a_chain" = a_vec, "b_chain" = b_vec ))
   
 }
+
+
+
+
+# 
+#
+###### Functions for fitting the classic BB, with prior on (alpha,theta) #####
+#
+#
+
+
+neg_log_posterior_classicBB <- function(pars,
+                                    n, K, counts,
+                                    N,
+                                    a_s, b_s, a_alpha, b_alpha){
+  
+  s_hat <- pars[1]
+  alpha_hat <- pars[2]
+  
+  es <- exp(s_hat)
+  ealpha <- exp(alpha_hat)
+  
+  res <- K*(alpha_hat - lgamma(1+ealpha) - lgamma(es)) +
+    (N-K)*(lgamma(es + n) - lgamma(es)) -
+    N*(lgamma(es + ealpha + n) - lgamma(es + ealpha)) +
+    alpha_hat*a_alpha - b_alpha*ealpha +
+    s_hat*a_s - b_s*es +
+    sum(lgamma(ealpha + counts) +lgamma(es+n-counts)) 
+  
+  return (-res)
+}
+
+
+# TO BE IMPLEMENTED (FIRST COMPUTE ON PAPER)
+compute_grad_log_full_classicBB <- function(s_hat, alpha_bar_hat, N,
+                                        n, K, counts, a_s, b_s, a_alpha, b_alpha){
+  
+  es <- exp(s_hat)
+  ea_bar <- exp(alpha_bar_hat)
+  
+  p1 <- exp(lgamma(n+es) + lgamma(es + ea_bar) -
+              lgamma(es) - lgamma(es + ea_bar +n) )
+  
+  ds_hat <- a_s + es * (lambda*p1*(digamma(n+es) - digamma(es) - digamma(n + es + ea_bar) + 
+                                     digamma(es + ea_bar)) - 
+                          K*(digamma(n+es+ea_bar) - digamma(es+ea_bar)) +
+                          sum(digamma(n - counts + es)) -
+                          K*digamma(es) - b_s)
+  
+  dalpha_bar_hat <- K + a_alpha + ea_bar*( (digamma(n+es+ea_bar) - digamma(es+ea_bar))*
+                                             (- lambda* p1 - K) +
+                                             sum(digamma(counts + ea_bar)) -
+                                             K*digamma(1+ea_bar) - b_alpha)
+  
+  return (c(ds_hat, dalpha_bar_hat))
+}
+
+
+
+#' Metropolis-within-Gibbs sampler for classic BB 
+#'
+#' @param Z [integer] binary matrix of presence/absence (\code{n x K} - dimensional)
+#' @param alpha_bar_0 [numeric] initial value of alpha_bar (with alpha_bar = - alpha)
+#' @param s_0 [numeric] initial value of s (with s = alpha + theta)
+#' @param a_alpha [numeric] hyperparameter "a" of Gamma(a,b) for alpha_bar 
+#' @param b_alpha [numeric] hyperparameter "b" of Gamma(a,b) for alpha_bar 
+#' @param a_s [numeric] hyperparameter "a" of Gamma(a,b) for s 
+#' @param b_s [numeric] hyperparameter "b" of Gamma(a,b) for s 
+#' @param N [numeric] hyperparameter N for classic BB (total number of features) 
+#' @param tau [numeric] MALA step-size
+#' @param S [integer] number of iterations for the MCMC algorithm
+#' @param n_burnin [integer] number of burn-in iterations 
+#' @param thin [integer] thinning
+#' @param seed [integer] seed
+#'
+#' @import numDeriv
+#' @import stats
+#' @import MASS
+#' @import matlib
+#' 
+sampler_classicBB <- function(Z,
+                              alpha_bar_0, s_0,
+                              a_alpha, b_alpha, a_s, b_s, N,
+                              tau, S, n_burnin, thin, seed){
+  
+  set.seed(seed)
+  
+  # Compute total number of subjects
+  n <- nrow(Z)
+  
+  # Delete NA
+  Z <- Z[, colSums(is.na(Z))==0]
+  
+  # Delete zero-columns
+  Z <- Z[, colSums(Z)!=0]
+  
+  # Set K to be the observed number of features
+  K <- ncol(Z)
+  
+  # Compute vector of counts
+  counts <- colSums(Z)
+  
+  ############## Gibbs-sampler ##########################
+  
+  # Define structure to store parameters along the iterations
+  number_saved_iterations <- (S - n_burnin)/thin + 1
+  alpha_bar_vec <- vector(length = number_saved_iterations)
+  s_vec <- vector(length = number_saved_iterations)
+  
+  # Set initial values
+  alpha_bar <- alpha_bar_0
+  s <- s_0
+  
+  # Compute mode of the log-posterior density (order: s_hat, alpha_hat)
+  mode_post <- optim(par = c(0,0), fn = neg_log_posterior_classicBB, n = n, K = K, counts = counts,
+                     N = N, a_s = a_s, b_s = b_s, a_alpha = a_alpha, b_alpha = b_alpha,
+                     method = "L-BFGS-B")$par
+  
+  # Compute the hessian of the neg log-posterior in the mode
+  hess_neg_log_mode <- hessian(func = neg_log_posterior_classicBB, x=mode_post, 
+                               n = n, K = K, counts = counts,
+                               N = N, a_s = a_s, b_s = b_s, a_alpha = a_alpha, b_alpha = b_alpha)
+  
+  # Covariance matrix of posterior density
+  cov_post <- inv(hess_neg_log_mode)
+  
+  # index saved iterations (after burn-in and thinning satisfied)
+  l <- 1
+  
+  for (q in 1:S){
+    
+    
+    ################################################################
+    ############# Draw (s, alpha_bar) | Z ##################
+    ###############################################################
+    
+    # In order to update s, alpha_bar, we update s_hat, alpha_bar_hat, defined
+    # as the logarithm of s, alpha_bar
+    
+    ### Current values for s_hat, alpha_bar_hat
+    s_hat_curr <- log(s)
+    alpha_bar_hat_curr <- log(alpha_bar)
+    
+    ### Propose values for s_hat, alpha_bar_hat
+    # Compute the gradient of log-full conditional for MALA
+    grad_log_full_curr <- compute_grad_log_full_classicBB(s_hat_curr, alpha_bar_hat_curr, N,
+                                                      n, K, counts, a_s, b_s, a_alpha, b_alpha)
+    
+    # Propose from the bivariate normal 
+    params_curr <- c(s_hat_curr, alpha_bar_hat_curr)
+    params_prop <- mvrnorm(mu = params_curr + tau*cov_post%*%grad_log_full_curr,
+                           Sigma = 2*tau*cov_post)
+    
+    s_hat_prop <- params_prop[1]
+    alpha_bar_hat_prop <- params_prop[2]
+    
+    ### Acceptance probability 
+    log_ratio_full <- - neg_log_posterior_classicBB(params_prop, n, K, counts,
+                                                N, a_s, b_s, a_alpha, b_alpha) +
+      neg_log_posterior_classicBB(params_curr, n, K, counts,
+                              N, a_s, b_s, a_alpha, b_alpha )
+    
+    # Compute the log ratio of the terms related to the proposal q
+    grad_log_full_prop <- compute_grad_log_full_classicBB(s_hat_prop, alpha_bar_hat_prop, N,
+                                                      n, K, counts, a_s, b_s, a_alpha, b_alpha)
+    
+    log_ratio_q <- compute_log_ratio_q_precond(params_prop, params_curr,
+                                               tau, cov_post,
+                                               grad_log_full_curr, grad_log_full_prop)
+    
+    # Compute acceptance probability
+    log_acc_prob <- log_ratio_full + log_ratio_q
+    acc_prob <- min(1, exp(log_acc_prob))
+    
+    # Decide if accept or not the new parameter vector
+    if (runif(1) < acc_prob){ # accept
+      s <- exp(s_hat_prop)
+      alpha_bar <- exp(alpha_bar_hat_prop)
+    }
+    
+    
+    ### Store parameters if burn-in is over and once every "thin" iteration
+    if ((q > n_burnin) & (q %% thin == 0) ){
+      print(paste0("iteration: ", q))
+      
+      alpha_bar_vec[l] <- alpha_bar
+      s_vec[l] <- s
+      
+      l <- l+1
+    }
+    
+  }
+  
+  ### End Gibbs sampler #######
+  
+  alpha_bar_vec <- alpha_bar_vec[1:(l-1)]
+  s_vec <- s_vec[1:(l-1)]
+  
+  return (list("alpha_bar_chain" = alpha_bar_vec, 
+               "s_chain" = s_vec))
+  
+}
+
+
+
+
+

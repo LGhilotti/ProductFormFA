@@ -51,7 +51,7 @@ ggplot(accum_df, aes(x = x, y = n_feat)) +
 # EFPF approach -----
 
 # Choices of variances
-vars_fct_NegBinBB <- c(1.1, 2, 10) # c(10,1000) - values in the first manuscript
+vars_fct_NegBinBB <- c(2,10) # c(10,1000) - values in the first manuscript
 vars_GammaIBP <- c(100, 1000) # c(1, 1000) - values in the first manuscript 
 
 # Initial parameters for optimization
@@ -206,8 +206,8 @@ df_K_n_r$Model <- factor(df_K_n_r$Model,
 
 r_positive <- observed_K_n_r %>%
   filter(k_n_r > 0) %>%
-  select(r) %>%
-  filter(r < 15)
+  select(r) 
+#%>%  filter(r < 51)
 
 df_K_n_r_plot <- df_K_n_r %>%
   filter(r %in% c(r_positive$r))
@@ -275,6 +275,177 @@ max_log_efpf_df <- data.frame(
 )
 print(max_log_efpf_df)
 #write.csv(max_log_efpf_df, file = "max_log_efpf_df.csv", row.names = FALSE)
+
+
+
+## Rarefaction and Knr plots with credible bands for best class of mixtures -----------
+
+### Rarefaction intervals for PoissonBB/NegBinBB -----
+n_rare <- n
+
+accum_df <- tibble( x = 0:n_rare,
+                    n_feat = c(0,rarefaction(data_mat[1:n_rare,], n_reorderings = 20)))
+
+
+# PoissonBB
+eb_EFPF_fit_PoissonBB_rare <- eb_EFPF_fit_PoissonBB
+rare_EFPF_PoissonBB_df <- tibble( lambda_post = unname(unlist(
+  rarefaction(object = eb_EFPF_fit_PoissonBB_rare, seed = seed)$lambda_post ))) %>%
+  mutate(lb = qpois(0.025, lambda_post, lower.tail = TRUE, log.p = FALSE),
+         ub = qpois(0.975, lambda_post, lower.tail = TRUE, log.p = FALSE)) %>%
+  rename(means = lambda_post) %>%
+  add_row(means = 0, lb = 0, ub = 0) %>%
+  add_column(Model = "Poisson BB",
+             x = c(1:n_rare,0))
+
+# NegBinBB
+rare_EFPF_NegBinBB_df <- tibble(means = numeric(), 
+                                lb = numeric(), ub = numeric(),
+                                x = integer(), Model = character())
+
+for (var_fct_NegBinBB in vars_fct_NegBinBB){
+  
+  eb_EFPF_fit_NegBinBB_var <- 
+    list_eb_EFPF_fit_NegBinBB[[paste0("var_fct.", var_fct_NegBinBB)]]
+  
+  rare_EFPF_NegBinBB_df_var <- tibble( mu0_post = unname(unlist(
+    rarefaction(object = eb_EFPF_fit_NegBinBB_var, seed = seed)$mu0_post )),
+    n0_post = unname(unlist(
+      rarefaction(object = eb_EFPF_fit_NegBinBB_var, seed = seed)$n0_post ))) %>%
+    mutate(p_post = 1/(mu0_post/n0_post + 1),
+           lb = qnbinom(0.025, size = n0_post, prob = p_post, lower.tail = TRUE, log.p = FALSE),
+           ub = qnbinom(0.975, size = n0_post, prob = p_post, lower.tail = TRUE, log.p = FALSE)) %>%
+    rename(means = mu0_post) %>%
+    add_row(means = 0, lb = 0, ub = 0) %>%
+    add_column(Model = paste0("NegBinomial BB x", var_fct_NegBinBB),
+               x = c(1:n_rare,0))
+  
+  rare_EFPF_NegBinBB_df_var$x <- as.integer(rare_EFPF_NegBinBB_df_var$x)
+  rare_EFPF_NegBinBB_df_var <- rare_EFPF_NegBinBB_df_var %>%
+    select(means, lb, ub, x, Model)
+  
+  rare_EFPF_NegBinBB_df <- bind_rows(rare_EFPF_NegBinBB_df, 
+                                     rare_EFPF_NegBinBB_df_var)
+  
+}
+
+
+rare_all_df <- rbind(rare_EFPF_PoissonBB_df, 
+                     rare_EFPF_NegBinBB_df)
+
+rare_all_df$Model <- factor(rare_all_df$Model, 
+                            levels = c("Poisson BB", 
+                                       paste0("NegBinomial BB x", vars_fct_NegBinBB)))
+
+
+# for plot
+plot_ribbons_rare <- ggplot() +
+  geom_point(data = accum_df, aes(x = x, y = n_feat),
+             color="black", shape = 18, size = 1) +
+  geom_ribbon(data = rare_all_df, aes(x = x, ymin = lb, ymax = ub, fill = Model), color = NA, alpha = 0.4) +
+  scale_fill_manual(values = c("Poisson BB" = "grey10", 
+                               "NegBinomial BB x2" = "grey50", 
+                               "NegBinomial BB x10" = "grey80")) +
+  xlab("# observations") + ylab("# distinct features") + 
+  theme_light() + 
+  theme(legend.position = "top") +
+  scale_y_continuous(breaks = pretty_breaks()) +
+  scale_x_continuous(breaks = pretty_breaks()) +
+  theme(aspect.ratio = 1) +
+  scale_color_tableau()
+
+plot_ribbons_rare
+
+
+### Knr intervals for PoissonBB/NegBinBB --------
+n_knr <- n
+
+observed_K_n_r <- tibble( r = 1:n_knr,
+                          k_n_r = K_n_r(data_mat[1:n_knr,], n_reorderings = 1)[[paste0('N = ', n_knr)]])
+
+# PoissonBB
+eb_EFPF_fit_PoissonBB_knr <- eb_EFPF_fit_PoissonBB
+knr_EFPF_PoissonBB_df <- tibble( lambda_est = unname(unlist(
+  K_n_r(object = eb_EFPF_fit_PoissonBB_knr, n = n_knr)[[paste0('N = ', n_knr)]]$lambda_est ))) %>%
+  mutate(lb = qpois(0.025, lambda_est, lower.tail = TRUE, log.p = FALSE),
+         ub = qpois(0.975, lambda_est, lower.tail = TRUE, log.p = FALSE)) %>%
+  rename(means = lambda_est) %>%
+  add_column(Model = "Poisson BB",
+             r = 1:n_knr)
+
+
+# NegBinBB
+knr_EFPF_NegBinBB_df <- tibble(means = numeric(), 
+                               lb = numeric(), ub = numeric(),
+                               r = integer(), Model = character())
+
+for (var_fct_NegBinBB in vars_fct_NegBinBB){
+  
+  eb_EFPF_fit_NegBinBB_var <- 
+    list_eb_EFPF_fit_NegBinBB[[paste0("var_fct.", var_fct_NegBinBB)]]
+  
+  knr_EFPF_NegBinBB_df_var <- tibble( mu0_est = unname(unlist(
+    K_n_r(object = eb_EFPF_fit_NegBinBB_var, n = n_knr)[[paste0('N = ', n_knr)]]$mu0_est )),
+    n0_est = unname(unlist(
+      K_n_r(object = eb_EFPF_fit_NegBinBB_var, n = n_knr)[[paste0('N = ', n_knr)]]$n0_est ))) %>%
+    mutate(p_est = 1/(mu0_est/n0_est + 1),
+           lb = qnbinom(0.025, size = n0_est, prob = p_est, lower.tail = TRUE, log.p = FALSE),
+           ub = qnbinom(0.975, size = n0_est, prob = p_est, lower.tail = TRUE, log.p = FALSE)) %>%
+    rename(means = mu0_est) %>%
+    add_column(Model = paste0("NegBinomial BB x", var_fct_NegBinBB),
+               r = 1:n_knr)
+  
+  knr_EFPF_NegBinBB_df_var$r <- as.integer(knr_EFPF_NegBinBB_df_var$r)
+  knr_EFPF_NegBinBB_df_var <- knr_EFPF_NegBinBB_df_var %>%
+    select(means, lb, ub, r, Model)
+  
+  knr_EFPF_NegBinBB_df <- bind_rows(knr_EFPF_NegBinBB_df, 
+                                    knr_EFPF_NegBinBB_df_var)
+  
+}
+
+
+knr_all_df <- rbind(knr_EFPF_PoissonBB_df, 
+                    knr_EFPF_NegBinBB_df)
+
+
+knr_all_df$Model <- factor(knr_all_df$Model,
+                           levels = c("Poisson BB", 
+                                      paste0("NegBinomial BB x", vars_fct_NegBinBB)))
+
+r_positive <- observed_K_n_r %>%
+  filter(k_n_r > 0) %>%
+  select(r) 
+# %>%  filter(r < 15)
+
+knr_all_df_plot <- knr_all_df %>%
+  filter(r %in% c(r_positive$r)) %>%
+  mutate(lb = ifelse(lb == 0, 8e-1, lb))
+# %>% filter(Model %in% c("Poisson BB", "NegBinomial BB x10"))
+
+observed_K_n_r_plot <- observed_K_n_r %>%
+  filter(r %in% c(r_positive$r))
+
+
+# for plot
+plot_ribbons_knr <- ggplot() +
+  geom_point(data = observed_K_n_r_plot, aes(x = r, y = k_n_r),
+             color="black", shape = 19, size = 1.5) +
+  geom_ribbon(data = knr_all_df_plot, aes(x = r, ymin = lb, ymax = ub, fill = Model), color = NA, alpha = 0.4) +
+  scale_fill_manual(values = c("Poisson BB" = "grey10", 
+                               "NegBinomial BB x2" = "grey50", 
+                               "NegBinomial BB x10" = "grey80")) +
+  scale_y_log10() +
+  #scale_x_log10() +
+  xlab("r") + ylab(expression(m[r])) + 
+  theme_light() + 
+  theme(legend.position = "top") +
+  scale_x_continuous(breaks = pretty_breaks()) +
+  theme(aspect.ratio = 1) +
+  scale_color_tableau()
+
+
+plot_ribbons_knr
 
 
 
@@ -497,8 +668,10 @@ extr_EFPF_PoissonBB_df %>%
 # Fit GibbsFA's (save workspace)
 if (!file.exists("R_script_paper/fullybayes_BCI_fit_estimate_NegBinBB.RData")) {
   
-  list_prior_fit_NegBinBB <-  vector(mode = "list", length = length(vars_fct_NegBinBB))
-  names(list_prior_fit_NegBinBB) <- paste0("var_fct.", vars_fct_NegBinBB)
+  vars_fct_NegBinBB_bayes <- c(2,10) # c(10,1000) - values in the first manuscript
+  
+  list_prior_fit_NegBinBB <-  vector(mode = "list", length = length(vars_fct_NegBinBB_bayes))
+  names(list_prior_fit_NegBinBB) <- paste0("var_fct.", vars_fct_NegBinBB_bayes)
   
   # Initialization and MCMC setting 
   mcmcparams_NegBinBB <- list(tau = 0.1, 
@@ -519,7 +692,7 @@ if (!file.exists("R_script_paper/fullybayes_BCI_fit_estimate_NegBinBB.RData")) {
   print(paste0("Prior variance of s: ", s_eb/small_val  ))
   
   # Fit the model
-  for (var_fct in vars_fct_NegBinBB){
+  for (var_fct in vars_fct_NegBinBB_bayes){
     
     n0_eb <- list_eb_EFPF_fit_NegBinBB[[paste0("var_fct.", var_fct)]]$n0
     mu0_eb <- list_eb_EFPF_fit_NegBinBB[[paste0("var_fct.", var_fct)]]$mu0
@@ -540,7 +713,7 @@ if (!file.exists("R_script_paper/fullybayes_BCI_fit_estimate_NegBinBB.RData")) {
   }
   
   # Save the entire workspace related to the type just performed
-  save(list = ls(all.names = TRUE), file =  "R_script_paper/fullybayes_BCI_fit_estimate_NegBinBB.RData")
+  save(list_prior_fit_NegBinBB, vars_fct_NegBinBB_bayes, file =  "R_script_paper/fullybayes_BCI_fit_estimate_NegBinBB.RData")
   
 }
 
@@ -548,8 +721,10 @@ if (!file.exists("R_script_paper/fullybayes_BCI_fit_estimate_NegBinBB.RData")) {
 # We run also for GammaIBP + prior (in order to check with BF other than visual check)
 if (!file.exists("R_script_paper/fullybayes_BCI_fit_estimate_GammaIBPcompetitor.RData")) {
   
-  list_prior_fit_GammaIBP <-  vector(mode = "list", length = length(vars_GammaIBP))
-  names(list_prior_fit_GammaIBP) <- paste0("var.", vars_GammaIBP)
+  vars_GammaIBP_bayes <- c(100, 1000)
+  
+  list_prior_fit_GammaIBP <-  vector(mode = "list", length = length(vars_GammaIBP_bayes))
+  names(list_prior_fit_GammaIBP) <- paste0("var.", vars_GammaIBP_bayes)
   
   # Initialization and MCMC setting 
   mcmcparams_GammaIBP <- list(sigq_alpha = 0.1, sigq_s = 0.1, 
@@ -576,7 +751,7 @@ if (!file.exists("R_script_paper/fullybayes_BCI_fit_estimate_GammaIBPcompetitor.
                s_eb/small_val_s))
   
   # Fit the model
-  for (var_GammaIBP in vars_GammaIBP){
+  for (var_GammaIBP in vars_GammaIBP_bayes){
     
     a_eb <- list_eb_EFPF_fit_GammaIBP[[paste0("var.", var_GammaIBP)]]$a
     b_eb <- list_eb_EFPF_fit_GammaIBP[[paste0("var.", var_GammaIBP)]]$b
@@ -598,7 +773,7 @@ if (!file.exists("R_script_paper/fullybayes_BCI_fit_estimate_GammaIBPcompetitor.
   }
   
   # Save the entire workspace related to the type just performed
-  save(list = ls(all.names = TRUE), file =  "R_script_paper/fullybayes_BCI_fit_estimate_GammaIBPcompetitor.RData")
+  save(list_prior_fit_GammaIBP, vars_GammaIBP_bayes, file =  "R_script_paper/fullybayes_BCI_fit_estimate_GammaIBPcompetitor.RData")
   
 }
 
@@ -607,7 +782,12 @@ if (!file.exists("R_script_paper/fullybayes_BCI_fit_estimate_GammaIBPcompetitor.
 # Load the Work space
 load("R_script_paper/fullybayes_BCI_fit_estimate_NegBinBB.RData")
 load("R_script_paper/fullybayes_BCI_fit_estimate_GammaIBPcompetitor.RData")
-
+if (!all(vars_GammaIBP == vars_GammaIBP_bayes)){
+  stop("EB and FullyBayes use different prior variances for GammaIBP models")
+}
+if (!all(vars_fct_NegBinBB == vars_fct_NegBinBB_bayes)){
+  stop("EB and FullyBayes use different prior variances for NegBinBB models")
+}
 
 ## Convergence checks --------
 library(ggmcmc)
