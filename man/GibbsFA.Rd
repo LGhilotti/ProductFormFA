@@ -3,14 +3,15 @@
 \name{GibbsFA}
 \alias{GibbsFA}
 \title{Gibbs-type feature allocation models (GibbsFA): function to fit the model (choose among
-PoissonBB, NegBinBB and GammaIBP).}
+classicBB, PoissonBB, NegBinBB and GammaIBP).}
 \usage{
 GibbsFA(feature_matrix, model, prior, initialization, mcmcparams, seed = 1234)
 }
 \arguments{
 \item{feature_matrix}{A \code{n x K}-dimensional binary matrix of features}
 
-\item{model}{Model to fit. Available models are \code{PoissonBB} (BB with Poisson(lambda) mixture),
+\item{model}{Model to fit. Available models are \code{classicBB} (BB with N total features),
+\code{PoissonBB} (BB with Poisson(lambda) mixture),
 \code{NegBinBB} (BB with NB(n0, mu0) mixture), \code{GammaIBP} (IBP with Gamma(a, b) mixture)}
 
 \item{prior}{Prior object for hyperparameter elicitation}
@@ -26,5 +27,5 @@ An object of class \code{GibbsFA, model}
 }
 \description{
 Gibbs-type feature allocation models (GibbsFA): function to fit the model (choose among
-PoissonBB, NegBinBB and GammaIBP).
+classicBB, PoissonBB, NegBinBB and GammaIBP).
 }

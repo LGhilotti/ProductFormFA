@@ -24,6 +24,47 @@ log_posterior_NegBinBB_cpp <- function(post_sample, data_full) {
   
 }
 
+#' Log-evaluation of un-normalized classicBB posterior
+#'
+#' @param post_sample contains posterior samples
+#' @param data_full contains data and all hyperparameters
+#'
+#'
+log_posterior_classicBB_cpp <- function(post_sample, data_full) {
+  
+  alpha_bar <- post_sample["alpha_bar"]
+  s <- post_sample["s"]
+  
+  pars <- c("alpha"= - alpha_bar, "s" = s, 
+            "Nhat_prime" = data_full$N - data_full$data_summary$K)
+  
+  return ( - neg_log_EFPF_BB(n = data_full$n, counts = data_full$counts,
+                                   pars = pars) +
+             dgamma(alpha_bar, shape = data_full$a_alpha, rate = data_full$b_alpha, log = TRUE) +
+             dgamma(s, shape = data_full$a_s, rate = data_full$b_s, log = TRUE) )
+  
+}
+
+#' Log-evaluation of un-normalized PoissonBB posterior
+#'
+#' @param post_sample contains posterior samples
+#' @param data_full contains data and all hyperparameters
+#'
+#'
+log_posterior_PoissonBB_cpp <- function(post_sample, data_full) {
+  
+  alpha_bar <- post_sample["alpha_bar"]
+  s <- post_sample["s"]
+  
+  pars <- c("alpha"= - alpha_bar, "s" = s, 
+            "lambda" = data_full$lambda)
+  
+  return ( - neg_log_EFPF_PoissonBB(n = data_full$n, counts = data_full$counts,
+                             pars = pars) +
+             dgamma(alpha_bar, shape = data_full$a_alpha, rate = data_full$b_alpha, log = TRUE) +
+             dgamma(s, shape = data_full$a_s, rate = data_full$b_s, log = TRUE) )
+  
+}
 
 #' Log-evaluation of un-normalized GammaIBP posterior
 #'
@@ -60,6 +101,8 @@ compute_log_marginal_likelihood_bridge <- function(model_fit){
   
   
   if (!all(class(model_fit) == c("GibbsFA", "NegBinBB")) &
+      !all(class(model_fit) == c("GibbsFA", "classicBB")) &
+      !all(class(model_fit) == c("GibbsFA", "PoissonBB")) &
       !all(class(model_fit) == c("GibbsFA", "GammaIBP"))){
     stop("Incompatible class object")
   }
@@ -103,6 +146,67 @@ compute_log_marginal_likelihood_bridge <- function(model_fit){
                                       ub = ub_NegBinBB, silent = TRUE)
     
   }
+  
+  # classicBB: use parametrization (alpha_bar, s)
+  if (class(model_fit)[2] == "classicBB"){
+    
+    # 2) Posterior samples and data with hyperparameters
+    samples_classicBB_list <- list("alpha_bar" = - model_fit$alpha_chain, 
+                                  "s" = model_fit$alpha_chain + model_fit$theta_chain)
+    
+    samples_classicBB <- as.matrix(as.data.frame(samples_classicBB_list))
+    
+    data_full_classicBB <- append(data_summary,
+                                 list("N" = model_fit$prior$N,
+                                      "a_alpha" = model_fit$prior$a_alpha,
+                                      "b_alpha" = model_fit$prior$b_alpha,
+                                      "a_s" = model_fit$prior$a_s,
+                                      "b_s" = model_fit$prior$b_s))
+    
+    # 3) Specify parameter bounds 
+    cn <- colnames(samples_classicBB)
+    lb_classicBB <- c(0, 0)
+    ub_classicBB <- c(Inf, Inf)
+    names(lb_classicBB) <- names(ub_classicBB) <- cn
+    
+    # 4) Compute log marginal likelihood via bridge sampling 
+    model.bridge <- bridge_sampler(samples = samples_classicBB, data = data_full_classicBB,
+                                   log_posterior = log_posterior_classicBB_cpp, 
+                                   lb = lb_classicBB,
+                                   ub = ub_classicBB, silent = TRUE)
+    
+  }
+  
+  # PoissonBB: use parametrization (alpha_bar, s)
+  if (class(model_fit)[2] == "PoissonBB"){
+    
+    # 2) Posterior samples and data with hyperparameters
+    samples_PoissonBB_list <- list("alpha_bar" = - model_fit$alpha_chain, 
+                                   "s" = model_fit$alpha_chain + model_fit$theta_chain)
+    
+    samples_PoissonBB <- as.matrix(as.data.frame(samples_PoissonBB_list))
+    
+    data_full_PoissonBB <- append(data_summary,
+                                  list("lambda" = model_fit$prior$lambda,
+                                       "a_alpha" = model_fit$prior$a_alpha,
+                                       "b_alpha" = model_fit$prior$b_alpha,
+                                       "a_s" = model_fit$prior$a_s,
+                                       "b_s" = model_fit$prior$b_s))
+    
+    # 3) Specify parameter bounds 
+    cn <- colnames(samples_PoissonBB)
+    lb_PoissonBB <- c(0, 0)
+    ub_PoissonBB <- c(Inf, Inf)
+    names(lb_PoissonBB) <- names(ub_PoissonBB) <- cn
+    
+    # 4) Compute log marginal likelihood via bridge sampling 
+    model.bridge <- bridge_sampler(samples = samples_PoissonBB, data = data_full_PoissonBB,
+                                   log_posterior = log_posterior_PoissonBB_cpp, 
+                                   lb = lb_PoissonBB,
+                                   ub = ub_PoissonBB, silent = TRUE)
+    
+  }
+  
   # GammaIBP: use parametrization (alpha, s)
   if (class(model_fit)[2] == "GammaIBP"){
     

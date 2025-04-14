@@ -2,7 +2,7 @@
 #'
 mcmcparameters <- function(model, mcmcparams){
   
-  if (model == "PoissonBB" | model == "NegBinBB") {
+  if (model == "PoissonBB" | model == "NegBinBB" | model == "classicBB") {
     
     if (!all(names(mcmcparams) == c("tau","S", "n_burnin", "thin")) ){
       stop(paste0("Incorrect set of MCMC parameters for ", model))

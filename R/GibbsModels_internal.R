@@ -742,6 +742,9 @@ sampler_classicBB <- function(Z,
   
   # Set K to be the observed number of features
   K <- ncol(Z)
+  if (N < K){
+    stop("Hyperparameter N inconsistent with observed number of features K")
+  }
   
   # Compute vector of counts
   counts <- colSums(Z)

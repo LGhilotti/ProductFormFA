@@ -1,8 +1,9 @@
 #' Gibbs-type feature allocation models (GibbsFA): function to fit the model (choose among 
-#' PoissonBB, NegBinBB and GammaIBP).
+#' classicBB, PoissonBB, NegBinBB and GammaIBP).
 #'
 #' @param feature_matrix A \code{n x K}-dimensional binary matrix of features
-#' @param model Model to fit. Available models are \code{PoissonBB} (BB with Poisson(lambda) mixture),
+#' @param model Model to fit. Available models are \code{classicBB} (BB with N total features),
+#' \code{PoissonBB} (BB with Poisson(lambda) mixture),
 #' \code{NegBinBB} (BB with NB(n0, mu0) mixture), \code{GammaIBP} (IBP with Gamma(a, b) mixture)
 #' @param prior Prior object for hyperparameter elicitation 
 #' @param initialization Initialization object for parameters initialization
@@ -169,6 +170,39 @@ GibbsFA <- function(feature_matrix, model, prior, initialization, mcmcparams, se
     class(out) <- c("GibbsFA", "GammaIBP")
     return(out)
   }
+  
+  
+  if (model == "classicBB") {
+    
+    # Initialization of the chain
+    alpha_bar_0 <- initialization$alpha_bar_0
+    s_0 <- initialization$s_0
+    # Hyperparameters
+    a_alpha <- prior$a_alpha
+    b_alpha <- prior$b_alpha
+    a_s <- prior$a_s
+    b_s <- prior$b_s
+    N <- prior$N
+    # Additional MCMC parameters
+    tau <- mcmcparams$tau
+    
+    # Run the model
+    res <- sampler_classicBB(Z = feature_matrix,
+                             alpha_bar_0 = alpha_bar_0, s_0 = s_0,
+                             a_alpha = a_alpha, b_alpha = b_alpha, a_s = a_s, b_s = b_s, N = N,
+                             tau = tau, S = S, n_burnin = n_burnin, thin = thin, seed = seed)
+    
+    out <- list("feature_matrix" = feature_matrix,
+                "prior" = prior,
+                "initialization" = initialization,
+                "MCMCparameters" = mcmcparams,
+                "alpha_chain" = - res$alpha_bar_chain, 
+                "theta_chain" = res$alpha_bar_chain + res$s_chain)
+    
+    class(out) <- c("GibbsFA", "classicBB")
+    return(out)
+  }
+  
   
 }
 

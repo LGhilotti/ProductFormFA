@@ -65,6 +65,22 @@ initialization <- function(model, init){
     
   }
   
+  if (model == "classicBB") {
+    
+    if (!all(names(init) == c("alpha_0","s_0")) ){
+      stop("Incorrect set of initial parameters for PoissonBB.")
+    }
+    
+    if (init$alpha_0 >= 0 | init$s_0 <=0 ){
+      stop("Invalid value of some initial parameters for PoissonBB.")
+    }
+    
+    init["alpha_bar_0"] = - init$alpha_0
+    
+    class(init) <- c("initialization", "classicBB")
+    return(init) 
+  }
+  
 }
 
 

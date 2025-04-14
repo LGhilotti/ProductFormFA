@@ -65,6 +65,20 @@ prior <- function(model, hyper){
     
   }
   
+  if (model == "classicBB") {
+    
+    if (!all(names(hyper) == c("a_alpha","b_alpha","a_s","b_s","N")) ){
+      stop("Incorrect set of hyperparameters for classicBB.")
+    }
+    
+    if (hyper$a_alpha <= 0 | hyper$b_alpha <=0 | hyper$a_s <= 0 | hyper$b_s <= 0 | hyper$N <= 0){
+      stop("Invalid value of some hyperparameters for classicBB.")
+    }
+    
+    class(hyper) <- c("prior", "classicBB")
+    return(hyper) 
+  }
+  
 }
 
 

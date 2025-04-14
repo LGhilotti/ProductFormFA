@@ -717,6 +717,79 @@ if (!file.exists("R_script_paper/fullybayes_BCI_fit_estimate_NegBinBB.RData")) {
   
 }
 
+# We also consider classicBB and PoissonBB as competitor for BayesFactor
+if (!file.exists("R_script_paper/fullybayes_BCI_fit_estimate_classicBB_PoissonBB.RData")) {
+  
+  # MCMC setting for both 
+  mcmcparams_both <- list(tau = 0.1, 
+                          S = 5*10^4, n_burnin = 5*10^3, thin = 2)
+  mcmcparams_obj_both <- mcmcparameters(model = "classicBB", mcmcparams = mcmcparams_both)
+  
+  # 1) classicBB
+  # Initialization
+  init_classicBB <- list(alpha_0 = - 1, s_0 = 15)
+  init_obj_classicBB <- initialization(model = "classicBB", init = init_classicBB )
+  
+  # Prior: EB estimates
+  small_val <- 10^(-4) # 10^(-3) - value in the first manuscript
+  alpha_eb <- eb_EFPF_fit_PoissonBB$alpha
+  theta_eb <- eb_EFPF_fit_PoissonBB$theta
+  N_eb <- eb_EFPF_fit_PoissonBB$lambda
+  
+  s_eb <- alpha_eb + theta_eb
+  
+  print(paste0("Prior variance of -alpha: ", - alpha_eb/small_val  ))
+  print(paste0("Prior variance of s: ", s_eb/small_val  ))
+  
+  # Prior: set hyperparameters
+  hyper_classicBB <- list(a_alpha = - alpha_eb*small_val, b_alpha = small_val,
+                           a_s = s_eb*small_val , b_s = small_val,
+                           N = N_eb)
+  prior_obj_classicBB <- prior(model = "classicBB", hyper = hyper_classicBB)
+  
+  # Fit the model
+  prior_fit_classicBB <- GibbsFA(feature_matrix = data_mat,
+              model = "classicBB", 
+              prior = prior_obj_classicBB,
+              initialization = init_obj_classicBB,
+              mcmcparams = mcmcparams_obj_both)
+    
+  
+  # 2) PoissonBB
+  # Initialization
+  init_PoissonBB <- list(alpha_0 = - 1, s_0 = 15)
+  init_obj_PoissonBB <- initialization(model = "PoissonBB", init = init_PoissonBB )
+  
+  # Prior: EB estimates
+  small_val <- 10^(-4) # 10^(-3) - value in the first manuscript
+  alpha_eb <- eb_EFPF_fit_PoissonBB$alpha
+  theta_eb <- eb_EFPF_fit_PoissonBB$theta
+  lambda_eb <- eb_EFPF_fit_PoissonBB$lambda
+  
+  s_eb <- alpha_eb + theta_eb
+  
+  print(paste0("Prior variance of -alpha: ", - alpha_eb/small_val  ))
+  print(paste0("Prior variance of s: ", s_eb/small_val  ))
+  
+  # Prior: set hyperparameters
+  hyper_PoissonBB <- list(a_alpha = - alpha_eb*small_val, b_alpha = small_val,
+                          a_s = s_eb*small_val , b_s = small_val,
+                          lambda = lambda_eb)
+  prior_obj_PoissonBB <- prior(model = "PoissonBB", hyper = hyper_PoissonBB)
+  
+  # Fit the model
+  prior_fit_PoissonBB <- GibbsFA(feature_matrix = data_mat,
+                                 model = "PoissonBB", 
+                                 prior = prior_obj_PoissonBB,
+                                 initialization = init_obj_PoissonBB,
+                                 mcmcparams = mcmcparams_obj_both)
+  
+  
+  # Save the entire workspace related to the type just performed
+  save(prior_fit_classicBB, prior_fit_PoissonBB, file =  "R_script_paper/fullybayes_BCI_fit_estimate_classicBB_PoissonBB.RData")
+  
+}
+
 
 # We run also for GammaIBP + prior (in order to check with BF other than visual check)
 if (!file.exists("R_script_paper/fullybayes_BCI_fit_estimate_GammaIBPcompetitor.RData")) {
@@ -781,6 +854,7 @@ if (!file.exists("R_script_paper/fullybayes_BCI_fit_estimate_GammaIBPcompetitor.
 
 # Load the Work space
 load("R_script_paper/fullybayes_BCI_fit_estimate_NegBinBB.RData")
+load("R_script_paper/fullybayes_BCI_fit_estimate_classicBB_PoissonBB.RData")
 load("R_script_paper/fullybayes_BCI_fit_estimate_GammaIBPcompetitor.RData")
 if (!all(vars_GammaIBP == vars_GammaIBP_bayes)){
   stop("EB and FullyBayes use different prior variances for GammaIBP models")
@@ -803,6 +877,26 @@ ggs_traceplot(samples_ggs_NegBinBB)
 
 effectiveSize(params_prior_NegBinBB_df)
 
+# classicBB + prior
+params_prior_classicBB <- prior_fit_classicBB[c("alpha_chain", "theta_chain")]
+params_prior_classicBB_df <- as.data.frame(do.call(cbind, params_prior_classicBB))
+
+samples_classicBB <- mcmc.list(mcmc(params_prior_classicBB_df))
+samples_ggs_classicBB <- ggs(samples_classicBB, keep_original_order = TRUE)
+ggs_traceplot(samples_ggs_classicBB)
+
+effectiveSize(params_prior_classicBB_df)
+
+# PoissonBB + prior
+params_prior_PoissonBB <- prior_fit_PoissonBB[c("alpha_chain", "theta_chain")]
+params_prior_PoissonBB_df <- as.data.frame(do.call(cbind, params_prior_PoissonBB))
+
+samples_PoissonBB <- mcmc.list(mcmc(params_prior_PoissonBB_df))
+samples_ggs_PoissonBB <- ggs(samples_PoissonBB, keep_original_order = TRUE)
+ggs_traceplot(samples_ggs_PoissonBB)
+
+effectiveSize(params_prior_PoissonBB_df)
+
 # GammaIBP + prior
 params_prior_GammaIBP <- list_prior_fit_GammaIBP[[paste0("var.", vars_GammaIBP[1])]][c("a_chain","b_chain", "alpha_chain", "theta_chain")]
 params_prior_GammaIBP_df <- as.data.frame(do.call(cbind, params_prior_GammaIBP))
@@ -822,6 +916,10 @@ for (var_fct_NegBinBB in vars_fct_NegBinBB){
     list_prior_fit_NegBinBB[[paste0("var_fct.", var_fct_NegBinBB)]]
   )
 }
+log_marginal_like_object_list[["classicBB"]] <- compute_log_marginal_likelihood_bridge(
+  prior_fit_classicBB)
+log_marginal_like_object_list[["PoissonBB"]] <- compute_log_marginal_likelihood_bridge(
+  prior_fit_PoissonBB)
 for (var_GammaIBP in vars_GammaIBP){
   log_marginal_like_object_list[[paste0("GammaIBP.var.", var_GammaIBP)]] <- compute_log_marginal_likelihood_bridge(
     list_prior_fit_GammaIBP[[paste0("var.", var_GammaIBP)]]
@@ -834,11 +932,13 @@ log_marginal_like_list <- lapply(log_marginal_like_object_list, function(x)
   x$logml)
 log_marginal_like_df <- data.frame(
   name = names(log_marginal_like_list),
-  value = unlist(log_marginal_like_list),
+  log_marg_like = unlist(log_marginal_like_list),
   row.names = NULL
 )
 print(log_marginal_like_df)
 #write.csv(log_marginal_like_df, file = "log_marginal_like_df.csv", row.names = FALSE)
+
+# PoissonBB is the best, classicBB bad!
 
 
 ### Tables of log-Bayes Factors
