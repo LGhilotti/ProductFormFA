@@ -681,26 +681,22 @@ neg_log_posterior_classicBB <- function(pars,
 }
 
 
-# TO BE IMPLEMENTED (FIRST COMPUTE ON PAPER)
 compute_grad_log_full_classicBB <- function(s_hat, alpha_bar_hat, N,
                                         n, K, counts, a_s, b_s, a_alpha, b_alpha){
   
   es <- exp(s_hat)
   ea_bar <- exp(alpha_bar_hat)
   
-  p1 <- exp(lgamma(n+es) + lgamma(es + ea_bar) -
-              lgamma(es) - lgamma(es + ea_bar +n) )
+  ds_hat <- a_s + es * ((N-K)*(digamma(n+es) - digamma(es)) -
+                          N*(digamma(n+es+ea_bar) - digamma(es+ea_bar)) -
+                          b_s - K*digamma(es) +
+                          sum(digamma(n - counts + es)))
+    
   
-  ds_hat <- a_s + es * (lambda*p1*(digamma(n+es) - digamma(es) - digamma(n + es + ea_bar) + 
-                                     digamma(es + ea_bar)) - 
-                          K*(digamma(n+es+ea_bar) - digamma(es+ea_bar)) +
-                          sum(digamma(n - counts + es)) -
-                          K*digamma(es) - b_s)
+  dalpha_bar_hat <- K + a_alpha + ea_bar*(-N*(digamma(n+es+ea_bar) - digamma(es+ea_bar)) -
+                                            b_alpha - K*digamma(1+ea_bar) +
+                                            sum(digamma(counts + ea_bar)))
   
-  dalpha_bar_hat <- K + a_alpha + ea_bar*( (digamma(n+es+ea_bar) - digamma(es+ea_bar))*
-                                             (- lambda* p1 - K) +
-                                             sum(digamma(counts + ea_bar)) -
-                                             K*digamma(1+ea_bar) - b_alpha)
   
   return (c(ds_hat, dalpha_bar_hat))
 }
