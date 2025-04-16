@@ -82,17 +82,41 @@ log_posterior_GammaIBP_cpp <- function(post_sample, data_full) {
   
   return ( - neg_log_EFPF_GammaIBP(n = data_full$n, counts = data_full$counts,
                                    pars = pars) +
-            dbeta(alpha, data_full$a, data_full$b, log = TRUE) +
-            dgamma(s, data_full$a_s, data_full$b_s, log = TRUE) )
+            dbeta(alpha, data_full$a_alpha, data_full$b_alpha, log = TRUE) +
+            dgamma(s, shape = data_full$a_s, rate = data_full$b_s, log = TRUE) )
+  
+}
+
+
+#' Log-evaluation of un-normalized classicIBP posterior
+#'
+#' @param post_sample contains posterior samples
+#' @param data_full contains data and all hyperparameters
+#'
+#'
+log_posterior_classicIBP_cpp <- function(post_sample, data_full) {
+  
+  alpha <- post_sample["alpha"]
+  s <- post_sample["s"]
+  
+  pars <- c("alpha"= alpha, "s" = s, 
+            "Gam" = data_full$gam)
+  
+  return ( - neg_log_EFPF_IBP(n = data_full$n, counts = data_full$counts,
+                                   pars = pars) +
+             dbeta(alpha, data_full$a_alpha, data_full$b_alpha, log = TRUE) +
+             dgamma(s, shape = data_full$a_s, rate = data_full$b_s, log = TRUE) )
   
 }
 
 
 
-
-#' Computes log marginal likelihood via bridge sampling: available models NegBinBB, GammaIBP (Fully-Bayesian approach)
+#' Computes log marginal likelihood via bridge sampling (Fully-Bayesian approach)
 #'
-#' @param model_fit object of class \code{GibbsFA, NegBinBB} or \code{GibbsFA, GammaIBP}
+#' @param model_fit object of class \code{classicBB} (BB with N total features),
+#' \code{PoissonBB} (BB with Poisson(lambda) mixture),
+#' \code{NegBinBB} (BB with NB(n0, mu0) mixture), 
+#' \code{classicIBP} (IBP with gam total mass) and \code{GammaIBP} (IBP with Gamma(a, b) mixture)
 #'
 #' @export
 #' @import bridgesampling
@@ -103,7 +127,8 @@ compute_log_marginal_likelihood_bridge <- function(model_fit){
   if (!all(class(model_fit) == c("GibbsFA", "NegBinBB")) &
       !all(class(model_fit) == c("GibbsFA", "classicBB")) &
       !all(class(model_fit) == c("GibbsFA", "PoissonBB")) &
-      !all(class(model_fit) == c("GibbsFA", "GammaIBP"))){
+      !all(class(model_fit) == c("GibbsFA", "GammaIBP")) &
+      !all(class(model_fit) == c("GibbsFA", "classicIBP"))){
     stop("Incompatible class object")
   }
   
@@ -239,24 +264,59 @@ compute_log_marginal_likelihood_bridge <- function(model_fit){
   }
   
   
+  # classicIBP: use parametrization (alpha, s)
+  if (class(model_fit)[2] == "classicIBP"){
+    
+    # 2) Posterior samples and data with hyperparameters
+    samples_classicIBP_list <- list("alpha" =  model_fit$alpha_chain, 
+                                  "s" = model_fit$alpha_chain + model_fit$theta_chain)
+    
+    samples_classicIBP <- as.matrix(as.data.frame(samples_classicIBP_list))  
+    
+    data_full_classicIBP <- append(data_summary,
+                                 list("gam" = model_fit$prior$gam,
+                                      "a_alpha" = model_fit$prior$a_alpha,
+                                      "b_alpha" = model_fit$prior$b_alpha,
+                                      "a_s" = model_fit$prior$a_s,
+                                      "b_s" = model_fit$prior$b_s))
+    
+    # 3) Specify parameter bounds 
+    cn <- colnames(samples_classicIBP)
+    lb_classicIBP <- c(0, 0)
+    ub_classicIBP <- c(1, Inf)
+    names(lb_classicIBP) <- names(ub_classicIBP) <- cn
+    
+    # 4) Compute log marginal likelihood via bridge sampling 
+    model.bridge <- bridge_sampler(samples = samples_classicIBP, data = data_full_classicIBP,
+                                   log_posterior = log_posterior_classicIBP_cpp, lb = lb_classicIBP,
+                                   ub = ub_classicIBP, silent = TRUE)
+    
+    
+  }
+  
+  
   return(model.bridge)
   
 }
 
 
 
-#' Compute AIC/BIC: available models PoissonBB, NegBinBB, GammaIBP (Empirical-Bayes approach)
+#' Compute AIC/BIC (Empirical-Bayes approach)
 #'
-#' @param eb_model_fit object of class \code{GibbsFA, PoissonBB_eb} 
-#' or \code{GibbsFA, NegBinBB_eb} or \code{GibbsFA, GammaIBP_eb}
+#' @param eb_model_fit object of class \code{classicBB_eb} (BB with N total features),
+#' \code{PoissonBB_eb} (BB with Poisson(lambda) mixture),
+#' \code{NegBinBB_eb} (BB with NB(n0, mu0) mixture), 
+#' \code{classicIBP_eb} (IBP with gam total mass) and \code{GammaIBP_eb} (IBP with Gamma(a, b) mixture)
 #'
 #' @export
 #'
 compute_AICs_BICs <- function(eb_model_fit){
   
-  if (!all(class(eb_model_fit) == c("GibbsFA", "PoissonBB_eb")) &
-      !all(class(eb_model_fit) == c("GibbsFA", "NegBinBB_eb")) &
-      !all(class(eb_model_fit) == c("GibbsFA", "GammaIBP_eb"))){
+  if (!all(class(eb_model_fit) == c("GibbsFA", "NegBinBB_eb")) &
+      !all(class(eb_model_fit) == c("GibbsFA", "classicBB_eb")) &
+      !all(class(eb_model_fit) == c("GibbsFA", "PoissonBB_eb")) &
+      !all(class(eb_model_fit) == c("GibbsFA", "GammaIBP_eb")) &
+      !all(class(eb_model_fit) == c("GibbsFA", "classicIBP_eb"))){
     stop("Incompatible class object")
   }
 
@@ -270,20 +330,6 @@ compute_AICs_BICs <- function(eb_model_fit){
     
 
   # 2) Compute AIC/BIC 
-  # PoissonBB
-  if (class(eb_model_fit)[2] == "PoissonBB_eb"){
-    pars <- c("alpha"= eb_model_fit$alpha, 
-              "s" = eb_model_fit$alpha + eb_model_fit$theta, 
-              "lambda" = eb_model_fit$lambda)
-    
-    max_log_efpf <- - neg_log_EFPF_PoissonBB(n = data_summary$n,
-                                             counts = data_summary$counts,
-                                             pars = pars)
-    
-    AIC <- 2*length(pars) - 2*max_log_efpf
-    BIC <- log(data_summary$n)*length(pars) - 2*max_log_efpf
-    
-  }
   # NegBinBB
   if (class(eb_model_fit)[2] == "NegBinBB_eb"){
     pars <- c("alpha"= eb_model_fit$alpha, 
@@ -299,6 +345,34 @@ compute_AICs_BICs <- function(eb_model_fit){
     BIC <- log(data_summary$n)*length(pars - 1) - 2*max_log_efpf
     
   }
+  # PoissonBB
+  if (class(eb_model_fit)[2] == "PoissonBB_eb"){
+    pars <- c("alpha"= eb_model_fit$alpha, 
+              "s" = eb_model_fit$alpha + eb_model_fit$theta, 
+              "lambda" = eb_model_fit$lambda)
+    
+    max_log_efpf <- - neg_log_EFPF_PoissonBB(n = data_summary$n,
+                                             counts = data_summary$counts,
+                                             pars = pars)
+    
+    AIC <- 2*length(pars) - 2*max_log_efpf
+    BIC <- log(data_summary$n)*length(pars) - 2*max_log_efpf
+    
+  }
+  # classicBB
+  if (class(eb_model_fit)[2] == "classicBB_eb"){
+    pars <- c("alpha"= eb_model_fit$alpha, 
+              "s" = eb_model_fit$alpha + eb_model_fit$theta, 
+              "Nhat_prime" = eb_model_fit$N - data_summary$K)
+    
+    max_log_efpf <- - neg_log_EFPF_BB(n = data_summary$n,
+                                      counts = data_summary$counts,
+                                      pars = pars)
+    
+    AIC <- 2*length(pars) - 2*max_log_efpf
+    BIC <- log(data_summary$n)*length(pars) - 2*max_log_efpf
+    
+  }
   # GammaIBP
   if (class(eb_model_fit)[2] == "GammaIBP_eb"){
     pars <- c("alpha"= eb_model_fit$alpha, 
@@ -309,6 +383,20 @@ compute_AICs_BICs <- function(eb_model_fit){
     max_log_efpf <- - neg_log_EFPF_GammaIBP(n = data_summary$n,
                                             counts = data_summary$counts,
                                             pars = pars)
+    
+    AIC <- 2*length(pars - 1) - 2*max_log_efpf
+    BIC <- log(data_summary$n)*length(pars - 1) - 2*max_log_efpf
+    
+  }
+  # classicIBP
+  if (class(eb_model_fit)[2] == "classicIBP_eb"){
+    pars <- c("alpha"= eb_model_fit$alpha, 
+              "s" = eb_model_fit$alpha + eb_model_fit$theta, 
+              "gam" = eb_model_fit$gam)
+    
+    max_log_efpf <- - neg_log_EFPF_IBP(n = data_summary$n,
+                                       counts = data_summary$counts,
+                                       pars = pars)
     
     AIC <- 2*length(pars - 1) - 2*max_log_efpf
     BIC <- log(data_summary$n)*length(pars - 1) - 2*max_log_efpf

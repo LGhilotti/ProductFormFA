@@ -12,7 +12,8 @@ GibbsFA(feature_matrix, model, prior, initialization, mcmcparams, seed = 1234)
 
 \item{model}{Model to fit. Available models are \code{classicBB} (BB with N total features),
 \code{PoissonBB} (BB with Poisson(lambda) mixture),
-\code{NegBinBB} (BB with NB(n0, mu0) mixture), \code{GammaIBP} (IBP with Gamma(a, b) mixture)}
+\code{NegBinBB} (BB with NB(n0, mu0) mixture),
+\code{classicIBP} (IBP with gam total mass) and \code{GammaIBP} (IBP with Gamma(a, b) mixture)}
 
 \item{prior}{Prior object for hyperparameter elicitation}
 

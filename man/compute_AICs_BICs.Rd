@@ -2,14 +2,16 @@
 % Please edit documentation in R/model_choice.R
 \name{compute_AICs_BICs}
 \alias{compute_AICs_BICs}
-\title{Compute AIC/BIC: available models PoissonBB, NegBinBB, GammaIBP (Empirical-Bayes approach)}
+\title{Compute AIC/BIC (Empirical-Bayes approach)}
 \usage{
 compute_AICs_BICs(eb_model_fit)
 }
 \arguments{
-\item{eb_model_fit}{object of class \code{GibbsFA, PoissonBB_eb}
-or \code{GibbsFA, NegBinBB_eb} or \code{GibbsFA, GammaIBP_eb}}
+\item{eb_model_fit}{object of class \code{classicBB_eb} (BB with N total features),
+\code{PoissonBB_eb} (BB with Poisson(lambda) mixture),
+\code{NegBinBB_eb} (BB with NB(n0, mu0) mixture),
+\code{classicIBP_eb} (IBP with gam total mass) and \code{GammaIBP_eb} (IBP with Gamma(a, b) mixture)}
 }
 \description{
-Compute AIC/BIC: available models PoissonBB, NegBinBB, GammaIBP (Empirical-Bayes approach)
+Compute AIC/BIC (Empirical-Bayes approach)
 }

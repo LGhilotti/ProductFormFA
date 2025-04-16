@@ -482,7 +482,8 @@ neg_log_posterior_gamma_ibp <- function(pars,
 #' @param q [numeric] hyperparameter "q" of Geo(q) for a
 #' @param r [numeric] hyperparameter "r" of Gamma(r,t) for b
 #' @param t [numeric] hyperparameter "t" of Gamma(r,t) for b
-#' @param tau [numeric] MALA step-size
+#' @param sigq_alpha [numeric] variance proposal for alpha
+#' @param sigq_s [numeric] variance proposal for s
 #' @param S [integer] number of iterations for the MCMC algorithm
 #' @param n_burnin [integer] number of burn-in iterations
 #' @param thin [integer] thinning
@@ -571,7 +572,7 @@ sampler_GammaIBP <- function(Z,
     ###############################################################
     
     # In order to update s, alpha, we update s_hat, alpha_hat, 
-    # defined as the logarithm of s, alpha
+    # defined as the logarithm of s and logarithm of alpha/(1-alpha)
     
     ### Current values for s_hat, alpha_hat
     s_hat_curr <- log(s)
@@ -850,6 +851,181 @@ sampler_classicBB <- function(Z,
   
 }
 
+
+
+
+#
+#
+############# Functions for fitting the classic IBP, with prior on (alpha, theta) ##########
+#
+#
+
+
+neg_log_posterior_classicIBP <- function(pars, 
+                                        n, K, counts,
+                                        gam,
+                                        a_s, b_s, a_alpha, b_alpha){
+  
+  s_hat <- pars[1]
+  alpha_hat <- pars[2]
+  
+  es <- exp(s_hat)
+  ealpha <- exp(alpha_hat)
+  
+  pars <- c("alpha" = ealpha/(1+ ealpha),
+                 "s" = es,
+                 "Gam" = gam)
+  
+  log_efpf <- - neg_log_EFPF_IBP(n = n, counts = counts,
+                                 pars = pars)
+  
+  res <- log_efpf + 
+    alpha_hat*a_alpha - (a_alpha + b_alpha)*log(1+ealpha) +
+    s_hat*a_s - b_s*es
+  
+  return (-res)
+}
+
+
+#' Metropolis-within-Gibbs sampler for classic IBP
+#'
+#' @param Z [integer] binary matrix of presence/absence (\code{n x K} - dimensional)
+#' @param alpha_0 [numeric] initial value of alpha
+#' @param s_0 [numeric] initial value of s (with s = alpha + theta)
+#' @param a_alpha [numeric] hyperparameter "a" of Beta(a,b) for alpha 
+#' @param b_alpha [numeric] hyperparameter "b" of Beta(a,b) for alpha 
+#' @param a_s [numeric] hyperparameter "a" of Gamma(a,b) for s 
+#' @param b_s [numeric] hyperparameter "b" of Gamma(a,b) for s 
+#' @param gam [numeric] total mass of the IBP
+#' @param sigq_alpha [numeric] variance proposal for alpha
+#' @param sigq_s [numeric] variance proposal for s
+#' @param S [integer] number of iterations for the MCMC algorithm
+#' @param n_burnin [integer] number of burn-in iterations
+#' @param thin [integer] thinning
+#' @param seed [integer] seed
+#'
+#' 
+#' @import numDeriv
+#' @import stats
+#' @import MASS
+#' @import matlib
+#'
+sampler_classicIBP <- function(Z, 
+                             alpha_0, s_0, 
+                             a_alpha, b_alpha, a_s, b_s, gam,
+                             sigq_alpha, sigq_s, S, n_burnin, thin, seed
+                             ){
+  
+  set.seed(seed)
+  
+  # Compute total number of sites
+  n <- nrow(Z)
+  
+  # Delete NA
+  Z <- Z[, colSums(is.na(Z))==0]
+  
+  # Delete zero-columns
+  Z <- Z[, colSums(Z)!=0]
+  
+  # Set K to be the observed number of features
+  K <- ncol(Z)
+  
+  # Compute vector of counts
+  counts <- colSums(Z)
+  
+  ############## Gibbs-sampler ##########################
+  
+  # Define structure to store parameters along the iterations
+  number_saved_iterations <- (S - n_burnin)/thin + 1
+  alpha_vec <- vector(length = number_saved_iterations)
+  s_vec <- vector(length = number_saved_iterations)
+  
+  # Set initial values
+  alpha <- alpha_0
+  s <- s_0
+  
+  # index saved iterations (after burn-in and thinning satisfied)
+  l <- 1
+  
+  for (w in 1:S){
+    
+    ################################################################
+    ############# Draw (s, alpha) | Z, gam ##################
+    ###############################################################
+    
+    # In order to update s, alpha, we update s_hat, alpha_hat, 
+    # defined as the logarithm of s and logarithm of alpha/(1-alpha)
+    
+    ### Current values for s_hat, alpha_hat
+    s_hat_curr <- log(s)
+    alpha_hat_curr <- log(alpha/(1-alpha))
+    params_curr <- c(s_hat_curr, alpha_hat_curr)
+    
+    ### Update s_hat first
+    # Propose values for s_hat 
+    s_hat_prop <- rnorm(n=1, mean = s_hat_curr, sd = sqrt(sigq_s) ) 
+    
+    params_prop <- c(s_hat_prop, alpha_hat_curr)
+    
+    # Compute acceptance probability: log ratio of the full-cond in prop point and curr point
+    log_acc_prob <- - neg_log_posterior_classicIBP(params_prop, n, K, counts,
+                                                  gam, a_s, b_s, a_alpha, b_alpha) +
+      neg_log_posterior_classicIBP(params_curr, n, K, counts,
+                                  gam, a_s, b_s, a_alpha, b_alpha )
+    
+    acc_prob <- min(1, exp(log_acc_prob))
+    
+    # Decide if accept or not the new parameter 
+    if (runif(1) < acc_prob){ # accept
+      s_hat_curr <- s_hat_prop
+      params_curr <- params_prop
+    }
+    
+    ### Update alpha_hat then
+    alpha_hat_prop <- rnorm(n=1, mean = alpha_hat_curr, sd = sqrt(sigq_alpha) )
+    
+    params_prop <- c(s_hat_curr, alpha_hat_prop)
+    
+    # Compute acceptance probability: log ratio of the full-cond in prop point and curr point
+    log_acc_prob <- - neg_log_posterior_classicIBP(params_prop, n, K, counts,
+                                                  gam, a_s, b_s, a_alpha, b_alpha) +
+      neg_log_posterior_classicIBP(params_curr, n, K, counts,
+                                  gam, a_s, b_s, a_alpha, b_alpha )
+    
+    acc_prob <- min(1, exp(log_acc_prob))
+    
+    # Decide if accept or not the new parameter 
+    if (runif(1) < acc_prob){ # accept
+      alpha_hat_curr <- alpha_hat_prop
+    }
+    
+    
+    ### Set the vector (s, alpha) with the updated values
+    s <- exp(s_hat_curr)
+    alpha <- exp(alpha_hat_curr)/(1 + exp(alpha_hat_curr))
+    
+    
+    ### Store parameters if burn-in is over and once every "thin" iteration
+    if ((w > n_burnin) & (w %% thin == 0) ){
+      print(paste0("iteration: ", w))
+      
+      alpha_vec[l] <- alpha
+      s_vec[l] <- s
+      
+      l <- l+1
+    }
+    
+  }
+  
+  
+  ######## End Gibbs-sampler #############
+  
+  alpha_vec <- alpha_vec[1:(l-1)]
+  s_vec <- s_vec[1:(l-1)]
+  
+  return (list("alpha_chain" = alpha_vec, "s_chain" = s_vec ))
+  
+}
 
 
 

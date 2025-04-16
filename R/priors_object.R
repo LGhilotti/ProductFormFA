@@ -79,6 +79,20 @@ prior <- function(model, hyper){
     return(hyper) 
   }
   
+  if (model == "classicIBP") {
+    
+    if (!all(names(hyper) == c("gam", "a_alpha","b_alpha","a_s","b_s")) ){
+      stop("Incorrect set of hyperparameters for classicIBP.")
+    }
+    
+    if (hyper$gam <= 0 | hyper$a_alpha <= 0 | hyper$b_alpha <=0 | hyper$a_s <= 0 | hyper$b_s <= 0){
+      stop("Invalid value of some hyperparameters for classicIBP.")
+    }
+    
+    class(hyper) <- c("prior", "classicIBP")
+    return(hyper)
+    
+  }
 }
 
 

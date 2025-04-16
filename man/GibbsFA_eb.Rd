@@ -20,15 +20,17 @@ GibbsFA_eb(
 \arguments{
 \item{feature_matrix}{A \code{n x K}-dimensional binary matrix of features}
 
-\item{model}{Model to fit. Available models are \code{PoissonBB} (BB with Poisson(lambda) mixture),
-\code{NegBinBB} (BB with NB(n0, mu0) mixture), \code{GammaIBP} (IBP with Gamma(a, b) mixture)}
+\item{model}{Model to fit. Available models are \code{classicBB_eb} (BB with N total features),
+\code{PoissonBB_eb} (BB with Poisson(lambda) mixture),
+\code{NegBinBB_eb} (BB with NB(n0, mu0) mixture),
+\code{classicIBP_eb} (IBP with gam total mass) and \code{GammaIBP_eb} (IBP with Gamma(a, b) mixture)}
 
 \item{type}{Only "EFPF"}
 
 \item{seed}{seed for fixing randomness}
 }
 \value{
-An object of class \code{GibbsFA, model_eb}
+An object of class \code{GibbsFA, model}
 }
 \description{
 Gibbs-type feature allocation models through Empirical Bayes (GibbsFA_eb):

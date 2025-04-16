@@ -81,6 +81,20 @@ initialization <- function(model, init){
     return(init) 
   }
   
+  if (model == "classicIBP") {
+    
+    if (!all(names(init) == c("alpha_0","s_0")) ){
+      stop("Incorrect set of initial parameters for classicIBP.")
+    }
+    
+    if (init$alpha_0 <= 0 | init$alpha_0 >= 1 | init$s_0 <=0 ){
+      stop("Invalid value of some initial parameters for classicIBP.")
+    }
+    
+    class(init) <- c("initialization", "classicIBP")
+    return(init)
+    
+  }
 }
 
 

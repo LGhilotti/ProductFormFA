@@ -2,13 +2,16 @@
 % Please edit documentation in R/model_choice.R
 \name{compute_log_marginal_likelihood_bridge}
 \alias{compute_log_marginal_likelihood_bridge}
-\title{Computes log marginal likelihood via bridge sampling: available models NegBinBB, GammaIBP (Fully-Bayesian approach)}
+\title{Computes log marginal likelihood via bridge sampling (Fully-Bayesian approach)}
 \usage{
 compute_log_marginal_likelihood_bridge(model_fit)
 }
 \arguments{
-\item{model_fit}{object of class \code{GibbsFA, NegBinBB} or \code{GibbsFA, GammaIBP}}
+\item{model_fit}{object of class \code{classicBB} (BB with N total features),
+\code{PoissonBB} (BB with Poisson(lambda) mixture),
+\code{NegBinBB} (BB with NB(n0, mu0) mixture),
+\code{classicIBP} (IBP with gam total mass) and \code{GammaIBP} (IBP with Gamma(a, b) mixture)}
 }
 \description{
-Computes log marginal likelihood via bridge sampling: available models NegBinBB, GammaIBP (Fully-Bayesian approach)
+Computes log marginal likelihood via bridge sampling (Fully-Bayesian approach)
 }

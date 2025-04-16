@@ -4,7 +4,8 @@
 #' @param feature_matrix A \code{n x K}-dimensional binary matrix of features
 #' @param model Model to fit. Available models are \code{classicBB} (BB with N total features),
 #' \code{PoissonBB} (BB with Poisson(lambda) mixture),
-#' \code{NegBinBB} (BB with NB(n0, mu0) mixture), \code{GammaIBP} (IBP with Gamma(a, b) mixture)
+#' \code{NegBinBB} (BB with NB(n0, mu0) mixture), 
+#' \code{classicIBP} (IBP with gam total mass) and \code{GammaIBP} (IBP with Gamma(a, b) mixture)
 #' @param prior Prior object for hyperparameter elicitation 
 #' @param initialization Initialization object for parameters initialization
 #' @param mcmcparams mcmcparameters object for MCMC setting
@@ -203,6 +204,40 @@ GibbsFA <- function(feature_matrix, model, prior, initialization, mcmcparams, se
     return(out)
   }
   
+  if (model == "classicIBP") {
+    
+    # Initialization of the chain
+    alpha_0 <- initialization$alpha_0
+    s_0 <- initialization$s_0
+    # Hyperparameters
+    gam <- prior$gam
+    a_alpha <- prior$a_alpha
+    b_alpha <- prior$b_alpha
+    a_s <- prior$a_s
+    b_s <- prior$b_s
+    # Additional MCMC parameters
+    sigq_alpha <- mcmcparams$sigq_alpha
+    sigq_s <- mcmcparams$sigq_s
+    
+    # Run the model
+    res <- sampler_classicIBP(Z = feature_matrix,
+                            alpha_0 = alpha_0, s_0 = s_0,
+                            a_alpha = a_alpha, b_alpha = b_alpha, a_s = a_s, b_s = b_s, 
+                            gam = gam,
+                            sigq_alpha = sigq_alpha, sigq_s = sigq_s, S = S, n_burnin = n_burnin, thin = thin, seed = seed
+                            )
+    
+    out <- list("feature_matrix" = feature_matrix,
+                "prior" = prior,
+                "initialization" = initialization,
+                "MCMCparameters" = mcmcparams,
+                "alpha_chain" = res$alpha_chain, 
+                "theta_chain" = res$s_chain - res$alpha_chain)
+    
+    class(out) <- c("GibbsFA", "classicIBP")
+    return(out)
+  }
+  
   
 }
 
@@ -261,12 +296,14 @@ neg_log_EFPF_IBP_R <- function(n, counts, par, known){ # par: alpha, s, Gamma
 #' function to estimate the parameters via EB (maximizing the EFPF).
 #'
 #' @param feature_matrix A \code{n x K}-dimensional binary matrix of features
-#' @param model Model to fit. Available models are \code{PoissonBB} (BB with Poisson(lambda) mixture),
-#' \code{NegBinBB} (BB with NB(n0, mu0) mixture), \code{GammaIBP} (IBP with Gamma(a, b) mixture)
+#' @param model Model to fit. Available models are \code{classicBB_eb} (BB with N total features),
+#' \code{PoissonBB_eb} (BB with Poisson(lambda) mixture),
+#' \code{NegBinBB_eb} (BB with NB(n0, mu0) mixture),
+#' \code{classicIBP_eb} (IBP with gam total mass) and \code{GammaIBP_eb} (IBP with Gamma(a, b) mixture)
 #' @param type Only "EFPF" 
 #' @param seed seed for fixing randomness
 #' 
-#' @return An object of class \code{GibbsFA, model_eb}
+#' @return An object of class \code{GibbsFA, model}
 #'
 #' @import nleqslv
 #' @export
@@ -287,7 +324,7 @@ GibbsFA_eb <- function(feature_matrix, model, type, seed = 1234,
     
     if (all(class(eb_params) == c("eb_params", "BB"))){ # optimizing alpha, theta, Nhat_prime
   
-      if (model == "PoissonBB" | model == "NegBinBB") {
+      if (model == "PoissonBB_eb" | model == "NegBinBB_eb" | model == "classicBB_eb") {
         
         eb_init <- eb_params$init # this contains Nhat_prime, NOT Nhat
         eb_known <- eb_params$known
@@ -299,7 +336,7 @@ GibbsFA_eb <- function(feature_matrix, model, type, seed = 1234,
         
         Nhat_res <- round(unname(res$par["Nhat_prime"]) + K)
         
-        if (model == "PoissonBB"){
+        if (model == "PoissonBB_eb"){
           out <- list("feature_matrix" = feature_matrix,
                       "eb_params" = eb_params,
                       "alpha" = unname(res$par["alpha"]), 
@@ -312,7 +349,7 @@ GibbsFA_eb <- function(feature_matrix, model, type, seed = 1234,
           return(out)
         }
         
-        if (model == "NegBinBB"){
+        if (model == "NegBinBB_eb"){
           out <- list("feature_matrix" = feature_matrix,
                       "eb_params" = eb_params,
                       "alpha" = unname(res$par["alpha"]), 
@@ -327,12 +364,25 @@ GibbsFA_eb <- function(feature_matrix, model, type, seed = 1234,
           return(out)
         }
         
+        if (model == "classicBB_eb"){
+          out <- list("feature_matrix" = feature_matrix,
+                      "eb_params" = eb_params,
+                      "alpha" = unname(res$par["alpha"]), 
+                      "theta" = unname(res$par["s"] - res$par["alpha"]),
+                      "N" = Nhat_res,
+                      "fun_value" = res$objective
+          )
+          
+          class(out) <- c("GibbsFA", "classicBB_eb")
+          return(out)
+        }
+        
       }
     } 
     
     if (all(class(eb_params) == c("eb_params", "IBP"))){ # optimizing alpha, theta, Gamma
       
-      if (model == "GammaIBP"){ # we always optimize all the parameters, never fix them
+      if (model == "GammaIBP_eb" | model == "classicIBP_eb"){ # we always optimize all the parameters, never fix them
         
         eb_init <- eb_params$init 
         eb_known <- eb_params$known
@@ -345,82 +395,98 @@ GibbsFA_eb <- function(feature_matrix, model, type, seed = 1234,
         
         Gamma_prior_mean <- unname(res$par["Gamma"])
         
-        out <- list("feature_matrix" = feature_matrix,
-                    "eb_params" = eb_params,
-                    "alpha" = unname(res$par["alpha"]), 
-                    "theta" = unname(res$par["s"] - res$par["alpha"]),
-                    "var" = var_GammaIBP,
-                    "a" = Gamma_prior_mean^2 / var_GammaIBP,
-                    "b" = Gamma_prior_mean / var_GammaIBP,
-                    "fun_value" = res$objective
-        )
+        if (model == "GammaIBP_eb"){
+          out <- list("feature_matrix" = feature_matrix,
+                      "eb_params" = eb_params,
+                      "alpha" = unname(res$par["alpha"]), 
+                      "theta" = unname(res$par["s"] - res$par["alpha"]),
+                      "var" = var_GammaIBP,
+                      "gam" = Gamma_prior_mean,
+                      "a" = Gamma_prior_mean^2 / var_GammaIBP,
+                      "b" = Gamma_prior_mean / var_GammaIBP,
+                      "fun_value" = res$objective
+          )
+          
+          class(out) <- c("GibbsFA", "GammaIBP_eb")
+          return(out)
+        }
         
-        class(out) <- c("GibbsFA", "GammaIBP_eb")
-        return(out)
+        if (model == "classicIBP_eb"){
+          out <- list("feature_matrix" = feature_matrix,
+                      "eb_params" = eb_params,
+                      "alpha" = unname(res$par["alpha"]), 
+                      "theta" = unname(res$par["s"] - res$par["alpha"]),
+                      "gam" = Gamma_prior_mean,
+                      "fun_value" = res$objective
+          )
+          
+          class(out) <- c("GibbsFA", "classicIBP_eb")
+          return(out)
+        }
+        
+        
         
       }
       
     }
       
       
-    if (!all(class(eb_params) == c("eb_params", model))  ){
-      stop("Starting point/known parameters for optimization not compatible")
-    }
+    stop("Incompatible eb_params and model parameters.")
     
-    if (model == "PoissonBB") {
-      
-      # Initialization of the optimization
-      eb_init <- eb_params$init
-      eb_known <- eb_params$known
-      
-      res <- nlminb(
-        start = eb_init, objective =  neg_log_EFPF_GibbsFA_R, model = "PoissonBB", 
-        n = n, counts = counts, known = eb_known, lower = c(-Inf, 1e-5, 1e-5), upper = c(-1e-5, Inf, Inf)
-      )
-      
-      
-      out <- list("feature_matrix" = feature_matrix,
-                  "eb_params" = eb_params,
-                  "alpha" = unname(res$par["alpha"]), 
-                  "theta" = unname(res$par["s"] - res$par["alpha"]),
-                  "lambda" = eb_known[["lambda"]],
-                  "fun_value" = res$objective
-      )
-      
-      class(out) <- c("GibbsFA", "PoissonBB_eb")
-      return(out)
-    }
-    
-    if (model == "NegBinBB") {
-      
-      # Initialization of the optimization
-      eb_init <- eb_params$init
-      eb_known <- eb_params$known
-      
-      res <- nlminb(
-        start = eb_init, objective = neg_log_EFPF_GibbsFA_R, model = "NegBinBB", 
-        n = n, counts = counts, known = eb_known,
-        lower = c(-Inf, 1e-5, 1 + 1e-5, 1e-5), upper = c(-1e-5, Inf, Inf, Inf)
-      )
-      
-      
-      out <- list("feature_matrix" = feature_matrix,
-                  "eb_params" = eb_params,
-                  "alpha" = unname(res$par["alpha"]), 
-                  "theta" = unname(res$par["s"] - res$par["alpha"]),
-                  "var_fct" = eb_known[["var_fct"]],
-                  "n0" = eb_known[["mu0"]]/(eb_known[["var_fct"]] - 1),
-                  "mu0" = eb_known[["mu0"]],
-                  "fun_value" = res$objective
-      )
-      
-      class(out) <- c("GibbsFA", "NegBinBB_eb")
-      return(out)
-    }
-    
-    if (model == "GammaIBP") {
-      stop("not implemented")
-    }
+    # if (model == "PoissonBB") {
+    #   
+    #   # Initialization of the optimization
+    #   eb_init <- eb_params$init
+    #   eb_known <- eb_params$known
+    #   
+    #   res <- nlminb(
+    #     start = eb_init, objective =  neg_log_EFPF_GibbsFA_R, model = "PoissonBB", 
+    #     n = n, counts = counts, known = eb_known, lower = c(-Inf, 1e-5, 1e-5), upper = c(-1e-5, Inf, Inf)
+    #   )
+    #   
+    #   
+    #   out <- list("feature_matrix" = feature_matrix,
+    #               "eb_params" = eb_params,
+    #               "alpha" = unname(res$par["alpha"]), 
+    #               "theta" = unname(res$par["s"] - res$par["alpha"]),
+    #               "lambda" = eb_known[["lambda"]],
+    #               "fun_value" = res$objective
+    #   )
+    #   
+    #   class(out) <- c("GibbsFA", "PoissonBB_eb")
+    #   return(out)
+    # }
+    # 
+    # if (model == "NegBinBB") {
+    #   
+    #   # Initialization of the optimization
+    #   eb_init <- eb_params$init
+    #   eb_known <- eb_params$known
+    #   
+    #   res <- nlminb(
+    #     start = eb_init, objective = neg_log_EFPF_GibbsFA_R, model = "NegBinBB", 
+    #     n = n, counts = counts, known = eb_known,
+    #     lower = c(-Inf, 1e-5, 1 + 1e-5, 1e-5), upper = c(-1e-5, Inf, Inf, Inf)
+    #   )
+    #   
+    #   
+    #   out <- list("feature_matrix" = feature_matrix,
+    #               "eb_params" = eb_params,
+    #               "alpha" = unname(res$par["alpha"]), 
+    #               "theta" = unname(res$par["s"] - res$par["alpha"]),
+    #               "var_fct" = eb_known[["var_fct"]],
+    #               "n0" = eb_known[["mu0"]]/(eb_known[["var_fct"]] - 1),
+    #               "mu0" = eb_known[["mu0"]],
+    #               "fun_value" = res$objective
+    #   )
+    #   
+    #   class(out) <- c("GibbsFA", "NegBinBB_eb")
+    #   return(out)
+    # }
+    # 
+    # if (model == "GammaIBP") {
+    #   stop("not implemented")
+    # }
     
   }
   
