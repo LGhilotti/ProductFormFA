@@ -86,7 +86,7 @@ eb_EFPF_fit_estimate_polynomial_scenario <- function(xi,
     # Fit the models
     # PoissonBB
     list_eb_EFPF_fit_PoissonBB[[lab_comb_bb]] <- GibbsFA_eb(feature_matrix = train_mat, 
-                                                            model = "PoissonBB", 
+                                                            model = "PoissonBB_eb", 
                                                             type = "EFPF",
                                                             eb_params =  eb_params_obj_BB)
     
@@ -95,7 +95,7 @@ eb_EFPF_fit_estimate_polynomial_scenario <- function(xi,
       
       list_eb_EFPF_fit_NegBinBB[[paste0("var_fct.", var_fct_NegBinBB)]][[lab_comb_bb]] <- 
         GibbsFA_eb(feature_matrix = train_mat,
-                   model = "NegBinBB", type = "EFPF",
+                   model = "NegBinBB_eb", type = "EFPF",
                    eb_params =  eb_params_obj_BB, 
                    var_fct = var_fct_NegBinBB)
       
@@ -106,7 +106,7 @@ eb_EFPF_fit_estimate_polynomial_scenario <- function(xi,
       
       list_eb_EFPF_fit_GammaIBP[[paste0("var.", var_GammaIBP)]][[lab_comb_ibp]] <-
         GibbsFA_eb(feature_matrix = train_mat,
-                   model = "GammaIBP", type = "EFPF",
+                   model = "GammaIBP_eb", type = "EFPF",
                    eb_params =  eb_params_obj_IBP,
                    var_GammaIBP = var_GammaIBP)
       
@@ -129,8 +129,8 @@ xi = 1
 # Fit and estimate richness, rarefaction and extrapolation for GibbsFA's (save workspace)
 if (!file.exists(paste0("R_script_paper/eb_EFPF_poly_",xi,"_fit_estimate.RData"))) {
   
-  vars_fct_NegBinBB <- c(10, 1000) 
-  vars_GammaIBP <- c(0.01, 100)
+  vars_fct_NegBinBB <- c(10, 100) 
+  vars_GammaIBP <- c(0.01, 1, 100)  # c(0.01, 100) - values in the original manuscript
   
   eb_init_BB <- list(alpha = -10, s = 10, Nhat_prime = 100)
   eb_known_BB <- list()
@@ -216,6 +216,7 @@ ggplot(accum_df, aes(x = x, y = n_feat)) +
       "GammaIBP" = "Mixtures of IBPs"
     )
   ) 
+ggsave(filename = paste0("R_script_paper/Paper_plots/rarefaction_poly_", xi, "_eb_EFPF_means.pdf"), width = 4, height = 4, dpi = 300, units = "in", device='pdf')
 
 
 ## Model-checking on K_n_r -------
@@ -263,11 +264,11 @@ df_K_n_r$Model <- factor(df_K_n_r$Model,
 
 r_positive <- observed_K_n_r %>%
   filter(k_n_r > 0) %>%
-  select(r) %>%
-  filter(r < 15)
+  select(r) 
+# %>%  filter(r < 15)
 
 df_K_n_r_plot <- df_K_n_r %>%
-  filter(r %in% c(r_positive$r))
+  filter(means >= 10^(-2))
 
 observed_K_n_r_plot <- observed_K_n_r %>%
   filter(r %in% c(r_positive$r))
@@ -276,11 +277,13 @@ observed_K_n_r_plot <- observed_K_n_r %>%
 ggplot(observed_K_n_r_plot,  aes(x = r, y = k_n_r)) +
   geom_point(color="black", shape = 19, size = 1) +
   geom_line( data = df_K_n_r_plot, aes(x = r, y = means, color = Model), linetype = "dashed") +
-  scale_y_log10() +
+  scale_y_log10(breaks = c(0.01, 0.1, 1, 10, 100),
+                labels = c(0.01, 0.1, 1, 10, 100)) +
+  scale_x_log10() +
   xlab("r") + ylab(expression(m[r])) + 
   theme_light() + 
   theme(legend.position = "top") +
-  scale_x_continuous(breaks = pretty_breaks()) +
+  #scale_x_continuous(breaks = pretty_breaks()) +
   theme(aspect.ratio = 1) + 
   scale_color_tableau(
     labels = c(
@@ -288,6 +291,7 @@ ggplot(observed_K_n_r_plot,  aes(x = r, y = k_n_r)) +
       "GammaIBP" = "Mixtures of IBPs"
     )
   )
+ggsave(filename = paste0("R_script_paper/Paper_plots/knr_poly_", xi, "_eb_EFPF_means.pdf"), width = 4, height = 4, dpi = 300, units = "in", device='pdf')
 
 
 
@@ -364,23 +368,47 @@ rare_all_df$Model <- factor(rare_all_df$Model,
                             levels = paste0("Gamma IBP, Variance: ", vars_GammaIBP))
 
 
-# for plot
-plot_ribbons_rare <- ggplot() +
+# for plot (different line colors)
+plot_rare_ci <- ggplot() +
   geom_point(data = accum_df, aes(x = x, y = n_feat),
              color="black", shape = 18, size = 1) +
-  geom_ribbon(data = rare_all_df, aes(x = x, ymin = lb, ymax = ub, fill = Model), color = NA, alpha = 0.4) +
-  scale_fill_manual(values = c(
-    "Gamma IBP, Variance: 0.01" = "grey10",
-    "Gamma IBP, Variance: 100" = "grey60")) +
+  # Lower bound lines
+  geom_line(data = rare_all_df,
+            aes(x = x, y = lb, color = Model),
+            linetype = "solid", linewidth = 0.8) +
+  # Upper bound lines
+  geom_line(data = rare_all_df,
+            aes(x = x, y = ub, color = Model),
+            linetype = "solid", linewidth = 0.8) +
   xlab("# observations") + ylab("# distinct features") + 
   theme_light() + 
   theme(legend.position = "top") +
   scale_y_continuous(breaks = pretty_breaks()) +
   scale_x_continuous(breaks = pretty_breaks()) +
-  theme(aspect.ratio = 1) +
+  theme(aspect.ratio = 1) + 
   scale_color_tableau()
 
-plot_ribbons_rare
+plot_rare_ci
+ggsave(filename = paste0("R_script_paper/Paper_plots/rarefaction_poly_", xi, "_eb_EFPF_credible_int.pdf"), width = 5.2, height = 5.2, dpi = 300, units = "in", device='pdf')
+
+
+# # for plot (ribbons)
+# ggplot() +
+#   geom_point(data = accum_df, aes(x = x, y = n_feat),
+#              color="black", shape = 18, size = 1) +
+#   geom_ribbon(data = rare_all_df, aes(x = x, ymin = lb, ymax = ub, fill = Model), color = NA, alpha = 0.4) +
+#   scale_fill_manual(values = c(
+#     "Gamma IBP, Variance: 0.01" = "grey10",
+#     "Gamma IBP, Variance: 100" = "grey60")) +
+#   xlab("# observations") + ylab("# distinct features") + 
+#   theme_light() + 
+#   theme(legend.position = "top") +
+#   scale_y_continuous(breaks = pretty_breaks()) +
+#   scale_x_continuous(breaks = pretty_breaks()) +
+#   theme(aspect.ratio = 1) +
+#   scale_color_tableau()
+
+
 
 
 ### Knr intervals for GammaIBP --------
@@ -429,37 +457,66 @@ knr_all_df$Model <- factor(knr_all_df$Model,
 
 r_positive <- observed_K_n_r %>%
   filter(k_n_r > 0) %>%
-  select(r) %>%
-  filter(r < 15)
-
-knr_all_df_plot <- knr_all_df %>%
-  filter(r %in% c(r_positive$r)) %>%
-  mutate(lb = ifelse(lb == 0, 8e-1, lb))
-# %>% filter(Model %in% c("Poisson BB", "NegBinomial BB x10"))
+  select(r) 
+# %>% filter(r < 15)
 
 observed_K_n_r_plot <- observed_K_n_r %>%
-  filter(r %in% c(r_positive$r))
+  filter(r %in% c(r_positive$r)) 
 
 
-# for plot
-plot_ribbons_knr <- ggplot() +
+# for plot (line color)
+knr_all_df_plot_lb <- knr_all_df %>% select(r, lb, Model) %>% 
+  filter( lb > 0)
+knr_all_df_plot_ub <- knr_all_df %>% select(r, ub, Model) %>% 
+  filter( ub > 0)
+
+plot_knr_ci <- ggplot() +
   geom_point(data = observed_K_n_r_plot, aes(x = r, y = k_n_r),
              color="black", shape = 19, size = 1.5) +
-  geom_ribbon(data = knr_all_df_plot, aes(x = r, ymin = lb, ymax = ub, fill = Model), color = NA, alpha = 0.4) +
-  scale_fill_manual(values = c(
-    "Gamma IBP, Variance: 0.01" = "grey10",
-    "Gamma IBP, Variance: 100" = "grey60")) +
+  # Lower bound lines
+  geom_line(data = knr_all_df_plot_lb,
+            aes(x = r, y = lb, color = Model),
+            linetype = "solid", size = 0.8) +
+  # Upper bound lines
+  geom_line(data = knr_all_df_plot_ub,
+            aes(x = r, y = ub, color = Model),
+            linetype = "solid", size = 0.8) +
   scale_y_log10() +
-  #scale_x_log10() +
+  scale_x_log10() +
   xlab("r") + ylab(expression(m[r])) + 
   theme_light() + 
   theme(legend.position = "top") +
-  scale_x_continuous(breaks = pretty_breaks()) +
+  #scale_x_continuous(breaks = pretty_breaks()) +
   theme(aspect.ratio = 1) +
   scale_color_tableau()
 
+plot_knr_ci
+ggsave(filename = paste0("R_script_paper/Paper_plots/knr_poly_", xi, "_eb_EFPF_credible_int.pdf"), width = 5.2, height = 5.2, dpi = 300, units = "in", device='pdf')
 
-plot_ribbons_knr
+
+# # for plot (ribbons)
+# knr_all_df_plot <- knr_all_df %>%
+#   filter(r %in% c(r_positive$r)) %>%
+#   mutate(lb = ifelse(lb == 0, 8e-1, lb))
+# 
+# ggplot() +
+#   geom_point(data = observed_K_n_r_plot, aes(x = r, y = k_n_r),
+#              color="black", shape = 19, size = 1.5) +
+#   geom_ribbon(data = knr_all_df_plot, aes(x = r, ymin = lb, ymax = ub, fill = Model), color = NA, alpha = 0.4) +
+#   scale_fill_manual(values = c(
+#     "Gamma IBP, Variance: 0.01" = "grey10",
+#     "Gamma IBP, Variance: 100" = "grey60")) +
+#   scale_y_log10() +
+#   #scale_x_log10() +
+#   xlab("r") + ylab(expression(m[r])) + 
+#   theme_light() + 
+#   theme(legend.position = "top") +
+#   scale_x_continuous(breaks = pretty_breaks()) +
+#   theme(aspect.ratio = 1) +
+#   scale_color_tableau()
+
+
+
 
 
 
@@ -498,7 +555,9 @@ if (!file.exists(paste0("R_script_paper/eb_Freq_poly_",xi,"_fit_estimate.RData")
   }
   
   # Save the entire workspace related to the mechanism just performed
-  save(list = ls(all.names = TRUE), file =  paste0("R_script_paper/eb_Freq_poly_",xi,"_fit_estimate.RData"))
+  save(M,
+       list_extr_GT, 
+       file =  paste0("R_script_paper/eb_Freq_poly_",xi,"_fit_estimate.RData"))
   
 }
 
@@ -620,29 +679,56 @@ plot_means <- ggplot() +
   theme(aspect.ratio = 1) +
   scale_color_tableau()
 
-
-plot_ribbons <- ggplot() +
+# for plot (line color)
+plot_bands <- ggplot() +
   geom_point(data = accum_df_train, aes(x = x, y = n_feat),
              color="black", shape = 19, size = 0.1) +
   geom_point( data = accum_df_test, aes(x = x, y = n_feat),
               color="black", shape = 19, size = 0.1) +
-  geom_ribbon(data = extr_all_df, aes(x = x, ymin = lb, ymax = ub, fill = Model), color = NA, alpha = 0.4) +
-  scale_fill_manual(values = c(
-    "Gamma IBP, Variance: 0.01" = "grey10",
-    "Gamma IBP, Variance: 100" = "grey60")) +
+  # Lower bound lines
+  geom_line(data = extr_all_df,
+            aes(x = x, y = lb, color = Model),
+            linetype = "solid", linewidth = 0.6) +
+  # Upper bound lines
+  geom_line(data = extr_all_df,
+            aes(x = x, y = ub, color = Model),
+            linetype = "solid", linewidth = 0.6) +  
   facet_grid(~ n_train_latex,
              labeller = label_parsed,
              scales = "free_x")  +
   geom_vline(data = temp, mapping =  aes(xintercept = xvalues) , linetype = "dashed", color = "grey") +
-  xlab("# observations") + ylab("# distinct features") + 
-  theme_light() + 
+  xlab("# observations") + ylab("# distinct features") +
+  theme_light() +
   theme(legend.position = "top") +
   scale_y_continuous(breaks = pretty_breaks()) +
   scale_x_continuous(breaks = pretty_breaks()) +
   theme(aspect.ratio = 1) +
   scale_color_tableau()
 
+# # for plot (ribbons)
+# ggplot() +
+#   geom_point(data = accum_df_train, aes(x = x, y = n_feat),
+#              color="black", shape = 19, size = 0.1) +
+#   geom_point( data = accum_df_test, aes(x = x, y = n_feat),
+#               color="black", shape = 19, size = 0.1) +
+#   geom_ribbon(data = extr_all_df, aes(x = x, ymin = lb, ymax = ub, fill = Model), color = NA, alpha = 0.4) +
+#   scale_fill_manual(values = c(
+#     "Gamma IBP, Variance: 0.01" = "grey10",
+#     "Gamma IBP, Variance: 100" = "grey60")) +
+#   facet_grid(~ n_train_latex,
+#              labeller = label_parsed,
+#              scales = "free_x")  +
+#   geom_vline(data = temp, mapping =  aes(xintercept = xvalues) , linetype = "dashed", color = "grey") +
+#   xlab("# observations") + ylab("# distinct features") + 
+#   theme_light() + 
+#   theme(legend.position = "top") +
+#   scale_y_continuous(breaks = pretty_breaks()) +
+#   scale_x_continuous(breaks = pretty_breaks()) +
+#   theme(aspect.ratio = 1) +
+#   scale_color_tableau()
 
-combined_plot <- plot_means / plot_ribbons
+
+combined_plot <- plot_means / plot_bands
 combined_plot
+ggsave(filename = paste0("R_script_paper/Paper_plots/extr_poly_", xi, "_eb_EFPF.pdf"), width = 9, height = 9, dpi = 300, units = "in", device='pdf')
 

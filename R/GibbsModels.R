@@ -431,64 +431,69 @@ GibbsFA_eb <- function(feature_matrix, model, type, seed = 1234,
     }
       
       
+    if (model == "PoissonBB") {
+
+      # Initialization of the optimization
+      eb_init <- eb_params$init
+      eb_known <- eb_params$known
+
+      res <- nlminb(
+        start = eb_init, objective =  neg_log_EFPF_GibbsFA_R, model = "PoissonBB",
+        n = n, counts = counts, known = eb_known, lower = c(-Inf, 1e-5, 1e-5), upper = c(-1e-5, Inf, Inf)
+      )
+
+
+      out <- list("feature_matrix" = feature_matrix,
+                  "eb_params" = eb_params,
+                  "alpha" = unname(res$par["alpha"]),
+                  "theta" = unname(res$par["s"] - res$par["alpha"]),
+                  "lambda" = eb_known[["lambda"]],
+                  "fun_value" = res$objective
+      )
+
+      class(out) <- c("GibbsFA", "PoissonBB_eb")
+      return(out)
+    }
+
+    if (model == "NegBinBB") {
+
+      # Initialization of the optimization
+      eb_init <- eb_params$init
+      eb_known <- eb_params$known
+
+      res <- nlminb(
+        start = eb_init, objective = neg_log_EFPF_GibbsFA_R, model = "NegBinBB",
+        n = n, counts = counts, known = eb_known,
+        lower = c(-Inf, 1e-5, 1 + 1e-5, 1e-5), upper = c(-1e-5, Inf, Inf, Inf)
+      )
+
+
+      out <- list("feature_matrix" = feature_matrix,
+                  "eb_params" = eb_params,
+                  "alpha" = unname(res$par["alpha"]),
+                  "theta" = unname(res$par["s"] - res$par["alpha"]),
+                  "var_fct" = eb_known[["var_fct"]],
+                  "n0" = eb_known[["mu0"]]/(eb_known[["var_fct"]] - 1),
+                  "mu0" = eb_known[["mu0"]],
+                  "fun_value" = res$objective
+      )
+
+      class(out) <- c("GibbsFA", "NegBinBB_eb")
+      return(out)
+    }
+
+    if (model == "GammaIBP") {
+      stop("not implemented")
+    }
+    
+    
     stop("Incompatible eb_params and model parameters.")
     
-    # if (model == "PoissonBB") {
-    #   
-    #   # Initialization of the optimization
-    #   eb_init <- eb_params$init
-    #   eb_known <- eb_params$known
-    #   
-    #   res <- nlminb(
-    #     start = eb_init, objective =  neg_log_EFPF_GibbsFA_R, model = "PoissonBB", 
-    #     n = n, counts = counts, known = eb_known, lower = c(-Inf, 1e-5, 1e-5), upper = c(-1e-5, Inf, Inf)
-    #   )
-    #   
-    #   
-    #   out <- list("feature_matrix" = feature_matrix,
-    #               "eb_params" = eb_params,
-    #               "alpha" = unname(res$par["alpha"]), 
-    #               "theta" = unname(res$par["s"] - res$par["alpha"]),
-    #               "lambda" = eb_known[["lambda"]],
-    #               "fun_value" = res$objective
-    #   )
-    #   
-    #   class(out) <- c("GibbsFA", "PoissonBB_eb")
-    #   return(out)
-    # }
-    # 
-    # if (model == "NegBinBB") {
-    #   
-    #   # Initialization of the optimization
-    #   eb_init <- eb_params$init
-    #   eb_known <- eb_params$known
-    #   
-    #   res <- nlminb(
-    #     start = eb_init, objective = neg_log_EFPF_GibbsFA_R, model = "NegBinBB", 
-    #     n = n, counts = counts, known = eb_known,
-    #     lower = c(-Inf, 1e-5, 1 + 1e-5, 1e-5), upper = c(-1e-5, Inf, Inf, Inf)
-    #   )
-    #   
-    #   
-    #   out <- list("feature_matrix" = feature_matrix,
-    #               "eb_params" = eb_params,
-    #               "alpha" = unname(res$par["alpha"]), 
-    #               "theta" = unname(res$par["s"] - res$par["alpha"]),
-    #               "var_fct" = eb_known[["var_fct"]],
-    #               "n0" = eb_known[["mu0"]]/(eb_known[["var_fct"]] - 1),
-    #               "mu0" = eb_known[["mu0"]],
-    #               "fun_value" = res$objective
-    #   )
-    #   
-    #   class(out) <- c("GibbsFA", "NegBinBB_eb")
-    #   return(out)
-    # }
-    # 
-    # if (model == "GammaIBP") {
-    #   stop("not implemented")
-    # }
-    
   }
+  
+  
+  
+  
   
 }
 

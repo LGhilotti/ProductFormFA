@@ -43,15 +43,15 @@ ggplot(accum_df, aes(x = x, y = n_feat)) +
   scale_x_continuous(breaks = pretty_breaks()) +
   theme(aspect.ratio = 1) + 
   scale_color_tableau()
-#ggsave(filename = "R_script_paper/Paper_plots/accumulation_Plants.pdf", width = 4, height = 4, dpi = 300, units = "in", device='pdf')
+ggsave(filename = "R_script_paper/Paper_plots/accumulation_Plants.pdf", width = 4, height = 4, dpi = 300, units = "in", device='pdf')
 
 
 
 # EFPF approach -----
 
 # Choices of variances
-vars_fct_NegBinBB <- c(10, 1000)
-vars_GammaIBP <- c(100, 1000, 10000) # c(0.01, 100) - values in the first manuscript
+vars_fct_NegBinBB <- c(10, 100)
+vars_GammaIBP <- c(1, 100) # c(0.01, 100) - values in the first manuscript
 
 # Initial parameters for optimization
 eb_init_BB <- list(alpha = -10, s = 100, Nhat_prime = 200)
@@ -172,7 +172,7 @@ ggplot(accum_df, aes(x = x, y = n_feat)) +
       "GammaIBP" = "Mixtures of IBPs"
     )
   ) 
-#ggsave(filename = "R_script_paper/Paper_plots/rarefaction_Plants_eb_EFPF.pdf", width = 4, height = 4, dpi = 300, units = "in", device='pdf')
+ggsave(filename = "R_script_paper/Paper_plots/rarefaction_Plants_eb_EFPF_means.pdf", width = 4, height = 4, dpi = 300, units = "in", device='pdf')
 
 
 ## Model-checking on K_n_r -------
@@ -217,11 +217,11 @@ df_K_n_r$Model <- factor(df_K_n_r$Model,
 
 r_positive <- observed_K_n_r %>%
   filter(k_n_r > 0) %>%
-  select(r) %>%
-  filter(r < 50)
+  select(r) 
+# %>%  filter(r < 50)
 
 df_K_n_r_plot <- df_K_n_r %>%
-  filter(r %in% c(r_positive$r))
+  filter(means >= 2*10^(-1))
 
 observed_K_n_r_plot <- observed_K_n_r %>%
   filter(r %in% c(r_positive$r))
@@ -230,7 +230,8 @@ observed_K_n_r_plot <- observed_K_n_r %>%
 ggplot(observed_K_n_r_plot,  aes(x = r, y = k_n_r)) +
   geom_point(color="black", shape = 19, size = 1) +
   geom_line( data = df_K_n_r_plot, aes(x = r, y = means, color = Model), linetype = "dashed") +
-  scale_y_log10() +
+  scale_y_log10(breaks = c(0.3, 1, 3, 10, 30),
+                labels = c(0.3, 1, 3, 10, 30)) +
   scale_x_log10() +
   xlab("r") + ylab(expression(m[r])) + 
   theme_light() + 
@@ -243,7 +244,7 @@ ggplot(observed_K_n_r_plot,  aes(x = r, y = k_n_r)) +
       "GammaIBP" = "Mixtures of IBPs"
     )
   )
-#ggsave(filename = "R_script_paper/Paper_plots/knr_Plants_eb_EFPF.pdf", width = 4, height = 4, dpi = 300, units = "in", device='pdf')
+ggsave(filename = "R_script_paper/Paper_plots/knr_Plants_eb_EFPF_means.pdf", width = 4, height = 4, dpi = 300, units = "in", device='pdf')
 
 
 ## Formal model-checking via AIC/BIC -------
@@ -342,24 +343,71 @@ rare_all_df$Model <- factor(rare_all_df$Model,
                             levels = paste0("Gamma IBP, Variance: ", vars_GammaIBP))
 
 
-# for plot
-plot_ribbons_rare <- ggplot() +
+# for plot (different line colors)
+plot_rare_ci <- ggplot() +
   geom_point(data = accum_df, aes(x = x, y = n_feat),
              color="black", shape = 18, size = 1) +
-  geom_ribbon(data = rare_all_df, aes(x = x, ymin = lb, ymax = ub, fill = Model), color = NA, alpha = 0.4) +
-  scale_fill_manual(values = c(
-    "Gamma IBP, Variance: 100" = "grey10",
-    "Gamma IBP, Variance: 1000" = "grey50",
-    "Gamma IBP, Variance: 10000" = "grey80")) +
+  # Lower bound lines
+  geom_line(data = rare_all_df,
+            aes(x = x, y = lb, color = Model),
+            linetype = "solid", size = 0.8) +
+  # Upper bound lines
+  geom_line(data = rare_all_df,
+            aes(x = x, y = ub, color = Model),
+            linetype = "solid", size = 0.8) +
   xlab("# observations") + ylab("# distinct features") + 
   theme_light() + 
   theme(legend.position = "top") +
   scale_y_continuous(breaks = pretty_breaks()) +
   scale_x_continuous(breaks = pretty_breaks()) +
-  theme(aspect.ratio = 1) +
+  theme(aspect.ratio = 1) + 
   scale_color_tableau()
 
-plot_ribbons_rare
+plot_rare_ci
+ggsave(filename = "R_script_paper/Paper_plots/rarefaction_Plants_eb_EFPF_credible_int.pdf", width = 5, height = 5, dpi = 300, units = "in", device='pdf')
+
+
+# # for plot (different linestyles)
+# ggplot() +
+#   geom_point(data = accum_df, aes(x = x, y = n_feat),
+#              color="black", shape = 18, size = 1) +
+#   # Lower bound lines
+#   geom_line(data = rare_all_df,
+#             aes(x = x, y = lb, linetype = Model),
+#             color = "black", linewidth = 0.8) +
+#   # Upper bound lines
+#   geom_line(data = rare_all_df,
+#             aes(x = x, y = ub, linetype = Model),
+#             color = "black", linewidth = 0.8) +
+#   scale_linetype_manual(values = c(
+#     "Gamma IBP, Variance: 1" = "solid",
+#     "Gamma IBP, Variance: 100" = "dashed")) +
+#   xlab("# observations") + ylab("# distinct features") + 
+#   theme_light() + 
+#   theme(legend.position = "top") +
+#   scale_y_continuous(breaks = pretty_breaks()) +
+#   scale_x_continuous(breaks = pretty_breaks()) +
+#   theme(aspect.ratio = 1) +
+#   scale_color_tableau() 
+# ggsave(filename = "R_script_paper/Paper_plots/rare_Plants_different_linestyle.pdf", width = 5, height = 5, dpi = 300, units = "in", device='pdf')
+
+
+# # for plot (shaded ribbons)
+# ggplot() +
+#   geom_point(data = accum_df, aes(x = x, y = n_feat),
+#              color="black", shape = 18, size = 1) +
+#   geom_ribbon(data = rare_all_df, aes(x = x, ymin = lb, ymax = ub, fill = Model), color = NA, alpha = 0.4) +
+#   scale_fill_manual(values = c(
+#     "Gamma IBP, Variance: 1" = "grey20",
+#     "Gamma IBP, Variance: 100" = "grey50")) +
+#   xlab("# observations") + ylab("# distinct features") + 
+#   theme_light() + 
+#   theme(legend.position = "top") +
+#   scale_y_continuous(breaks = pretty_breaks()) +
+#   scale_x_continuous(breaks = pretty_breaks()) +
+#   theme(aspect.ratio = 1) +
+#   scale_color_tableau()
+# ggsave(filename = "R_script_paper/Paper_plots/rare_Plants_ribbons.pdf", width = 5, height = 5, dpi = 300, units = "in", device='pdf')
 
 
 ### Knr intervals for GammaIBP --------
@@ -407,27 +455,29 @@ knr_all_df$Model <- factor(knr_all_df$Model,
 
 r_positive <- observed_K_n_r %>%
   filter(k_n_r > 0) %>%
-  select(r) %>%
-  filter(r < 50)
-
-knr_all_df_plot <- knr_all_df %>%
-  filter(r %in% c(r_positive$r)) %>%
-  mutate(lb = ifelse(lb == 0, 8e-1, lb))
-# %>% filter(Model %in% c("Poisson BB", "NegBinomial BB x10"))
+  select(r) 
+# %>% filter(r < 50)
 
 observed_K_n_r_plot <- observed_K_n_r %>%
   filter(r %in% c(r_positive$r))
 
+# for plot (line color)
+knr_all_df_plot_lb <- knr_all_df %>% select(r, lb, Model) %>% 
+  filter(lb > 0)
+knr_all_df_plot_ub <- knr_all_df %>% select(r, ub, Model) %>% 
+  filter(ub > 0)
 
-# for plot
-plot_ribbons_knr <- ggplot() +
+plot_knr_ci <- ggplot() +
   geom_point(data = observed_K_n_r_plot, aes(x = r, y = k_n_r),
              color="black", shape = 19, size = 1.5) +
-  geom_ribbon(data = knr_all_df_plot, aes(x = r, ymin = lb, ymax = ub, fill = Model), color = NA, alpha = 0.4) +
-  scale_fill_manual(values = c(
-    "Gamma IBP, Variance: 100" = "grey10",
-    "Gamma IBP, Variance: 1000" = "grey50",
-    "Gamma IBP, Variance: 10000" = "grey80")) +
+  # Lower bound lines
+  geom_line(data = knr_all_df_plot_lb,
+            aes(x = r, y = lb, color = Model),
+            linetype = "solid", size = 0.8) +
+  # Upper bound lines
+  geom_line(data = knr_all_df_plot_ub,
+            aes(x = r, y = ub, color = Model),
+            linetype = "solid", size = 0.8) +
   scale_y_log10() +
   scale_x_log10() +
   xlab("r") + ylab(expression(m[r])) + 
@@ -437,17 +487,38 @@ plot_ribbons_knr <- ggplot() +
   theme(aspect.ratio = 1) +
   scale_color_tableau()
 
+plot_knr_ci
+ggsave(filename = "R_script_paper/Paper_plots/knr_Plants_eb_EFPF_credible_int.pdf", width = 5, height = 5, dpi = 300, units = "in", device='pdf')
 
-plot_ribbons_knr
 
-
+# # for plot (ribbons)
+# knr_all_df_plot <- knr_all_df %>%
+#   filter(r %in% c(r_positive$r)) %>% mutate(lb = ifelse(lb == 0, 8e-1, lb))
+# 
+# plot_ribbons_knr <- ggplot() +
+#   geom_point(data = observed_K_n_r_plot, aes(x = r, y = k_n_r),
+#              color="black", shape = 19, size = 1.5) +
+#   geom_ribbon(data = knr_all_df_plot, aes(x = r, ymin = lb, ymax = ub, fill = Model), color = NA, alpha = 0.4) +
+#   scale_fill_manual(values = c(
+#     "Gamma IBP, Variance: 100" = "grey10",
+#     "Gamma IBP, Variance: 1000" = "grey50",
+#     "Gamma IBP, Variance: 10000" = "grey80")) +
+#   scale_y_log10() +
+#   scale_x_log10() +
+#   xlab("r") + ylab(expression(m[r])) + 
+#   theme_light() + 
+#   theme(legend.position = "top") +
+#   #scale_x_continuous(breaks = pretty_breaks()) +
+#   theme(aspect.ratio = 1) +
+#   scale_color_tableau()
+# plot_ribbons_knr
 
 
 
 ## Extrapolation -----------
 
 # 0) alpha-diversity of the gamma mixture
-idx_gamma <- 2 # or 1, for the 2 different choices of the prior variance of gamma
+idx_gamma <- 1 # or 1, for the 2 different choices of the prior variance of gamma
 
 a <- list_eb_EFPF_fit_GammaIBP[[idx_gamma]]$a
 b <- list_eb_EFPF_fit_GammaIBP[[idx_gamma]]$b
@@ -464,7 +535,7 @@ print(paste0("var(diversity) = ", a_gamma/b_gamma^2))
 
 # Extract accumulation curve of the observed sample (or average accumulation)
 
-M <- 400
+M <- 400 # 1000 for table
 
 accum_df <- tibble( x = 0:n,
                     n_feat = c(0,rarefaction(data_mat, n_reorderings = 200)))
@@ -527,14 +598,14 @@ ggplot(extr_all_df, aes(x, means, color = Model)) +
   scale_x_continuous(breaks = pretty_breaks()) +
   theme(aspect.ratio = 1) +
   scale_color_tableau()
-#ggsave(filename = "R_script_paper/Paper_plots/extr_Plants_eb_EFPF.pdf", width = 5, height = 5, dpi = 300, units = "in", device='pdf')
+ggsave(filename = "R_script_paper/Paper_plots/extr_Plants_eb_EFPF.pdf", width = 5.2, height = 5.2, dpi = 300, units = "in", device='pdf')
 
 
 
 # Compute extrapolation on a grid: numerical values
 
 extr_EFPF_GammaIBP_df %>%
-  filter(Model == "Gamma IBP, Variance: 0.01",
+  filter(Model == "Gamma IBP, Variance: 100",
          x %in% c(n + 1, n + 10, n + 100, n + 1000)) %>%
   mutate(means_new = means - Kn,
          lb_new = lb -Kn,
@@ -542,14 +613,14 @@ extr_EFPF_GammaIBP_df %>%
 
 
 
-# Fully-Bayesian approach ----------
+# Fully-Bayesian approach (empirical bayes-based) ----------
 
 # We focus on GammaIBP + prior (since it is selected from model-checking)
   
 # Fit for GibbsFA's (save workspace)
 if (!file.exists("R_script_paper/fullybayes_Plants_fit_estimate_GammaIBP.RData")) {
   
-  vars_GammaIBP_bayes <- c(100, 1000, 10000) # c(0.01, 100) - values in the first manuscript
+  vars_GammaIBP_bayes <- c(1, 100) # c(0.01, 100) - values in the first manuscript
   
   list_prior_fit_GammaIBP <-  vector(mode = "list", length = length(vars_GammaIBP_bayes))
   names(list_prior_fit_GammaIBP) <- paste0("var.", vars_GammaIBP_bayes)
@@ -601,200 +672,204 @@ if (!file.exists("R_script_paper/fullybayes_Plants_fit_estimate_GammaIBP.RData")
   }
   
   # Save the entire workspace related to the type just performed
-  save(list_prior_fit_GammaIBP, vars_GammaIBP_bayes, file =  "R_script_paper/fullybayes_Plants_fit_estimate_GammaIBP.RData")
-  
-}
-
-# We run also for NegBinBB + prior (in order to check with BF other than visual check)
-if (!file.exists("R_script_paper/fullybayes_Plants_fit_estimate_NegBinBBcompetitor.RData")) {
-  
-  vars_fct_NegBinBB_bayes <- c(10, 1000)
-  
-  list_prior_fit_NegBinBB <-  vector(mode = "list", length = length(vars_fct_NegBinBB_bayes))
-  names(list_prior_fit_NegBinBB) <- paste0("var_fct.", vars_fct_NegBinBB_bayes)
-  
-  # Initialization and MCMC setting 
-  mcmcparams_NegBinBB <- list(tau = 0.1, 
-                              S = 5*10^4, n_burnin = 5*10^3, thin = 2)
-  mcmcparams_obj_NegBinBB <- mcmcparameters(model = "NegBinBB", mcmcparams = mcmcparams_NegBinBB)
-  
-  init_NegBinBB <- list(alpha_0 = - 0.01, s_0 = 3)
-  init_obj_NegBinBB <- initialization(model = "NegBinBB", init = init_NegBinBB )
-  
-  # EB estimates
-  small_val <- 10^(-4) # 10^(-3)
-  alpha_eb <- list_eb_EFPF_fit_NegBinBB[[1]]$alpha
-  theta_eb <- list_eb_EFPF_fit_NegBinBB[[1]]$theta
-  
-  s_eb <- alpha_eb + theta_eb
-  
-  print(paste0("Prior variance of -alpha: ", - alpha_eb/small_val  ))
-  print(paste0("Prior variance of s: ", s_eb/small_val  ))
-  
-  # Fit the model
-  for (var_fct in vars_fct_NegBinBB_bayes){
-    
-    n0_eb <- list_eb_EFPF_fit_NegBinBB[[paste0("var_fct.", var_fct)]]$n0
-    mu0_eb <- list_eb_EFPF_fit_NegBinBB[[paste0("var_fct.", var_fct)]]$mu0
-    
-    hyper_NegBinBB <- list(a_alpha = - alpha_eb*small_val, b_alpha = small_val,
-                           a_s = s_eb*small_val , b_s = small_val,
-                           n0 = n0_eb, mu0 = mu0_eb)
-    prior_obj_NegBinBB <- prior(model = "NegBinBB", hyper = hyper_NegBinBB)
-    
-    
-    list_prior_fit_NegBinBB[[paste0("var_fct.", var_fct)]] <- 
-      GibbsFA(feature_matrix = data_mat,
-              model = "NegBinBB", 
-              prior = prior_obj_NegBinBB,
-              initialization = init_obj_NegBinBB,
-              mcmcparams = mcmcparams_obj_NegBinBB)
-    
-  }
-  
-  # Save the entire workspace related to the type just performed
-  save(list_prior_fit_NegBinBB, vars_fct_NegBinBB_bayes, file =  "R_script_paper/fullybayes_Plants_fit_estimate_NegBinBBcompetitor.RData")
+  save(list_prior_fit_GammaIBP, 
+       vars_GammaIBP_bayes, 
+       file =  "R_script_paper/fullybayes_Plants_fit_estimate_GammaIBP.RData")
   
 }
 
 
-# We also consider classicBB, classicIBP and PoissonBB as competitor for BayesFactor
-if (!file.exists("R_script_paper/fullybayes_Plants_fit_estimate_classics_and_PoissonBB.RData")) {
-  
-  # A) Mixtures of BBs (classicBB and PoissonBB)
-  
-  # MCMC setting for both 
-  mcmcparams_both <- list(tau = 0.1, 
-                          S = 5*10^4, n_burnin = 5*10^3, thin = 2)
-  mcmcparams_obj_both <- mcmcparameters(model = "classicBB", mcmcparams = mcmcparams_both)
-  
-  # 1) classicBB
-  # Initialization
-  init_classicBB <- list(alpha_0 = - 1, s_0 = 15)
-  init_obj_classicBB <- initialization(model = "classicBB", init = init_classicBB )
-  
-  # Prior: EB estimates
-  small_val <- 10^(-4) # 10^(-3) - value in the first manuscript
-  alpha_eb <- eb_EFPF_fit_PoissonBB$alpha
-  theta_eb <- eb_EFPF_fit_PoissonBB$theta
-  N_eb <- eb_EFPF_fit_PoissonBB$lambda
-  
-  s_eb <- alpha_eb + theta_eb
-  
-  print(paste0("Prior variance of -alpha: ", - alpha_eb/small_val  ))
-  print(paste0("Prior variance of s: ", s_eb/small_val  ))
-  
-  # Prior: set hyperparameters
-  hyper_classicBB <- list(a_alpha = - alpha_eb*small_val, b_alpha = small_val,
-                          a_s = s_eb*small_val , b_s = small_val,
-                          N = N_eb)
-  prior_obj_classicBB <- prior(model = "classicBB", hyper = hyper_classicBB)
-  
-  # Fit the model
-  prior_fit_classicBB <- GibbsFA(feature_matrix = data_mat,
-                                 model = "classicBB", 
-                                 prior = prior_obj_classicBB,
-                                 initialization = init_obj_classicBB,
-                                 mcmcparams = mcmcparams_obj_both)
-  
-  
-  # 2) PoissonBB
-  # Initialization
-  init_PoissonBB <- list(alpha_0 = - 0.001, s_0 = 2)
-  init_obj_PoissonBB <- initialization(model = "PoissonBB", init = init_PoissonBB )
-  
-  # Prior: EB estimates
-  small_val <- 10^(-4) # 10^(-3) - value in the first manuscript
-  alpha_eb <- eb_EFPF_fit_PoissonBB$alpha
-  theta_eb <- eb_EFPF_fit_PoissonBB$theta
-  lambda_eb <- eb_EFPF_fit_PoissonBB$lambda
-  
-  s_eb <- alpha_eb + theta_eb
-  
-  print(paste0("Prior variance of -alpha: ", - alpha_eb/small_val  ))
-  print(paste0("Prior variance of s: ", s_eb/small_val  ))
-  
-  # Prior: set hyperparameters
-  hyper_PoissonBB <- list(a_alpha = - alpha_eb*small_val, b_alpha = small_val,
-                          a_s = s_eb*small_val , b_s = small_val,
-                          lambda = lambda_eb)
-  prior_obj_PoissonBB <- prior(model = "PoissonBB", hyper = hyper_PoissonBB)
-  
-  # Fit the model
-  prior_fit_PoissonBB <- GibbsFA(feature_matrix = data_mat,
-                                 model = "PoissonBB", 
-                                 prior = prior_obj_PoissonBB,
-                                 initialization = init_obj_PoissonBB,
-                                 mcmcparams = mcmcparams_obj_both)
-  
-  
-  # B) Mixtures of IBPs (classicIBP)
-  
-  # MCMC setting
-  mcmcparams_classicIBP <- list(sigq_alpha = 0.1, sigq_s = 0.1, 
-                                S = 5*10^4, n_burnin = 5*10^3, thin = 2)
-  mcmcparams_obj_classicIBP <- mcmcparameters(model = "classicIBP", mcmcparams = mcmcparams_classicIBP)
-  
-  # Initialization
-  init_classicIBP <- list(alpha_0 = 0.1, s_0 = 2)
-  init_obj_classicIBP <- initialization(model = "classicIBP", init = init_classicIBP )
-  
-  # EB estimates
-  small_val_alpha <- 2
-  small_val_s <- 10^(-2)
-  
-  alpha_eb <- list_eb_EFPF_fit_GammaIBP[[1]]$alpha
-  theta_eb <- list_eb_EFPF_fit_GammaIBP[[1]]$theta
-  
-  t_eb <- (1 - alpha_eb)/alpha_eb
-  s_eb <- alpha_eb + theta_eb
-  
-  print(paste0("Prior variance of alpha: ", 
-               t_eb/(1 + t_eb)^2 /(1 + small_val_alpha*(1+t_eb))))
-  
-  print(paste0("Prior variance of s: ", 
-               s_eb/small_val_s))
-  
-  # Prior: set hyperparameters
-  gam_eb <- list_eb_EFPF_fit_GammaIBP[[1]]$gam
-  
-  # Hyperparameters elicitation 
-  hyper_classicIBP <- list(gam = gam_eb,
-                           a_alpha = small_val_alpha, b_alpha = t_eb*small_val_alpha,
-                           a_s = s_eb*small_val_s , b_s = small_val_s)
-  prior_obj_classicIBP <- prior(model = "classicIBP", hyper = hyper_classicIBP)
-  
-  
-  prior_fit_classicIBP <- 
-    GibbsFA(feature_matrix = data_mat,
-            model = "classicIBP", 
-            prior = prior_obj_classicIBP,
-            initialization = init_obj_classicIBP,
-            mcmcparams = mcmcparams_obj_classicIBP)
-  
-  
-  
-  # Save the entire workspace related to the type just performed
-  save(prior_fit_classicBB, 
-       prior_fit_PoissonBB, 
-       prior_fit_classicIBP, 
-       file =  "R_script_paper/fullybayes_Plants_fit_estimate_classics_and_PoissonBB.RData")
-  
-}
+# # MEANINGLESS: THE PRIOR ARE CENTERED CLOSE TO 0 WITH ZERO VARIANCE
+# # We run also for NegBinBB + prior (in order to check with BF other than visual check)
+# if (!file.exists("R_script_paper/fullybayes_Plants_fit_estimate_NegBinBBcompetitor.RData")) {
+#   
+#   vars_fct_NegBinBB_bayes <- c(10, 1000)
+#   
+#   list_prior_fit_NegBinBB <-  vector(mode = "list", length = length(vars_fct_NegBinBB_bayes))
+#   names(list_prior_fit_NegBinBB) <- paste0("var_fct.", vars_fct_NegBinBB_bayes)
+#   
+#   # Initialization and MCMC setting 
+#   mcmcparams_NegBinBB <- list(tau = 0.1, 
+#                               S = 5*10^4, n_burnin = 5*10^3, thin = 2)
+#   mcmcparams_obj_NegBinBB <- mcmcparameters(model = "NegBinBB", mcmcparams = mcmcparams_NegBinBB)
+#   
+#   init_NegBinBB <- list(alpha_0 = - 0.01, s_0 = 3)
+#   init_obj_NegBinBB <- initialization(model = "NegBinBB", init = init_NegBinBB )
+#   
+#   # EB estimates
+#   small_val <- 10^(-4) # 10^(-3)
+#   alpha_eb <- list_eb_EFPF_fit_NegBinBB[[1]]$alpha
+#   theta_eb <- list_eb_EFPF_fit_NegBinBB[[1]]$theta
+#   
+#   s_eb <- alpha_eb + theta_eb
+#   
+#   print(paste0("Prior variance of -alpha: ", - alpha_eb/small_val  ))
+#   print(paste0("Prior variance of s: ", s_eb/small_val  ))
+#   
+#   # Fit the model
+#   for (var_fct in vars_fct_NegBinBB_bayes){
+#     
+#     n0_eb <- list_eb_EFPF_fit_NegBinBB[[paste0("var_fct.", var_fct)]]$n0
+#     mu0_eb <- list_eb_EFPF_fit_NegBinBB[[paste0("var_fct.", var_fct)]]$mu0
+#     
+#     hyper_NegBinBB <- list(a_alpha = - alpha_eb*small_val, b_alpha = small_val,
+#                            a_s = s_eb*small_val , b_s = small_val,
+#                            n0 = n0_eb, mu0 = mu0_eb)
+#     prior_obj_NegBinBB <- prior(model = "NegBinBB", hyper = hyper_NegBinBB)
+#     
+#     
+#     list_prior_fit_NegBinBB[[paste0("var_fct.", var_fct)]] <- 
+#       GibbsFA(feature_matrix = data_mat,
+#               model = "NegBinBB", 
+#               prior = prior_obj_NegBinBB,
+#               initialization = init_obj_NegBinBB,
+#               mcmcparams = mcmcparams_obj_NegBinBB)
+#     
+#   }
+#   
+#   # Save the entire workspace related to the type just performed
+#   save(list_prior_fit_NegBinBB, vars_fct_NegBinBB_bayes, file =  "R_script_paper/fullybayes_Plants_fit_estimate_NegBinBBcompetitor.RData")
+#   
+# }
+
+# # CLASSIC MODELS + PRIOR ARE NOT USED, POISSON IS SPECIAL NEGBIN (NOT REPORTED)
+# # We also consider classicBB, classicIBP and PoissonBB as competitor for BayesFactor
+# if (!file.exists("R_script_paper/fullybayes_Plants_fit_estimate_classics_and_PoissonBB.RData")) {
+#   
+#   # A) Mixtures of BBs (classicBB and PoissonBB)
+#   
+#   # MCMC setting for both 
+#   mcmcparams_both <- list(tau = 0.1, 
+#                           S = 5*10^4, n_burnin = 5*10^3, thin = 2)
+#   mcmcparams_obj_both <- mcmcparameters(model = "classicBB", mcmcparams = mcmcparams_both)
+#   
+#   # 1) classicBB
+#   # Initialization
+#   init_classicBB <- list(alpha_0 = - 1, s_0 = 15)
+#   init_obj_classicBB <- initialization(model = "classicBB", init = init_classicBB )
+#   
+#   # Prior: EB estimates
+#   small_val <- 10^(-4) # 10^(-3) - value in the first manuscript
+#   alpha_eb <- eb_EFPF_fit_PoissonBB$alpha
+#   theta_eb <- eb_EFPF_fit_PoissonBB$theta
+#   N_eb <- eb_EFPF_fit_PoissonBB$lambda
+#   
+#   s_eb <- alpha_eb + theta_eb
+#   
+#   print(paste0("Prior variance of -alpha: ", - alpha_eb/small_val  ))
+#   print(paste0("Prior variance of s: ", s_eb/small_val  ))
+#   
+#   # Prior: set hyperparameters
+#   hyper_classicBB <- list(a_alpha = - alpha_eb*small_val, b_alpha = small_val,
+#                           a_s = s_eb*small_val , b_s = small_val,
+#                           N = N_eb)
+#   prior_obj_classicBB <- prior(model = "classicBB", hyper = hyper_classicBB)
+#   
+#   # Fit the model
+#   prior_fit_classicBB <- GibbsFA(feature_matrix = data_mat,
+#                                  model = "classicBB", 
+#                                  prior = prior_obj_classicBB,
+#                                  initialization = init_obj_classicBB,
+#                                  mcmcparams = mcmcparams_obj_both)
+#   
+#   
+#   # 2) PoissonBB
+#   # Initialization
+#   init_PoissonBB <- list(alpha_0 = - 0.001, s_0 = 2)
+#   init_obj_PoissonBB <- initialization(model = "PoissonBB", init = init_PoissonBB )
+#   
+#   # Prior: EB estimates
+#   small_val <- 10^(-4) # 10^(-3) - value in the first manuscript
+#   alpha_eb <- eb_EFPF_fit_PoissonBB$alpha
+#   theta_eb <- eb_EFPF_fit_PoissonBB$theta
+#   lambda_eb <- eb_EFPF_fit_PoissonBB$lambda
+#   
+#   s_eb <- alpha_eb + theta_eb
+#   
+#   print(paste0("Prior variance of -alpha: ", - alpha_eb/small_val  ))
+#   print(paste0("Prior variance of s: ", s_eb/small_val  ))
+#   
+#   # Prior: set hyperparameters
+#   hyper_PoissonBB <- list(a_alpha = - alpha_eb*small_val, b_alpha = small_val,
+#                           a_s = s_eb*small_val , b_s = small_val,
+#                           lambda = lambda_eb)
+#   prior_obj_PoissonBB <- prior(model = "PoissonBB", hyper = hyper_PoissonBB)
+#   
+#   # Fit the model
+#   prior_fit_PoissonBB <- GibbsFA(feature_matrix = data_mat,
+#                                  model = "PoissonBB", 
+#                                  prior = prior_obj_PoissonBB,
+#                                  initialization = init_obj_PoissonBB,
+#                                  mcmcparams = mcmcparams_obj_both)
+#   
+#   
+#   # B) Mixtures of IBPs (classicIBP)
+#   
+#   # MCMC setting
+#   mcmcparams_classicIBP <- list(sigq_alpha = 0.1, sigq_s = 0.1, 
+#                                 S = 5*10^4, n_burnin = 5*10^3, thin = 2)
+#   mcmcparams_obj_classicIBP <- mcmcparameters(model = "classicIBP", mcmcparams = mcmcparams_classicIBP)
+#   
+#   # Initialization
+#   init_classicIBP <- list(alpha_0 = 0.1, s_0 = 2)
+#   init_obj_classicIBP <- initialization(model = "classicIBP", init = init_classicIBP )
+#   
+#   # EB estimates
+#   small_val_alpha <- 2
+#   small_val_s <- 10^(-2)
+#   
+#   alpha_eb <- list_eb_EFPF_fit_GammaIBP[[1]]$alpha
+#   theta_eb <- list_eb_EFPF_fit_GammaIBP[[1]]$theta
+#   
+#   t_eb <- (1 - alpha_eb)/alpha_eb
+#   s_eb <- alpha_eb + theta_eb
+#   
+#   print(paste0("Prior variance of alpha: ", 
+#                t_eb/(1 + t_eb)^2 /(1 + small_val_alpha*(1+t_eb))))
+#   
+#   print(paste0("Prior variance of s: ", 
+#                s_eb/small_val_s))
+#   
+#   # Prior: set hyperparameters
+#   gam_eb <- list_eb_EFPF_fit_GammaIBP[[1]]$gam
+#   
+#   # Hyperparameters elicitation 
+#   hyper_classicIBP <- list(gam = gam_eb,
+#                            a_alpha = small_val_alpha, b_alpha = t_eb*small_val_alpha,
+#                            a_s = s_eb*small_val_s , b_s = small_val_s)
+#   prior_obj_classicIBP <- prior(model = "classicIBP", hyper = hyper_classicIBP)
+#   
+#   
+#   prior_fit_classicIBP <- 
+#     GibbsFA(feature_matrix = data_mat,
+#             model = "classicIBP", 
+#             prior = prior_obj_classicIBP,
+#             initialization = init_obj_classicIBP,
+#             mcmcparams = mcmcparams_obj_classicIBP)
+#   
+#   
+#   
+#   # Save the entire workspace related to the type just performed
+#   save(prior_fit_classicBB, 
+#        prior_fit_PoissonBB, 
+#        prior_fit_classicIBP, 
+#        file =  "R_script_paper/fullybayes_Plants_fit_estimate_classics_and_PoissonBB.RData")
+#   
+# }
 
 
 
 
 # Load the Work space
 load("R_script_paper/fullybayes_Plants_fit_estimate_GammaIBP.RData")
-load("R_script_paper/fullybayes_Plants_fit_estimate_classics_and_PoissonBB.RData")
-load("R_script_paper/fullybayes_Plants_fit_estimate_NegBinBBcompetitor.RData")
+# load("R_script_paper/fullybayes_Plants_fit_estimate_classics_and_PoissonBB.RData")
+# load("R_script_paper/fullybayes_Plants_fit_estimate_NegBinBBcompetitor.RData")
 if (!all(vars_GammaIBP == vars_GammaIBP_bayes)){
   stop("EB and FullyBayes use different prior variances for GammaIBP models")
 }
-if (!all(vars_fct_NegBinBB == vars_fct_NegBinBB_bayes)){
-  stop("EB and FullyBayes use different prior variances for NegBinBB models")
-}
+# if (!all(vars_fct_NegBinBB == vars_fct_NegBinBB_bayes)){
+#   stop("EB and FullyBayes use different prior variances for NegBinBB models")
+# }
 
 
 ## Convergence checks --------
@@ -802,7 +877,7 @@ library(ggmcmc)
 library(coda)
 
 # GammaIBP + prior
-params_prior_GammaIBP <- list_prior_fit_GammaIBP[[paste0("var.", vars_GammaIBP[2])]][c("a_chain","b_chain", "alpha_chain", "theta_chain")]
+params_prior_GammaIBP <- list_prior_fit_GammaIBP[[paste0("var.", vars_GammaIBP_bayes[1])]][c("a_chain","b_chain", "alpha_chain", "theta_chain")]
 params_prior_GammaIBP_df <- as.data.frame(do.call(cbind, params_prior_GammaIBP))
 
 samples_GammaIBP <- mcmc.list(mcmc(params_prior_GammaIBP_df))
@@ -811,45 +886,45 @@ ggs_traceplot(samples_ggs_GammaIBP)
 
 effectiveSize(params_prior_GammaIBP_df)
 
-# classicIBP + prior
-params_prior_classicIBP <- prior_fit_classicIBP[c("alpha_chain", "theta_chain")]
-params_prior_classicIBP_df <- as.data.frame(do.call(cbind, params_prior_classicIBP))
-
-samples_classicIBP <- mcmc.list(mcmc(params_prior_classicIBP_df))
-samples_ggs_classicIBP <- ggs(samples_classicIBP, keep_original_order = TRUE)
-ggs_traceplot(samples_ggs_classicIBP)
-
-effectiveSize(params_prior_classicIBP_df)
-
-# NegBinBB + prior
-params_prior_NegBinBB <- list_prior_fit_NegBinBB[[paste0("var_fct.", vars_fct_NegBinBB[1])]][c("n0_chain","mu0_chain", "alpha_chain", "theta_chain")]
-params_prior_NegBinBB_df <- as.data.frame(do.call(cbind, params_prior_NegBinBB))
-
-samples_NegBinBB <- mcmc.list(mcmc(params_prior_NegBinBB_df))
-samples_ggs_NegBinBB <- ggs(samples_NegBinBB, keep_original_order = TRUE)
-ggs_traceplot(samples_ggs_NegBinBB)
-
-effectiveSize(params_prior_NegBinBB_df)
-
-# classicBB + prior
-params_prior_classicBB <- prior_fit_classicBB[c("alpha_chain", "theta_chain")]
-params_prior_classicBB_df <- as.data.frame(do.call(cbind, params_prior_classicBB))
-
-samples_classicBB <- mcmc.list(mcmc(params_prior_classicBB_df))
-samples_ggs_classicBB <- ggs(samples_classicBB, keep_original_order = TRUE)
-ggs_traceplot(samples_ggs_classicBB)
-
-effectiveSize(params_prior_classicBB_df)
-
-# PoissonBB + prior
-params_prior_PoissonBB <- prior_fit_PoissonBB[c("alpha_chain", "theta_chain")]
-params_prior_PoissonBB_df <- as.data.frame(do.call(cbind, params_prior_PoissonBB))
-
-samples_PoissonBB <- mcmc.list(mcmc(params_prior_PoissonBB_df))
-samples_ggs_PoissonBB <- ggs(samples_PoissonBB, keep_original_order = TRUE)
-ggs_traceplot(samples_ggs_PoissonBB)
-
-effectiveSize(params_prior_PoissonBB_df)
+# # classicIBP + prior
+# params_prior_classicIBP <- prior_fit_classicIBP[c("alpha_chain", "theta_chain")]
+# params_prior_classicIBP_df <- as.data.frame(do.call(cbind, params_prior_classicIBP))
+# 
+# samples_classicIBP <- mcmc.list(mcmc(params_prior_classicIBP_df))
+# samples_ggs_classicIBP <- ggs(samples_classicIBP, keep_original_order = TRUE)
+# ggs_traceplot(samples_ggs_classicIBP)
+# 
+# effectiveSize(params_prior_classicIBP_df)
+# 
+# # NegBinBB + prior
+# params_prior_NegBinBB <- list_prior_fit_NegBinBB[[paste0("var_fct.", vars_fct_NegBinBB[1])]][c("n0_chain","mu0_chain", "alpha_chain", "theta_chain")]
+# params_prior_NegBinBB_df <- as.data.frame(do.call(cbind, params_prior_NegBinBB))
+# 
+# samples_NegBinBB <- mcmc.list(mcmc(params_prior_NegBinBB_df))
+# samples_ggs_NegBinBB <- ggs(samples_NegBinBB, keep_original_order = TRUE)
+# ggs_traceplot(samples_ggs_NegBinBB)
+# 
+# effectiveSize(params_prior_NegBinBB_df)
+# 
+# # classicBB + prior
+# params_prior_classicBB <- prior_fit_classicBB[c("alpha_chain", "theta_chain")]
+# params_prior_classicBB_df <- as.data.frame(do.call(cbind, params_prior_classicBB))
+# 
+# samples_classicBB <- mcmc.list(mcmc(params_prior_classicBB_df))
+# samples_ggs_classicBB <- ggs(samples_classicBB, keep_original_order = TRUE)
+# ggs_traceplot(samples_ggs_classicBB)
+# 
+# effectiveSize(params_prior_classicBB_df)
+# 
+# # PoissonBB + prior
+# params_prior_PoissonBB <- prior_fit_PoissonBB[c("alpha_chain", "theta_chain")]
+# params_prior_PoissonBB_df <- as.data.frame(do.call(cbind, params_prior_PoissonBB))
+# 
+# samples_PoissonBB <- mcmc.list(mcmc(params_prior_PoissonBB_df))
+# samples_ggs_PoissonBB <- ggs(samples_PoissonBB, keep_original_order = TRUE)
+# ggs_traceplot(samples_ggs_PoissonBB)
+# 
+# effectiveSize(params_prior_PoissonBB_df)
 
 
 
@@ -861,17 +936,17 @@ for (var_fct_NegBinBB in vars_fct_NegBinBB){
     list_prior_fit_NegBinBB[[paste0("var_fct.", var_fct_NegBinBB)]]
   )
 }
-log_marginal_like_object_list[["classicBB"]] <- compute_log_marginal_likelihood_bridge(
-  prior_fit_classicBB)
-log_marginal_like_object_list[["PoissonBB"]] <- compute_log_marginal_likelihood_bridge(
-  prior_fit_PoissonBB)
-for (var_GammaIBP in vars_GammaIBP){
-  log_marginal_like_object_list[[paste0("GammaIBP.var.", var_GammaIBP)]] <- compute_log_marginal_likelihood_bridge(
-    list_prior_fit_GammaIBP[[paste0("var.", var_GammaIBP)]]
-  )
-}
-log_marginal_like_object_list[["classicIBP"]] <- compute_log_marginal_likelihood_bridge(
-  prior_fit_classicIBP)
+# log_marginal_like_object_list[["classicBB"]] <- compute_log_marginal_likelihood_bridge(
+#   prior_fit_classicBB)
+# log_marginal_like_object_list[["PoissonBB"]] <- compute_log_marginal_likelihood_bridge(
+#   prior_fit_PoissonBB)
+# for (var_GammaIBP in vars_GammaIBP){
+#   log_marginal_like_object_list[[paste0("GammaIBP.var.", var_GammaIBP)]] <- compute_log_marginal_likelihood_bridge(
+#     list_prior_fit_GammaIBP[[paste0("var.", var_GammaIBP)]]
+#   )
+# }
+# log_marginal_like_object_list[["classicIBP"]] <- compute_log_marginal_likelihood_bridge(
+#   prior_fit_classicIBP)
 
 
 print(log_marginal_like_object_list) 
@@ -914,7 +989,7 @@ if (!file.exists("R_script_paper/fullybayes_Plants_extrapolation.RData")) {
                                   lb = numeric(), ub = numeric(),
                                   x = integer(), Model = character())
   
-  for (var_GammaIBP in vars_GammaIBP){
+  for (var_GammaIBP in vars_GammaIBP_bayes){
     
     extr_prior_GammaIBP_var <- extrapolation(object = list_prior_fit_GammaIBP[[paste0("var.", var_GammaIBP)]],
                                              M = M) 
@@ -940,7 +1015,8 @@ if (!file.exists("R_script_paper/fullybayes_Plants_extrapolation.RData")) {
   }
   
   # Save the entire workspace related to the type just performed
-  save(list = ls(all.names = TRUE), file =  "R_script_paper/fullybayes_Plants_extrapolation.RData")
+  save(extr_prior_GammaIBP_df, 
+       file =  "R_script_paper/fullybayes_Plants_extrapolation.RData")
   
 }
 
@@ -948,7 +1024,7 @@ if (!file.exists("R_script_paper/fullybayes_Plants_extrapolation.RData")) {
 load("R_script_paper/fullybayes_Plants_extrapolation.RData")
 extr_prior_GammaIBP_df_final <- extr_prior_GammaIBP_df %>%
   mutate(Model = case_when(
-    Model == "GammaIBP, var = 0.01" ~  "Gamma IBP, Variance: 0.01",
+    Model == "GammaIBP, var = 1" ~  "Gamma IBP, Variance: 1",
     Model == "GammaIBP, var = 100" ~ "Gamma IBP, Variance: 100")) %>%
   add_column(Type = "Fully Bayesian")
 
@@ -977,7 +1053,7 @@ ggplot(extr_joint_GammaIBP_df, aes(x, means, color = Type )) +
   scale_x_continuous(breaks = pretty_breaks()) +
   theme(aspect.ratio = 1) +
   scale_color_tableau()
-#ggsave(filename = "R_script_paper/Paper_plots/extr_Plants_fullybayes.pdf", width = 6, height = 4, dpi = 300, units = "in", device='pdf')
+ggsave(filename = "R_script_paper/Paper_plots/extr_Plants_fullybayes.pdf", width = 6, height = 4, dpi = 300, units = "in", device='pdf')
 
 
 
@@ -1002,8 +1078,8 @@ data_list_test <- convert_features_list(data_mat_test)
 ## Train the models on training data -----
 
 # Choices of variances
-vars_fct_NegBinBB <- c(2,10) 
-vars_GammaIBP <- c(10, 100) 
+vars_fct_NegBinBB <- c(10,100) 
+vars_GammaIBP <- c(1, 100) 
 
 # Initial parameters for optimization
 eb_init_BB <- list(alpha = -10, s = 100, Nhat_prime = 100)
@@ -1156,8 +1232,10 @@ extr_EFPF_PoissonBB_df <- tibble(lambda = unname(unlist(
   rename(mean = lambda) %>%
   add_row(mean = 0, lb = 0, ub = 0) %>%
   mutate(mean = mean + Kn_train, lb = lb + Kn_train, ub = ub + Kn_train) %>%
-  add_column(x = c((n_train+1):(n_train + n_test), n_train), Model = "Poisson BB") %>%
-  select(mean, lb, ub, x, Model)
+  add_column(x = c((n_train+1):(n_train + n_test), n_train), 
+             Model = "Poisson BB",
+             Model_gen = "BBmixt") %>%
+  select(mean, lb, ub, x, Model, Model_gen)
 
 extr_EFPF_PoissonBB_df$x <- as.integer(extr_EFPF_PoissonBB_df$x)
 
@@ -1165,7 +1243,8 @@ extr_EFPF_PoissonBB_df$x <- as.integer(extr_EFPF_PoissonBB_df$x)
 # NegBinBB
 extr_EFPF_NegBinBB_df <- tibble(mean = numeric(), 
                                 lb = numeric(), ub = numeric(),
-                                x = integer(), Model = character())
+                                x = integer(), Model = character(),
+                                Model_gen = character())
 
 for (var_fct_NegBinBB in vars_fct_NegBinBB){
   
@@ -1180,8 +1259,10 @@ for (var_fct_NegBinBB in vars_fct_NegBinBB){
     rename(mean = mu0) %>%
     add_row(mean = 0, lb = 0, ub = 0) %>%
     mutate(mean = mean + Kn_train, lb = lb + Kn_train, ub = ub + Kn_train) %>%
-    add_column(x = c((n_train+1):(n_train + n_test), n_train), Model = paste0("NegBinomial BB x", var_fct_NegBinBB)) %>%
-    select(mean, lb, ub, x, Model)
+    add_column(x = c((n_train+1):(n_train + n_test), n_train), 
+               Model = paste0("NegBinomial BB x", var_fct_NegBinBB),
+               Model_gen = "BBmixt") %>%
+    select(mean, lb, ub, x, Model, Model_gen)
   
   extr_EFPF_NegBinBB_df_var$x <- as.integer(extr_EFPF_NegBinBB_df_var$x)
   
@@ -1195,7 +1276,8 @@ for (var_fct_NegBinBB in vars_fct_NegBinBB){
 # GammaIBP
 extr_EFPF_GammaIBP_df <- tibble(mean = numeric(), 
                                 lb = numeric(), ub = numeric(),
-                                x = integer(), Model = character())
+                                x = integer(), Model = character(),
+                                Model_gen = character())
 
 for (var_GammaIBP in vars_GammaIBP){
   
@@ -1210,8 +1292,10 @@ for (var_GammaIBP in vars_GammaIBP){
     rename(mean = mu0) %>%
     add_row(mean = 0, lb = 0, ub = 0) %>%
     mutate(mean = mean + Kn_train, lb = lb + Kn_train, ub = ub + Kn_train) %>%
-    add_column(x = c((n_train+1):(n_train + n_test), n_train), Model = paste0("GammaIBP, var = ", var_GammaIBP)) %>%
-    select(mean, lb, ub, x, Model)
+    add_column(x = c((n_train+1):(n_train + n_test), n_train), 
+               Model = paste0("GammaIBP, var = ", var_GammaIBP),
+               Model_gen = "IBPmixt") %>%
+    select(mean, lb, ub, x, Model, Model_gen)
   
   
   extr_EFPF_GammaIBP_df_var$x <- as.integer(extr_EFPF_GammaIBP_df_var$x)
@@ -1248,46 +1332,31 @@ extr_all_df$Model <- factor(extr_all_df$Model,
                                        paste0("NegBinomial BB x", vars_fct_NegBinBB),
                                        paste0("GammaIBP, var = ", vars_GammaIBP)))
 
-get_blue_tones <- function(n) {
-  all_blues <- c(
-    "blue4", "dodgerblue4", "dodgerblue2", "lightskyblue", "lightblue")
-  
-  if (n > length(all_blues)) {
-    stop("Requested number exceeds available blue tones.")
-  }
-  
-  return(all_blues[1:n])
-}
 
-get_red_tones <- function(n) {
-  all_reds <- c(
-    "darkred", "tomato3", "lightsalmon")
-  
-  if (n > length(all_reds)) {
-    stop("Requested number exceeds available red tones.")
-  }
-  
-  return(all_reds[1:n])
-}
 
-models_name <- unique(extr_all_df$Model)
-number_bbs_models <- sum(grepl("^Pois", models_name)) + sum(grepl("^Neg", models_name))
-number_ibps_models <- sum(grepl("^Gam", models_name))
-colors_name <- c(get_blue_tones(number_bbs_models), get_red_tones(number_ibps_models)) 
-color_dict <- setNames(colors_name, models_name)
-
-plot_ribbons <- ggplot() +
+plot_bands <- ggplot() +
   geom_point(data = accum_df_train, aes(x = x, y = n_feat),
              color="black", shape = 19, size = 0.5) +
   geom_point( data = accum_df_test, aes(x = x, y = n_feat),
               color="black", shape = 19, size = 0.5) +
-  geom_ribbon(data = extr_all_df, aes(x = x, ymin = lb, ymax = ub, fill = Model), color = NA, alpha = 0.4) +
-  scale_fill_manual(values = color_dict) +
-  # facet_grid(~ n_train_latex,
-  #            labeller = label_parsed,
-  #            scales = "free_x")  +
-  #geom_vline(data = temp, mapping =  aes(xintercept = xvalues) , linetype = "dashed", color = "grey") +
+  # Mean lines
+  geom_line(data = extr_all_df,
+            aes(x = x, y = mean, color = Model),
+            linetype = "dashed", linewidth = 0.6) +
+  # Lower bound lines
+  geom_line(data = extr_all_df,
+            aes(x = x, y = lb, color = Model),
+            linetype = "solid", linewidth = 0.6) +
+  # Upper bound lines
+  geom_line(data = extr_all_df,
+            aes(x = x, y = ub, color = Model),
+            linetype = "solid", linewidth = 0.6) + 
   geom_vline(xintercept = n_train, linetype = "dashed", color = "grey") +
+  facet_wrap(~ Model_gen,
+             labeller = labeller(Model_gen = c(
+               "BBmixt" = "Mixtures of BBs",
+               "IBPmixt" = "Mixtures of IBPs"
+             ))) +
   xlab("# observations") + ylab("# distinct features") + 
   theme_light() + 
   theme(legend.position = "top") +
@@ -1296,4 +1365,6 @@ plot_ribbons <- ggplot() +
   theme(aspect.ratio = 1) +
   scale_color_tableau()
 
-plot_ribbons
+plot_bands
+ggsave(filename = "R_script_paper/Paper_plots/heldout_extr_Plants_eb_EFPF.pdf", width = 8.5, height = 5, dpi = 300, units = "in", device='pdf')
+
