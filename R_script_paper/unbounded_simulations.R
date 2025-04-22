@@ -295,27 +295,43 @@ ggsave(filename = paste0("R_script_paper/Paper_plots/knr_poly_", xi, "_eb_EFPF_m
 
 
 
-## Formal model-checking via AIC/BIC for one sample size -------
-n_aic <- Ns[2]
-lab_comb_bb <- paste0("n_train.",n_aic,":Nbar.emp")
-lab_comb_ibp <- paste0("n_train.",n_aic)
+## Formal model-checking via "residual deviance" for one sample size (BB vs IBP) -------
+n_dev <- Ns[2]
+data_mat_n_dev <- data_mat[1:n_dev,]
+data_mat_n_dev <- data_mat_n_dev[, colSums(data_mat_n_dev) > 0]
 
-AICs_list <- vector("list", length = 0)
+lab_comb_bb <- paste0("n_train.",n_dev,":Nbar.emp")
+lab_comb_ibp <- paste0("n_train.",n_dev)
 
-AICs_list[["PoissonBB"]] <- compute_AICs_BICs(list_eb_EFPF_fit_PoissonBB[[lab_comb_bb]])$AIC
-for (var_fct_NegBinBB in vars_fct_NegBinBB){
-  AICs_list[[paste0("NegBinBB.var_fct.", var_fct_NegBinBB)]] <- compute_AICs_BICs(
-    list_eb_EFPF_fit_NegBinBB[[paste0("var_fct.", var_fct_NegBinBB)]][[lab_comb_bb]]
-  )$AIC
-}
-for (var_GammaIBP in vars_GammaIBP){
-  AICs_list[[paste0("GammaIBP.var.", var_GammaIBP)]] <- compute_AICs_BICs(
-    list_eb_EFPF_fit_GammaIBP[[paste0("var.", var_GammaIBP)]][[lab_comb_ibp]]
-  )$AIC
-}
+eb_init_BB <- list(alpha = -10, s = 10, Nhat_prime = 100)
+eb_known_BB <- list()
 
-print(AICs_list) 
-# PoissonBB/NegBinBB are worse than GammaIBP (higher AIC)
+eb_init_IBP <- list(alpha = 0.5, s = 1, Gamma = 10)
+eb_known_IBP <- list()
+
+eb_params_obj_BB <- eb_params(model = "BB", 
+                              init = eb_init_BB, known = eb_known_BB )
+eb_params_obj_IBP <- eb_params(model = "IBP", 
+                               init = eb_init_IBP, known = eb_known_IBP )
+
+
+# classicBB
+eb_EFPF_fit_classicBB <- GibbsFA_eb(feature_matrix = data_mat_n_dev, 
+                                    model = "classicBB_eb", 
+                                    type = "EFPF",
+                                    eb_params =  eb_params_obj_BB)
+# classicIBP
+eb_EFPF_fit_classicIBP <- GibbsFA_eb(feature_matrix = data_mat_n_dev, 
+                                     model = "classicIBP_eb", 
+                                     type = "EFPF",
+                                     eb_params =  eb_params_obj_IBP)
+
+min_red_deviance_list <- vector("list", length = 0)
+
+min_red_deviance_list[["classicBB"]] <- compute_AICs_BICs(eb_EFPF_fit_classicBB)$min_res_dev
+min_red_deviance_list[["classicIBP"]] <- compute_AICs_BICs(eb_EFPF_fit_classicIBP)$min_res_dev
+min_red_deviance_list
+# BB is worse than IBP (higher residual deviance)
 
 
 ## Rarefaction and Knr plots with credible bands for best class of mixtures -----------

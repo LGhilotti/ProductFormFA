@@ -212,7 +212,7 @@ eb_EFPF_fit_estimate_bounded_scenario <- function(mechanism,
 
 
 # Choose mechanism
-mechanism =  "custom"   #  "beta_pis"
+mechanism =  "beta_pis"   # "custom" 
 
 # Fit and estimate richness, rarefaction and extrapolation for GibbsFA's (save workspace)
 if (!file.exists(paste0("R_script_paper/eb_EFPF_",mechanism,"_fit_estimate.RData"))) {
@@ -382,27 +382,43 @@ ggplot(observed_K_n_r_plot,  aes(x = r, y = k_n_r)) +
 ggsave(filename = paste0("R_script_paper/Paper_plots/knr_",mechanism,"_eb_EFPF_means.pdf"), width = 4, height = 4, dpi = 300, units = "in", device='pdf')
 
 
-## Formal model-checking via AIC/BIC for one sample size -------
-n_aic <- Ns[2]
-lab_comb_bb <- paste0("n_train.",n_aic,":Nbar.emp")
-lab_comb_ibp <- paste0("n_train.",n_aic)
+## Formal model-checking via "residual deviance" for one sample size (BB vs IBP) -------
+n_dev <- Ns[2]
+data_mat_n_dev <- data_mat[1:n_dev,]
+data_mat_n_dev <- data_mat_n_dev[, colSums(data_mat_n_dev) > 0]
 
-AICs_list <- vector("list", length = 0)
+lab_comb_bb <- paste0("n_train.",n_dev,":Nbar.emp")
+lab_comb_ibp <- paste0("n_train.",n_dev)
 
-AICs_list[["PoissonBB"]] <- compute_AICs_BICs(list_eb_EFPF_fit_PoissonBB[[lab_comb_bb]])$AIC
-for (var_fct_NegBinBB in vars_fct_NegBinBB){
-  AICs_list[[paste0("NegBinBB.var_fct.", var_fct_NegBinBB)]] <- compute_AICs_BICs(
-    list_eb_EFPF_fit_NegBinBB[[paste0("var_fct.", var_fct_NegBinBB)]][[lab_comb_bb]]
-  )$AIC
-}
-for (var_GammaIBP in vars_GammaIBP){
-  AICs_list[[paste0("GammaIBP.var.", var_GammaIBP)]] <- compute_AICs_BICs(
-    list_eb_EFPF_fit_GammaIBP[[paste0("var.", var_GammaIBP)]][[lab_comb_ibp]]
-  )$AIC
-}
+eb_init_BB <- list(alpha = -1, s = 100, Nhat_prime = 50)
+eb_known_BB <- list()
 
-print(AICs_list) 
-# both mechanisms: PoissonBB/NegBinBB are better than GammaIBP (smaller AIC)
+eb_init_IBP <- list(alpha = 0.5, s = 1, Gamma = 10)
+eb_known_IBP <- list()
+
+eb_params_obj_BB <- eb_params(model = "BB", 
+                              init = eb_init_BB, known = eb_known_BB )
+eb_params_obj_IBP <- eb_params(model = "IBP", 
+                               init = eb_init_IBP, known = eb_known_IBP )
+
+
+# classicBB
+eb_EFPF_fit_classicBB <- GibbsFA_eb(feature_matrix = data_mat_n_dev, 
+                                    model = "classicBB_eb", 
+                                    type = "EFPF",
+                                    eb_params =  eb_params_obj_BB)
+# classicIBP
+eb_EFPF_fit_classicIBP <- GibbsFA_eb(feature_matrix = data_mat_n_dev, 
+                                     model = "classicIBP_eb", 
+                                     type = "EFPF",
+                                     eb_params =  eb_params_obj_IBP)
+
+min_red_deviance_list <- vector("list", length = 0)
+
+min_red_deviance_list[["classicBB"]] <- compute_AICs_BICs(eb_EFPF_fit_classicBB)$min_res_dev
+min_red_deviance_list[["classicIBP"]] <- compute_AICs_BICs(eb_EFPF_fit_classicIBP)$min_res_dev
+min_red_deviance_list
+# both mechanisms: BB is better than IBP (smaller residual deviance)
   
 
 ## Rarefaction and Knr plots with credible bands for best class of mixtures -----------

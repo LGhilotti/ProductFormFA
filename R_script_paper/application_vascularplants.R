@@ -247,50 +247,13 @@ ggplot(observed_K_n_r_plot,  aes(x = r, y = k_n_r)) +
 ggsave(filename = "R_script_paper/Paper_plots/knr_Plants_eb_EFPF_means.pdf", width = 4, height = 4, dpi = 300, units = "in", device='pdf')
 
 
-## Formal model-checking via AIC/BIC -------
-AICs_list <- vector("list", length = 0)
+## Formal model-checking via "residual deviance" for one sample size (BB vs IBP) -------
+min_red_deviance_list <- vector("list", length = 0)
 
-AICs_list[["classicBB"]] <- compute_AICs_BICs(eb_EFPF_fit_classicBB)$AIC
-AICs_list[["PoissonBB"]] <- compute_AICs_BICs(eb_EFPF_fit_PoissonBB)$AIC
-for (var_fct_NegBinBB in vars_fct_NegBinBB){
-  AICs_list[[paste0("NegBinBB.var_fct.", var_fct_NegBinBB)]] <- compute_AICs_BICs(
-    list_eb_EFPF_fit_NegBinBB[[paste0("var_fct.", var_fct_NegBinBB)]]
-  )$AIC
-}
-AICs_list[["classicIBP"]] <- compute_AICs_BICs(eb_EFPF_fit_classicIBP)$AIC
-for (var_GammaIBP in vars_GammaIBP){
-  AICs_list[[paste0("GammaIBP.var.", var_GammaIBP)]] <- compute_AICs_BICs(
-    list_eb_EFPF_fit_GammaIBP[[paste0("var.", var_GammaIBP)]]
-  )$AIC
-}
-
-print(AICs_list) 
-# PoissonBB/NegBinBB are worse than GammaIBP (higher AIC)
-
-# Max-log_efpf
-max_log_efpf_list <- vector("list", length = 0)
-
-max_log_efpf_list[["classicBB"]] <- compute_AICs_BICs(eb_EFPF_fit_classicBB)$max_log_efpf
-max_log_efpf_list[["PoissonBB"]] <- compute_AICs_BICs(eb_EFPF_fit_PoissonBB)$max_log_efpf
-for (var_fct_NegBinBB in vars_fct_NegBinBB){
-  max_log_efpf_list[[paste0("NegBinBB.var_fct.", var_fct_NegBinBB)]] <- compute_AICs_BICs(
-    list_eb_EFPF_fit_NegBinBB[[paste0("var_fct.", var_fct_NegBinBB)]]
-  )$max_log_efpf
-}
-max_log_efpf_list[["classicIBP"]] <- compute_AICs_BICs(eb_EFPF_fit_classicIBP)$max_log_efpf
-for (var_GammaIBP in vars_GammaIBP){
-  max_log_efpf_list[[paste0("GammaIBP.var.", var_GammaIBP)]] <- compute_AICs_BICs(
-    list_eb_EFPF_fit_GammaIBP[[paste0("var.", var_GammaIBP)]]
-  )$max_log_efpf
-}
-
-max_log_efpf_df <- data.frame(
-  Model = names(max_log_efpf_list),
-  Max_log_epfp = unlist(max_log_efpf_list),
-  row.names = NULL
-)
-print(max_log_efpf_df)
-#write.csv(max_log_efpf_df, file = "max_log_efpf_df.csv", row.names = FALSE)
+min_red_deviance_list[["classicBB"]] <- compute_AICs_BICs(eb_EFPF_fit_classicBB)$min_res_dev
+min_red_deviance_list[["classicIBP"]] <- compute_AICs_BICs(eb_EFPF_fit_classicIBP)$min_res_dev
+min_red_deviance_list
+# BB is worse than IBP (higher residual deviance)
 
 
 
