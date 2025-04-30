@@ -10,6 +10,7 @@ library(ggpubr)
 library(ggthemes)
 library(patchwork)
 library(latex2exp)
+library(ggtext)
 library(dplyr, warn.conflicts = FALSE)
 
 source("R_script_paper/Routine_Chao.R")
@@ -212,7 +213,7 @@ eb_EFPF_fit_estimate_bounded_scenario <- function(mechanism,
 
 
 # Choose mechanism
-mechanism =  "beta_pis"   # "custom" 
+mechanism = "custom"   #  "beta_pis" 
 
 # Fit and estimate richness, rarefaction and extrapolation for GibbsFA's (save workspace)
 if (!file.exists(paste0("R_script_paper/eb_EFPF_",mechanism,"_fit_estimate.RData"))) {
@@ -252,7 +253,7 @@ eb_EFPF_fit_NegBinBB_rare <- list_eb_EFPF_fit_NegBinBB[[1]][[lab_comb_bb]]
 eb_EFPF_fit_GammaIBP_rare <- list_eb_EFPF_fit_GammaIBP[[1]][[lab_comb_ibp]]
 
 accum_df <- tibble( x = 0:n_rare,
-                    n_feat = c(0,rarefaction(data_mat[1:n_rare,], n_reorderings = 20)))
+                    n_feat = c(0,rarefaction(data_mat[1:n_rare,], n_reorderings = 500)))
 
 rare_EFPF_PoissonBB <- tibble( lambda_post = unname(unlist(
   rarefaction(object = eb_EFPF_fit_PoissonBB_rare, seed = seed)$lambda_post ))) %>%
@@ -428,7 +429,7 @@ n_rare <- Ns[2]
 lab_comb_bb <- paste0("n_train.",n_rare,":Nbar.emp")
 
 accum_df <- tibble( x = 0:n_rare,
-                    n_feat = c(0,rarefaction(data_mat[1:n_rare,], n_reorderings = 20)))
+                    n_feat = c(0,rarefaction(data_mat[1:n_rare,], n_reorderings = 500)))
 
 
 # PoissonBB
@@ -485,7 +486,7 @@ rare_all_df$Model <- factor(rare_all_df$Model,
 # for plot (different line colors)
 plot_rare_ci <- ggplot() +
   geom_point(data = accum_df, aes(x = x, y = n_feat),
-             color="black", shape = 18, size = 1) +
+             color="black", shape = 18, size = 0.5) +
   # Lower bound lines
   geom_line(data = rare_all_df,
             aes(x = x, y = lb, color = Model),
@@ -699,6 +700,49 @@ ggplot(joint_richness_long, aes( y=estimate, x=Model, shape = Nbar)) +
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
 ggsave(filename = paste0("R_script_paper/Paper_plots/richness_points_", mechanism,"_eb_EFPF.pdf"), width = 9, height = 5, dpi = 300, units = "in", device='pdf')
 
+# plot only for ReplyLetter
+# plain BB
+richness_EFPF_classicBB_df <- tibble(estimate = unname(sapply(list_eb_EFPF_fit_PoissonBB, function(x)
+  x$lambda)),
+  Model = "plain BB", 
+  Nbar = rep(c("EB", Nbars), length(Ns)),
+  n_train = rep(Ns, each = length(Nbars)+ 1),
+  n_train_idx = rep(c(1,2,3), each = length(Nbars)+ 1))
+
+joint_richness_long_plain <- bind_rows(richness_EFPF_classicBB_df,
+                                       richness_EFPF_PoissonBB_df,
+                                       richness_EFPF_NegBinBB_df) %>%
+  mutate(Model = fct_relevel(Model, c("plain BB", "Poisson BB", 
+                                      paste0("NegBinomial BB x", vars_fct_NegBinBB))) )
+
+
+joint_richness_long_plain <- joint_richness_long_plain %>%
+  mutate(n_train_latex = paste("Scenario~", LETTERS[n_train_idx], ":", "~n == ", n_train, "~','~K[n] == ", Kn[n_train_idx], sep = ""))
+
+ggplot(joint_richness_long_plain, aes(y = estimate, x = Model, shape = Nbar)) +
+  geom_point(aes(color = Model == "plain BB"), size = 2) +  # conditional point color
+  facet_wrap(~ n_train_latex,
+             labeller = label_parsed,
+             scales = "free_x", nrow = 1) +
+  theme_light() +
+  geom_hline(aes(yintercept = H), linetype = "dashed") +
+  theme(legend.position = "top") +
+  ylab("Posterior mean of N") +
+  scale_y_continuous(breaks = scales::pretty_breaks()) +
+  rremove("xlab") +
+  scale_shape_discrete(name = "Prior mean of N") +
+  scale_color_manual(values = c("TRUE" = "red", "FALSE" = "black"), guide = "none") +  # set red and black colors
+  scale_x_discrete(labels = function(x) {
+    ifelse(x == "plain BB", 
+           paste0('<span style="color:red;">', x, '</span>'), 
+           x)
+  }) +
+  theme(
+    aspect.ratio = 1,
+    axis.text.x = element_markdown(angle = 45, hjust = 1)  # interpret HTML and rotate labels
+  )
+ggsave(filename = paste0("R_script_paper/Paper_plots/replyletter_richness_points_", mechanism,"_eb_EFPF.pdf"), width = 9, height = 5, dpi = 300, units = "in", device='pdf')
+
 
 
 # 2) Plot Richness: posterior distributions for given Nbar  
@@ -873,7 +917,7 @@ for (var_fct_NegBinBB in vars_fct_NegBinBB){
 
 
 # Set Ns and Kn to plot
-idx_plot <- c(1,2,3) 
+idx_plot <- c(1,2) # c(1,2,3) for beta_pis
 Ns_plot <- Ns[idx_plot] 
 Kn_plot <- Kn[idx_plot]
 
@@ -906,6 +950,32 @@ ggplot(dens_richnesses, aes(x = x, y = y, color = Model)) +
   xlab("# distinct features") + ylab("Probability") + 
   scale_color_tableau()
 ggsave(filename = paste0("R_script_paper/Paper_plots/richness_distr_", mechanism, "_eb_EFPF.pdf"), width = 10, height = 6, dpi = 300, units = "in", device='pdf')
+
+# plot only for ReplyLetter
+classicBB_data <- data.frame(
+  PM = factor(c("EB", "EB", "Bayesian", "Bayesian"), levels = c("EB", "Bayesian")),    # match your PM facet values
+  n_train_latex = paste("Scenario~", LETTERS[idx_plot], ":", "~n == ", Ns_plot, "~','~K[n] == ", Kn_plot, sep = ""),  # match your n_train_latex facet values
+  vline_x = c(sapply(idx_plot, function(n) list_eb_EFPF_est_PoissonBB[[n]]$lambda), 
+              Nbar_plot, Nbar_plot),  # your x-values for the vertical lines
+  Model = "plain BB" 
+)
+
+ggplot(dens_richnesses, aes(x = x, y = y, color = Model)) +
+  geom_line() +
+  geom_vline(aes(xintercept = H), linetype = "dashed") +
+  geom_segment(data = classicBB_data,
+               aes(x = vline_x, xend = vline_x, y = 0, yend = Inf, color = Model),
+               inherit.aes = FALSE, size = 1) +
+  facet_grid(PM ~ n_train_latex,
+             labeller = label_parsed,
+             scales = "free") +
+  theme_light() +
+  theme(legend.position = "top") +
+  scale_y_continuous(breaks = scales::pretty_breaks()) +
+  xlab("# distinct features") + 
+  ylab("Probability") + 
+  scale_color_tableau()
+ggsave(filename = paste0("R_script_paper/Paper_plots/reply_letter_richness_distr_", mechanism, "_eb_EFPF.pdf"), width = 10, height = 6, dpi = 300, units = "in", device='pdf')
 
 
 
@@ -981,18 +1051,73 @@ load(paste0("R_script_paper/eb_Freq_",mechanism,"_fit_estimate.RData"))
 
 
 # Extract accumulation curve of the observed sample (or average accumulation)
+accum_df_train <- tibble(n_feat = integer(),
+                         n_train = integer(),
+                         n_train_idx = integer(),
+                         type = character(),
+                         x = integer())
+accum_df_test <- tibble(n_feat = integer(),
+                         n_train = integer(),
+                         n_train_idx = integer(),
+                         type = character(),
+                         x = integer())
 
-accum_df <- tibble(n_feat = unlist(sapply(Ns, function(n) 
-  c(0,rarefaction(data_mat[1:(n + M), ], n_reorderings = 1)))),
-  n_train = rep(Ns, times = Ns + M +1),
-  n_train_idx = rep(c(1,2,3), times = Ns + M +1 ),
-  type = unlist(sapply(Ns, function(n) c(rep("train", n +1), rep("test", M)))),
-  x = unlist(sapply(Ns, function(n) 0:(n + M))))
+n_reshuffles_test <- 50
 
-accum_df_train <- accum_df %>%
-  filter(type == "train")
-accum_df_test <- accum_df %>%
-  filter(type == "test")
+for (n_train_idx in 1:length(Ns)){
+  n_train <- Ns[n_train_idx]
+  n_test <- M
+  data_mat_train <- data_mat[1:n_train, ]
+  data_mat_test <- data_mat[(n_train+1):(n_train + M), ]
+  
+  data_list_train <- convert_features_list(data_mat_train)  
+  feature_labels_train <- unique(unlist(data_list_train))
+  Kn_train <- length(feature_labels_train)
+  
+  data_list_test <- convert_features_list(data_mat_test)  
+  
+  # Data-frame to store the number of hitherto unseen features in the test 
+  df_n_new_test <- matrix(nrow = n_reshuffles_test, ncol = n_test)
+  
+  # Loop over the different reshuffles
+  for (d in 1:n_reshuffles_test){
+    
+    set.seed(123 + d + n_train)
+    data_list_test_reshuffled <- sample(data_list_test)
+    
+    for (m in 1:n_test){
+      data_list_test_reshuffled_first_m <- data_list_test_reshuffled[1:m]
+      feature_labels_test_first_m <- unique(unlist(data_list_test_reshuffled_first_m))
+      
+      df_n_new_test[d, m] <- length(setdiff(feature_labels_test_first_m, feature_labels_train))
+      
+    }
+  }
+  
+  accum_df_train_n_train <- tibble(n_feat = c(0,rarefaction(data_mat_train, n_reorderings = 50))) %>%
+    mutate( n_train = n_train,
+            n_train_idx = n_train_idx,
+            type = "train") %>%
+    add_column(x = 0:n_train)
+  
+  accum_df_train <- bind_rows(accum_df_train,
+                              accum_df_train_n_train)
+  
+  
+  accum_df_test_n_train <- tibble(n_feat = colMeans(df_n_new_test),
+                                  n_train = n_train,
+                                  n_train_idx = n_train_idx,
+                                  type = "test") %>%
+    add_column(x = (n_train+1):(n_train + M)) %>%
+    mutate(n_feat = n_feat + Kn_train)
+  
+  accum_df_test <- bind_rows(accum_df_test,
+                              accum_df_test_n_train)
+  
+}
+
+
+
 
 
 # Poisson

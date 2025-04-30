@@ -49,7 +49,7 @@ prior <- function(model, hyper){
   }
   
   
-  if (model == "GammaIBP_single_prior") {
+  if (model == "GammaIBP") {
     
     if (!all(names(hyper) == c("a", "b", "a_alpha","b_alpha","a_s","b_s")) ){
       stop("Incorrect set of hyperparameters for GammaIBP (single prior).")
@@ -60,7 +60,7 @@ prior <- function(model, hyper){
       stop("Invalid value of some hyperparameters for GammaIBP (single prior).")
     }
     
-    class(hyper) <- c("prior", "GammaIBP_single_prior")
+    class(hyper) <- c("prior", "GammaIBP")
     return(hyper)
     
   }

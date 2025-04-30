@@ -50,7 +50,7 @@ initialization <- function(model, init){
     
   }
   
-  if (model == "GammaIBP_single_prior") {
+  if (model == "GammaIBP") {
     
     if (!all(names(init) == c("alpha_0","s_0")) ){
       stop("Incorrect set of initial parameters for GammaIBP (single prior).")
@@ -60,7 +60,7 @@ initialization <- function(model, init){
       stop("Invalid value of some initial parameters for GammaIBP (single prior).")
     }
     
-    class(init) <- c("initialization", "GammaIBP_single_prior")
+    class(init) <- c("initialization", "GammaIBP")
     return(init)
     
   }

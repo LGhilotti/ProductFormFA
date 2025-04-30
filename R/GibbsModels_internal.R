@@ -467,6 +467,182 @@ neg_log_posterior_gamma_ibp <- function(pars,
 }
 
 
+
+compute_grad_log_full_gamma_ibp <- function(s_hat, alpha_hat, a, b,
+                                            n, K, counts, a_s, b_s, a_alpha, b_alpha){
+  
+  es <- exp(s_hat)
+  ealpha <- exp(alpha_hat)
+  
+  g_n_addends <- exp(lgamma(es - ealpha/(1+ealpha) +1) -lgamma(es))*
+    (exp(lgamma(es + 1:n -1) -lgamma(es - ealpha/(1+ealpha) +1:n)))
+  
+  g_n <- sum(g_n_addends)
+    
+  ds_hat <- a_s + es * ( K*(digamma(es - ealpha/(1+ealpha) + 1) - digamma(es - ealpha/(1+ealpha) + n)) -
+                           (a+K)/(b+g_n) * sum(g_n_addends *
+                                                 (digamma(es + 1:n -1) - digamma(es) - digamma(es - ealpha/(1+ealpha) + 1:n) + digamma(es - ealpha/(1+ealpha) + 1))) -
+                           K*digamma(es) + 
+                           sum(digamma(es + n - counts)) - b_s)
+  
+  
+  dalpha_hat <- a_alpha + ealpha/((1+ealpha)**2) * ( K*(digamma(es - ealpha/(1+ealpha) + n) - digamma(es - ealpha/(1+ealpha) + 1)) -
+                                                       (a+K)/(b+g_n) * sum(g_n_addends * 
+                                                                             (digamma(es - ealpha/(1+ealpha) + 1:n) - digamma(es - ealpha/(1+ealpha) + 1))) +
+                                                       K*digamma(1/(1+ealpha)) -
+                                                       sum(digamma(counts - ealpha/(1+ealpha))) -
+                                                       (a_alpha + b_alpha)*(1+ealpha))
+
+  return(c(ds_hat, dalpha_hat))
+}
+
+
+#' Metropolis-within-Gibbs sampler for IBP with Gamma(a,b) mixture,
+#' with fixed a and b
+#'
+#' @param Z [integer] binary matrix of presence/absence (\code{n x K} - dimensional)
+#' @param alpha_0 [numeric] initial value of alpha
+#' @param s_0 [numeric] initial value of s (with s = alpha + theta)
+#' @param a_alpha [numeric] hyperparameter "a" of Beta(a,b) for alpha 
+#' @param b_alpha [numeric] hyperparameter "b" of Beta(a,b) for alpha 
+#' @param a_s [numeric] hyperparameter "a" of Gamma(a,b) for s 
+#' @param b_s [numeric] hyperparameter "b" of Gamma(a,b) for s 
+#' @param a [numeric] hyperparameter a of Gamma(a,b) 
+#' @param b [numeric] hyperparameter b of Gamma(a,b) 
+#' @param tau [numeric] MALA step-size
+#' @param S [integer] number of iterations for the MCMC algorithm
+#' @param n_burnin [integer] number of burn-in iterations
+#' @param thin [integer] thinning
+#' @param seed [integer] seed
+#'
+#' 
+#' @import numDeriv
+#' @import stats
+#' @import MASS
+#' @import matlib
+#'
+sampler_GammaIBP <- function(Z, 
+                             alpha_0, s_0, 
+                             a_alpha, b_alpha, a_s, b_s, a, b,
+                             tau, S, n_burnin, thin, seed){
+  
+  set.seed(seed)
+  
+  # Compute total number of sites
+  n <- nrow(Z)
+  
+  # Delete NA
+  Z <- Z[, colSums(is.na(Z))==0]
+  
+  # Delete zero-columns
+  Z <- Z[, colSums(Z)!=0]
+  
+  # Set K to be the observed number of features
+  K <- ncol(Z)
+  
+  # Compute vector of counts
+  counts <- colSums(Z)
+  
+  ############## Gibbs-sampler ##########################
+  
+  # Define structure to store parameters along the iterations
+  number_saved_iterations <- (S - n_burnin)/thin + 1
+  alpha_vec <- vector(length = number_saved_iterations)
+  s_vec <- vector(length = number_saved_iterations)
+  
+  # Set initial values
+  alpha <- alpha_0
+  s <- s_0
+  
+  # Compute mode of the log-posterior density (order: s_hat, alpha_hat)
+  mode_post <- optim(par = c(0,0), fn = neg_log_posterior_gamma_ibp, n = n, K = K, counts = counts,
+                     a = a, b = b, a_s = a_s, b_s = b_s, a_alpha = a_alpha, b_alpha = b_alpha,
+                     method = "L-BFGS-B")$par
+  
+  # Compute the hessian of the neg log-posterior in the mode
+  hess_neg_log_mode <- hessian(func = neg_log_posterior_gamma_ibp, x=mode_post, 
+                               n = n, K = K, counts = counts,
+                               a = a, b = b, a_s = a_s, b_s = b_s, a_alpha = a_alpha, b_alpha = b_alpha)
+  
+  # Covariance matrix of posterior density
+  cov_post <- inv(hess_neg_log_mode)
+  
+  # index saved iterations (after burn-in and thinning satisfied)
+  l <- 1
+  
+  for (w in 1:S){
+    
+    ################################################################
+    ############# Draw ( s, alpha) | Z ##################
+    ###############################################################
+    
+    # In order to update s, alpha, we update s_hat, alpha_hat, 
+    # defined as the logarithm of s and logarithm of alpha/(1-alpha)
+    
+    ### Current values for s_hat, alpha_hat
+    s_hat_curr <- log(s)
+    alpha_hat_curr <- log(alpha/(1-alpha))
+    
+    ### Propose values for s_hat, alpha_hat
+    # Compute the gradient of log-full conditional for MALA
+    grad_log_full_curr <- compute_grad_log_full_gamma_ibp(s_hat_curr, alpha_hat_curr, a, b,
+                                                      n, K, counts, a_s, b_s, a_alpha, b_alpha)
+    
+    # Propose from the bivariate normal 
+    params_curr <- c(s_hat_curr, alpha_hat_curr)
+    params_prop <- mvrnorm(mu = params_curr + tau*cov_post%*%grad_log_full_curr,
+                           Sigma = 2*tau*cov_post)
+    
+    s_hat_prop <- params_prop[1]
+    alpha_hat_prop <- params_prop[2]
+    
+    ### Acceptance probability 
+    log_ratio_full <- - neg_log_posterior_gamma_ibp(params_prop, n, K, counts,
+                                                a, b, a_s, b_s, a_alpha, b_alpha) +
+      neg_log_posterior_gamma_ibp(params_curr, n, K, counts,
+                              a, b, a_s, b_s, a_alpha, b_alpha )
+    
+    # Compute the log ratio of the terms related to the proposal q
+    grad_log_full_prop <- compute_grad_log_full_gamma_ibp(s_hat_prop, alpha_hat_prop, a, b,
+                                                      n, K, counts, a_s, b_s, a_alpha, b_alpha)
+    
+    log_ratio_q <- compute_log_ratio_q_precond(params_prop, params_curr,
+                                               tau, cov_post,
+                                               grad_log_full_curr, grad_log_full_prop)
+    
+    # Compute acceptance probability
+    log_acc_prob <- log_ratio_full + log_ratio_q
+    acc_prob <- min(1, exp(log_acc_prob))
+    
+    # Decide if accept or not the new parameter vector
+    if (runif(1) < acc_prob){ # accept
+      s <- exp(s_hat_prop)
+      alpha <- exp(alpha_hat_prop)/(1 + exp(alpha_hat_prop))
+    }
+    
+    ### Store parameters if burn-in is over and once every "thin" iteration
+    if ((w > n_burnin) & (w %% thin == 0) ){
+      print(paste0("iteration: ", w))
+      
+      alpha_vec[l] <- alpha
+      s_vec[l] <- s
+      
+      l <- l+1
+    }
+    
+  }
+  
+  
+  ######## End Gibbs-sampler #############
+  
+  alpha_vec <- alpha_vec[1:(l-1)]
+  s_vec <- s_vec[1:(l-1)]
+  
+  return (list("alpha_chain" = alpha_vec, "s_chain" = s_vec ))
+  
+}
+
+
 #' Metropolis-within-Gibbs sampler for IBP with Gamma(a,b) mixture,
 #' with prior also on a and b
 #'
@@ -495,11 +671,11 @@ neg_log_posterior_gamma_ibp <- function(pars,
 #' @import MASS
 #' @import matlib
 #'
-sampler_GammaIBP <- function(Z, 
+sampler_GammaIBP_more_prior <- function(Z, 
                              alpha_0, s_0, a_0, b_0,
                              a_alpha, b_alpha, a_s, b_s, q, r, t,
-                             sigq_alpha, sigq_s, S, n_burnin, thin, seed,
-                             fix_a, fix_b){
+                             sigq_alpha, sigq_s, S, n_burnin, thin, seed
+                             ){
   
   set.seed(seed)
   
@@ -533,6 +709,7 @@ sampler_GammaIBP <- function(Z,
   alpha <- alpha_0
   s <- s_0
   
+  
   # index saved iterations (after burn-in and thinning satisfied)
   l <- 1
   
@@ -543,30 +720,18 @@ sampler_GammaIBP <- function(Z,
     ###############################################################
     
     # Update Gam | Z, alpha, s, a, b
-    
     gamma_a_s_n <- sum(exp(lgamma(s + (1:n) - 1) - lgamma(s) - 
                              lgamma(s - alpha + (1:n)) + lgamma(s - alpha +1) ) )
     
     Gam <- rgamma(1, shape = K + a, rate = b + gamma_a_s_n)
     
-   
     # Update a | Gam, Z, alpha, s, b
-    
-    if (fix_a == FALSE){
+    a <- 1 + rpois(1, b*Gam*(1-q) )
       
-      a <- 1 + rpois(1, b*Gam*(1-q) )
-      
-    }
-
     # Update b | Gam, Z, alpha, s, a
+    b <- rgamma(1, shape = a + r, rate = Gam + t )
     
-    if (fix_b == FALSE){
-      
-      b <- rgamma(1, shape = a + r, rate = Gam + t )
-      
-    }
     
-
     ################################################################
     ############# Draw ( s, alpha) | Z, a, b ##################
     ###############################################################
@@ -601,7 +766,7 @@ sampler_GammaIBP <- function(Z,
     
     ### Update alpha_hat then
     alpha_hat_prop <- rnorm(n=1, mean = alpha_hat_curr, sd = sqrt(sigq_alpha) )
-   
+    
     params_prop <- c(s_hat_curr, alpha_hat_prop)
     
     # Compute acceptance probability: log ratio of the full-cond in prop point and curr point
@@ -623,19 +788,21 @@ sampler_GammaIBP <- function(Z,
     alpha <- exp(alpha_hat_curr)/(1 + exp(alpha_hat_curr))
     
     
-    ### Store parameters if burn-in is over and once every "thin" iteration
-    if ((w > n_burnin) & (w %% thin == 0) ){
-      print(paste0("iteration: ", w))
-      
-      a_vec[l] <- a
-      b_vec[l] <- b
-      alpha_vec[l] <- alpha
-      s_vec[l] <- s
-      
-      l <- l+1
-    }
-    
   }
+  
+  
+  ### Store parameters if burn-in is over and once every "thin" iteration
+  if ((w > n_burnin) & (w %% thin == 0) ){
+    print(paste0("iteration: ", w))
+    
+    a_vec[l] <- a
+    b_vec[l] <- b
+    alpha_vec[l] <- alpha
+    s_vec[l] <- s
+    
+    l <- l+1
+  }
+  
   
   
   ######## End Gibbs-sampler #############

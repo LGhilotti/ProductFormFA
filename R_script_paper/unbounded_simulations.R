@@ -164,7 +164,7 @@ eb_EFPF_fit_GammaIBP_rare <- list_eb_EFPF_fit_GammaIBP[[1]][[lab_comb_ibp]]
 
 
 accum_df <- tibble( x = 0:n_rare,
-                    n_feat = c(0,rarefaction(data_mat[1:n_rare,], n_reorderings = 20)))
+                    n_feat = c(0,rarefaction(data_mat[1:n_rare,], n_reorderings = 50)))
 
 rare_EFPF_PoissonBB <- tibble( lambda_post = unname(unlist(
   rarefaction(object = eb_EFPF_fit_PoissonBB_rare, seed = seed)$lambda_post ))) %>%
@@ -341,7 +341,7 @@ n_rare <- Ns[2]
 lab_comb_ibp <- paste0("n_train.",n_rare)
 
 accum_df <- tibble( x = 0:n_rare,
-                    n_feat = c(0,rarefaction(data_mat[1:n_rare,], n_reorderings = 20)))
+                    n_feat = c(0,rarefaction(data_mat[1:n_rare,], n_reorderings = 50)))
 
 
 
@@ -378,7 +378,7 @@ for (var_GammaIBP in vars_GammaIBP){
 }
 
 
-rare_all_df <- rare_EFPF_GammaIBP_df
+rare_all_df <- rare_EFPF_GammaIBP_df %>% filter(Model %in% paste0("Gamma IBP, Variance: ", vars_GammaIBP[2:3]))
 
 rare_all_df$Model <- factor(rare_all_df$Model, 
                             levels = paste0("Gamma IBP, Variance: ", vars_GammaIBP))
@@ -466,7 +466,7 @@ for (var_GammaIBP in vars_GammaIBP){
 }
 
 
-knr_all_df <- knr_EFPF_GammaIBP_df
+knr_all_df <- knr_EFPF_GammaIBP_df %>% filter(Model %in% paste0("Gamma IBP, Variance: ", vars_GammaIBP[2:3]))
 
 knr_all_df$Model <- factor(knr_all_df$Model,
                            levels = paste0("Gamma IBP, Variance: ", vars_GammaIBP))
@@ -581,20 +581,72 @@ if (!file.exists(paste0("R_script_paper/eb_Freq_poly_",xi,"_fit_estimate.RData")
 load(paste0("R_script_paper/eb_Freq_poly_",xi,"_fit_estimate.RData"))
 
 
+
 # Extract accumulation curve of the observed sample (or average accumulation)
+accum_df_train <- tibble(n_feat = integer(),
+                         n_train = integer(),
+                         n_train_idx = integer(),
+                         type = character(),
+                         x = integer())
+accum_df_test <- tibble(n_feat = integer(),
+                        n_train = integer(),
+                        n_train_idx = integer(),
+                        type = character(),
+                        x = integer())
 
-accum_df <- tibble(n_feat = unlist(sapply(Ns, function(n) 
-  c(0,rarefaction(data_mat[1:(n + M), ], n_reorderings = 1)))),
-  n_train = rep(Ns, times = Ns + M +1),
-  n_train_idx = rep(c(1,2,3), times = Ns + M +1 ),
-  type = unlist(sapply(Ns, function(n) c(rep("train", n +1), rep("test", M)))),
-  x = unlist(sapply(Ns, function(n) 0:(n + M))))
+n_reshuffles_test <- 20
 
-accum_df_train <- accum_df %>%
-  filter(type == "train")
-accum_df_test <- accum_df %>%
-  filter(type == "test")
-
+for (n_train_idx in 1:length(Ns)){
+  n_train <- Ns[n_train_idx]
+  n_test <- M
+  data_mat_train <- data_mat[1:n_train, ]
+  data_mat_test <- data_mat[(n_train+1):(n_train + M), ]
+  
+  data_list_train <- convert_features_list(data_mat_train)  
+  feature_labels_train <- unique(unlist(data_list_train))
+  Kn_train <- length(feature_labels_train)
+  
+  data_list_test <- convert_features_list(data_mat_test)  
+  
+  # Data-frame to store the number of hitherto unseen features in the test 
+  df_n_new_test <- matrix(nrow = n_reshuffles_test, ncol = n_test)
+  
+  # Loop over the different reshuffles
+  for (d in 1:n_reshuffles_test){
+    
+    set.seed(123 + d + n_train)
+    data_list_test_reshuffled <- sample(data_list_test)
+    
+    for (m in 1:n_test){
+      data_list_test_reshuffled_first_m <- data_list_test_reshuffled[1:m]
+      feature_labels_test_first_m <- unique(unlist(data_list_test_reshuffled_first_m))
+      
+      df_n_new_test[d, m] <- length(setdiff(feature_labels_test_first_m, feature_labels_train))
+      
+    }
+  }
+  
+  accum_df_train_n_train <- tibble(n_feat = c(0,rarefaction(data_mat_train, n_reorderings = 20))) %>%
+    mutate( n_train = n_train,
+            n_train_idx = n_train_idx,
+            type = "train") %>%
+    add_column(x = 0:n_train)
+  
+  accum_df_train <- bind_rows(accum_df_train,
+                              accum_df_train_n_train)
+  
+  
+  accum_df_test_n_train <- tibble(n_feat = colMeans(df_n_new_test),
+                                  n_train = n_train,
+                                  n_train_idx = n_train_idx,
+                                  type = "test") %>%
+    add_column(x = (n_train+1):(n_train + M)) %>%
+    mutate(n_feat = n_feat + Kn_train)
+  
+  accum_df_test <- bind_rows(accum_df_test,
+                             accum_df_test_n_train)
+  
+}
 
 # GammaIBP
 extr_EFPF_GammaIBP_df <- tibble(means = numeric(), 

@@ -118,8 +118,7 @@ GibbsFA <- function(feature_matrix, model, prior, initialization, mcmcparams, se
     res <- sampler_GammaIBP(Z = feature_matrix,
                             alpha_0 = alpha_0, s_0 = s_0, a_0 = a_0, b_0 = b_0,
                             a_alpha = a_alpha, b_alpha = b_alpha, a_s = a_s, b_s = b_s, q = q, r = r, t = t,
-                            sigq_alpha = sigq_alpha, sigq_s = sigq_s, S = S, n_burnin = n_burnin, thin = thin, seed = seed,
-                            fix_a = FALSE, fix_b = FALSE)
+                            sigq_alpha = sigq_alpha, sigq_s = sigq_s, S = S, n_burnin = n_burnin, thin = thin, seed = seed)
     
     out <- list("feature_matrix" = feature_matrix,
                 "prior" = prior,
@@ -130,11 +129,11 @@ GibbsFA <- function(feature_matrix, model, prior, initialization, mcmcparams, se
                 "a_chain" = res$a_chain,
                 "b_chain" = res$b_chain)
     
-    class(out) <- c("GibbsFA", "GammaIBP")
+    class(out) <- c("GibbsFA", "GammaIBP_more_prior")
     return(out)
   }
   
-  if (model == "GammaIBP_single_prior") {
+  if (model == "GammaIBP") {
     
     # Initialization of the chain
     alpha_0 <- initialization$alpha_0
@@ -147,26 +146,21 @@ GibbsFA <- function(feature_matrix, model, prior, initialization, mcmcparams, se
     a_s <- prior$a_s
     b_s <- prior$b_s
     # Additional MCMC parameters
-    sigq_alpha <- mcmcparams$sigq_alpha
-    sigq_s <- mcmcparams$sigq_s
-    
-    
+    tau <- mcmcparams$tau
+
     # Run the model
     res <- sampler_GammaIBP(Z = feature_matrix,
-                            alpha_0 = alpha_0, s_0 = s_0, a_0 = a, b_0 = b,
+                            alpha_0 = alpha_0, s_0 = s_0, 
                             a_alpha = a_alpha, b_alpha = b_alpha, a_s = a_s, b_s = b_s, 
-                            q = 0.5, r = 1, t = 1,
-                            sigq_alpha = sigq_alpha, sigq_s = sigq_s, S = S, n_burnin = n_burnin, thin = thin, seed = seed,
-                            fix_a = TRUE, fix_b = TRUE)
+                            a = a, b = b,
+                            tau = tau, S = S, n_burnin = n_burnin, thin = thin, seed = seed)
     
     out <- list("feature_matrix" = feature_matrix,
                 "prior" = prior,
                 "initialization" = initialization,
                 "MCMCparameters" = mcmcparams,
                 "alpha_chain" = res$alpha_chain, 
-                "theta_chain" = res$s_chain - res$alpha_chain,
-                "a_chain" = res$a_chain,
-                "b_chain" = res$b_chain)
+                "theta_chain" = res$s_chain - res$alpha_chain )
     
     class(out) <- c("GibbsFA", "GammaIBP")
     return(out)

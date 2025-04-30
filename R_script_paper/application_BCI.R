@@ -32,7 +32,7 @@ data_mat <- data[sample.int(n, size = n, replace = F),]
 
 # Plot accumulation
 accum_df <- tibble( x = 0:n,
-                    n_feat = c(0,rarefaction(data_mat[1:n,], n_reorderings = 1)))
+                    n_feat = c(0,rarefaction(data_mat[1:n,], n_reorderings = 500)))
 
 ggplot(accum_df, aes(x = x, y = n_feat)) +
   geom_point(color="black", shape = 19, size = 0.1) + 
@@ -122,7 +122,7 @@ eb_EFPF_fit_NegBinBB_rare <- list_eb_EFPF_fit_NegBinBB[[1]]
 eb_EFPF_fit_GammaIBP_rare <- list_eb_EFPF_fit_GammaIBP[[1]]
 
 accum_df <- tibble( x = 0:n_rare,
-                    n_feat = c(0,rarefaction(data_mat[1:n_rare,], n_reorderings = 50)))
+                    n_feat = c(0,rarefaction(data_mat[1:n_rare,], n_reorderings = 500)))
 
 rare_EFPF_PoissonBB <- tibble( lambda_post = unname(unlist(
   rarefaction(object = eb_EFPF_fit_PoissonBB_rare, seed = seed)$lambda_post ))) %>%
@@ -265,7 +265,7 @@ min_red_deviance_list
 n_rare <- n
 
 accum_df <- tibble( x = 0:n_rare,
-                    n_feat = c(0,rarefaction(data_mat[1:n_rare,], n_reorderings = 20)))
+                    n_feat = c(0,rarefaction(data_mat[1:n_rare,], n_reorderings = 500)))
 
 
 # PoissonBB
@@ -590,7 +590,7 @@ Kn + qnbinom(c(0.025, 0.975), size = rich_pars$n0_prime, prob = rich_pars$p_prim
 M <- 400 # 1000 for table
 
 accum_df <- tibble( x = 0:n,
-                    n_feat = c(0,rarefaction(data_mat, n_reorderings = 200)))
+                    n_feat = c(0,rarefaction(data_mat, n_reorderings = 500)))
 
 
 # PoissonBB
@@ -695,16 +695,12 @@ extr_EFPF_PoissonBB_df %>%
 # Fit GibbsFA's (save workspace)
 if (!file.exists("R_script_paper/fullybayes_BCI_fit_estimate_NegBinBB.RData")) {
   
-  vars_fct_NegBinBB_bayes <- c(10,100) # c(10,1000) - values in the first manuscript
+  vars_fct_NegBinBB_bayes <- c(10, 100) # c(10,1000) - values in the first manuscript
   
   list_prior_fit_NegBinBB <-  vector(mode = "list", length = length(vars_fct_NegBinBB_bayes))
   names(list_prior_fit_NegBinBB) <- paste0("var_fct.", vars_fct_NegBinBB_bayes)
   
-  # Initialization and MCMC setting 
-  mcmcparams_NegBinBB <- list(tau = 0.1, 
-                              S = 5*10^4, n_burnin = 5*10^3, thin = 2)
-  mcmcparams_obj_NegBinBB <- mcmcparameters(model = "NegBinBB", mcmcparams = mcmcparams_NegBinBB)
-  
+  # Initialization 
   init_NegBinBB <- list(alpha_0 = - 1, s_0 = 15)
   init_obj_NegBinBB <- initialization(model = "NegBinBB", init = init_NegBinBB )
   
@@ -718,8 +714,20 @@ if (!file.exists("R_script_paper/fullybayes_BCI_fit_estimate_NegBinBB.RData")) {
   print(paste0("Prior variance of -alpha: ", - alpha_eb/small_val  ))
   print(paste0("Prior variance of s: ", s_eb/small_val  ))
   
+  # MCMC parameters
+  taus <- c(0.4, 0.4) 
+  
   # Fit the model
-  for (var_fct in vars_fct_NegBinBB_bayes){
+  for (i in 1:length(vars_fct_NegBinBB_bayes)){
+    
+    #execution_time <- system.time({ ... })
+    
+    var_fct <- vars_fct_NegBinBB_bayes[i]
+    
+    # MCMC setting 
+    mcmcparams_NegBinBB <- list(tau = taus[i], 
+                                S = 5*10^4, n_burnin = 5*10^3, thin = 2)
+    mcmcparams_obj_NegBinBB <- mcmcparameters(model = "NegBinBB", mcmcparams = mcmcparams_NegBinBB)
     
     n0_eb <- list_eb_EFPF_fit_NegBinBB[[paste0("var_fct.", var_fct)]]$n0
     mu0_eb <- list_eb_EFPF_fit_NegBinBB[[paste0("var_fct.", var_fct)]]$mu0
@@ -736,6 +744,7 @@ if (!file.exists("R_script_paper/fullybayes_BCI_fit_estimate_NegBinBB.RData")) {
               prior = prior_obj_NegBinBB,
               initialization = init_obj_NegBinBB,
               mcmcparams = mcmcparams_obj_NegBinBB)
+    
     
   }
   
@@ -761,7 +770,7 @@ if (!file.exists("R_script_paper/fullybayes_BCI_fit_estimate_NegBinBB.RData")) {
 #   mcmcparams_obj_GammaIBP <- mcmcparameters(model = "GammaIBP", mcmcparams = mcmcparams_GammaIBP)
 #   
 #   init_GammaIBP <- list(alpha_0 = 0.1, s_0 = 2)
-#   init_obj_GammaIBP <- initialization(model = "GammaIBP_single_prior", init = init_GammaIBP )
+#   init_obj_GammaIBP <- initialization(model = "GammaIBP", init = init_GammaIBP )
 #   
 #   # EB estimates
 #   small_val_alpha <- 2
@@ -789,12 +798,12 @@ if (!file.exists("R_script_paper/fullybayes_BCI_fit_estimate_NegBinBB.RData")) {
 #     hyper_GammaIBP <- list(a = a_eb, b = b_eb,
 #                            a_alpha = small_val_alpha, b_alpha = t_eb*small_val_alpha,
 #                            a_s = s_eb*small_val_s , b_s = small_val_s)
-#     prior_obj_GammaIBP <- prior(model = "GammaIBP_single_prior", hyper = hyper_GammaIBP)
+#     prior_obj_GammaIBP <- prior(model = "GammaIBP", hyper = hyper_GammaIBP)
 #     
 #     
 #     list_prior_fit_GammaIBP[[paste0("var.", var_GammaIBP)]] <- 
 #       GibbsFA(feature_matrix = data_mat,
-#               model = "GammaIBP_single_prior", 
+#               model = "GammaIBP", 
 #               prior = prior_obj_GammaIBP,
 #               initialization = init_obj_GammaIBP,
 #               mcmcparams = mcmcparams_obj_GammaIBP)
@@ -950,7 +959,7 @@ library(ggmcmc)
 library(coda)
 
 # NegBinBB + prior
-params_prior_NegBinBB <- list_prior_fit_NegBinBB[[paste0("var_fct.", vars_fct_NegBinBB[1])]][c("n0_chain","mu0_chain", "alpha_chain", "theta_chain")]
+params_prior_NegBinBB <- list_prior_fit_NegBinBB[[paste0("var_fct.", vars_fct_NegBinBB_bayes[1])]][c("n0_chain","mu0_chain", "alpha_chain", "theta_chain")]
 params_prior_NegBinBB_df <- as.data.frame(do.call(cbind, params_prior_NegBinBB))
 
 samples_NegBinBB <- mcmc.list(mcmc(params_prior_NegBinBB_df))
@@ -1130,7 +1139,7 @@ ggplot(extr_joint_NegBinBB_df, aes(x, means, color = Type )) +
   scale_x_continuous(breaks = pretty_breaks()) +
   theme(aspect.ratio = 1) +
   scale_color_tableau()
-ggsave(filename = "R_script_paper/Paper_plots/extr_BCI_fullybayes.pdf", width = 6, height = 4, dpi = 300, units = "in", device='pdf')
+ggsave(filename = "R_script_paper/Paper_plots/extr_BCI_fullybayes.pdf", width = 8.7, height = 5, dpi = 300, units = "in", device='pdf')
 
 
 
@@ -1207,7 +1216,7 @@ ggplot() +
   xlab("# distinct features") + rremove("ylab") +
   scale_color_tableau() +
   theme(aspect.ratio = 1)
-ggsave(filename = "R_script_paper/Paper_plots/richness_BCI_fullybayes.pdf", width = 6, height = 4, dpi = 300, units = "in", device='pdf')
+ggsave(filename = "R_script_paper/Paper_plots/richness_BCI_fullybayes.pdf", width = 8.7, height = 5, dpi = 300, units = "in", device='pdf')
 
 
 # Compute mean and variance of richness
@@ -1295,12 +1304,12 @@ if (!file.exists("R_script_paper/fullybayes_BCI_fit_estimate_GammaIBPcompetitor_
   names(list_prior_fit_GammaIBP) <- paste0("var.", vars_GammaIBP_bayes)
   
   # Initialization and MCMC setting 
-  mcmcparams_GammaIBP <- list(sigq_alpha = 0.1, sigq_s = 0.1, 
+  mcmcparams_GammaIBP <- list(tau = 0.1,  
                               S = 5*10^4, n_burnin = 5*10^3, thin = 2)
   mcmcparams_obj_GammaIBP <- mcmcparameters(model = "GammaIBP", mcmcparams = mcmcparams_GammaIBP)
   
   init_GammaIBP <- list(alpha_0 = 0.1, s_0 = 2)
-  init_obj_GammaIBP <- initialization(model = "GammaIBP_single_prior", init = init_GammaIBP )
+  init_obj_GammaIBP <- initialization(model = "GammaIBP", init = init_GammaIBP )
   
   # hyperparameters for alpha and theta
   a_alpha <- 1
@@ -1330,12 +1339,12 @@ if (!file.exists("R_script_paper/fullybayes_BCI_fit_estimate_GammaIBPcompetitor_
     hyper_GammaIBP <- list(a = a, b = b,
                            a_alpha = a_alpha, b_alpha = b_alpha,
                            a_s = a_s, b_s = b_s)
-    prior_obj_GammaIBP <- prior(model = "GammaIBP_single_prior", hyper = hyper_GammaIBP)
+    prior_obj_GammaIBP <- prior(model = "GammaIBP", hyper = hyper_GammaIBP)
     
     
     list_prior_fit_GammaIBP[[paste0("var.", var_GammaIBP)]] <- 
       GibbsFA(feature_matrix = data_mat,
-              model = "GammaIBP_single_prior", 
+              model = "GammaIBP", 
               prior = prior_obj_GammaIBP,
               initialization = init_obj_GammaIBP,
               mcmcparams = mcmcparams_obj_GammaIBP)
@@ -1660,98 +1669,8 @@ for (var_GammaIBP in vars_GammaIBP){
 
 
 
-## OPTION 1) Evaluate trained models on test data (and some reshuffles) -------
 
-### 1) Compute prediction on number of new features: this just depends on the training data -------
-
-# PoissonBB
-n_new_EFPF_PoissonBB <- tibble(lambda = unname(unlist( 
-  extrapolation(object = eb_EFPF_fit_PoissonBB, M = n_test, seed = seed)$lambda_post))) %>%
-  mutate(lb = qpois(0.025, lambda, lower.tail = TRUE, log.p = FALSE),
-         ub = qpois(0.975, lambda, lower.tail = TRUE, log.p = FALSE)) %>%
-  rename(mean = lambda) %>%
-  add_column(m = 1:n_test, Model = "Poisson BB") %>%
-  select(mean, lb, ub, m, Model)
-
-
-# NegBinBB
-list_n_new_EFPF_NegBinBB <- vector(mode = "list", length = length(vars_fct_NegBinBB))
-names(list_n_new_EFPF_NegBinBB) <- paste0("var_fct.", vars_fct_NegBinBB)
-
-for (var_fct_NegBinBB in vars_fct_NegBinBB){
-  
-  eb_EFPF_NegBinBB_var <- list_eb_EFPF_fit_NegBinBB[[paste0("var_fct.", var_fct_NegBinBB)]]
-  
-  list_n_new_EFPF_NegBinBB[[paste0("var_fct.", var_fct_NegBinBB)]]  <- tibble(mu0 = unname(unlist(
-    extrapolation(object = eb_EFPF_NegBinBB_var, M = n_test, seed = seed)$mu0_post )),
-    n0 = unname(unlist( extrapolation(object = eb_EFPF_NegBinBB_var, M = n_test, seed = seed)$n0_post ))) %>%
-    mutate(p = 1/(mu0/n0 + 1),
-           lb = qnbinom(0.025, size = n0, prob = p, lower.tail = TRUE, log.p = FALSE),
-           ub = qnbinom(0.975, size = n0, prob = p, lower.tail = TRUE, log.p = FALSE)) %>%
-    rename(mean = mu0) %>%
-    add_column(m = 1:n_test) %>%
-    select(mean, lb, ub, m)
-
-}
-
-
-# GammaIBP
-list_n_new_EFPF_GammaIBP <- vector(mode = "list", length = length(vars_GammaIBP))
-names(list_n_new_EFPF_GammaIBP) <- paste0("var.", vars_GammaIBP)
-
-for (var_GammaIBP in vars_GammaIBP){
-  
-  eb_EFPF_GammaIBP_var <- list_eb_EFPF_fit_GammaIBP[[paste0("var.", var_GammaIBP)]]
-  
-  list_n_new_EFPF_GammaIBP[[paste0("var.", var_GammaIBP)]] <- tibble(mu0 = unname(unlist(
-    extrapolation(object = eb_EFPF_GammaIBP_var, M = n_test, seed = seed)$mu0_post )),
-    n0 = unname(unlist( extrapolation(object = eb_EFPF_GammaIBP_var, M = n_test, seed = seed)$n0_post ))) %>%
-    mutate(p = 1/(mu0/n0 + 1),
-           lb = qnbinom(0.025, size = n0, prob = p, lower.tail = TRUE, log.p = FALSE),
-           ub = qnbinom(0.975, size = n0, prob = p, lower.tail = TRUE, log.p = FALSE)) %>%
-    rename(mean = mu0) %>%
-    add_column(m = 1:n_test) %>%
-    select(mean, lb, ub, m)
-  
-}
-
-
-### 2) Compute observed number of new features from 1 to n_test, for each reshuffle -----
-n_reshuffles <- 10
-
-# Data-frame to store the number of hitherto unseen features in the test 
-df_n_new_test <- matrix(nrow = n_reshuffles, ncol = n_test)
-
-# Loop over the different reshuffles
-for (d in 1:n_reshuffles){
-  
-  set.seed(123 + d)
-  data_list_test_reshuffled <- sample(data_list_test)
-  
-  for (m in 1:n_test){
-    data_list_test_reshuffled_first_m <- data_list_test_reshuffled[1:m]
-    feature_labels_test_first_m <- unique(unlist(data_list_test_reshuffled_first_m))
-    
-    df_n_new_test[d, m] <- length(setdiff(feature_labels_test_first_m, feature_labels_train))
-    
-  }
-  
-}
-
-# Summarize observed information in confidence intervals of reshuffles, for each m
-# Function to compute empirical CI
-get_empirical_ci <- function(x, probs = c(0.025, 0.975)) {
-  mean_x <- mean(x)
-  quantiles <- quantile(x, probs = probs)
-  c(mean = mean_x, lb = unname(quantiles[1]), ub = unname(quantiles[2]))
-}
-
-n_new_test_mean_ci <- as_tibble(t(apply(df_n_new_test, 2, get_empirical_ci))) %>%
-  mutate(m = row_number())
-
-
-
-## OPTION 2) Plot extrapolation as in simulations  -----
+## Plot extrapolation as in simulations  -----
 
 ### 1) Compute extrapolation: this just depends on the training data -------
 
@@ -1824,7 +1743,7 @@ for (var_GammaIBP in vars_GammaIBP){
     add_row(mean = 0, lb = 0, ub = 0) %>%
     mutate(mean = mean + Kn_train, lb = lb + Kn_train, ub = ub + Kn_train) %>%
     add_column(x = c((n_train+1):(n_train + n_test), n_train), 
-               Model = paste0("GammaIBP, var = ", var_GammaIBP),
+               Model = paste0("GammaIBP, Variance: ", var_GammaIBP),
                Model_gen = "IBPmixt") %>%
     select(mean, lb, ub, x, Model, Model_gen)
   
@@ -1840,28 +1759,47 @@ for (var_GammaIBP in vars_GammaIBP){
 
 ### 2) Accumulation curve for training and test set -----
 
-# Extract accumulation curve of the observed sample (or average accumulation)
-accum_df <- tibble(n_feat = c(0,rarefaction(data_mat_full, n_reorderings = 1)),
-                   type = c(rep("train", n_train +1), rep("test", n_test)),
-                   x = 0:(n_train + n_test))
+########## Extract accumulation curve of the observed sample (or average accumulation)
+accum_df_train <- tibble(n_feat = c(0,rarefaction(data_mat_train, n_reorderings = 500)),
+                         x = 0:n_train )
 
-accum_df_train <- accum_df %>%
-  filter(type == "train")
-accum_df_test <- accum_df %>%
-  filter(type == "test")
+
+n_reshuffles_test <- 500
+
+# Data-frame to store the number of hitherto unseen features in the test 
+df_n_new_test <- matrix(nrow = n_reshuffles_test, ncol = n_test)
+
+# Loop over the different reshuffles
+for (d in 1:n_reshuffles_test){
+  
+  set.seed(123 + d)
+  data_list_test_reshuffled <- sample(data_list_test)
+  
+  for (m in 1:n_test){
+    data_list_test_reshuffled_first_m <- data_list_test_reshuffled[1:m]
+    feature_labels_test_first_m <- unique(unlist(data_list_test_reshuffled_first_m))
+    
+    df_n_new_test[d, m] <- length(setdiff(feature_labels_test_first_m, feature_labels_train))
+    
+  }
+}
+
+accum_df_test <- tibble(n_feat = colMeans(df_n_new_test),
+                        x = (n_train+1):(n_train + n_test) ) %>%
+  mutate(n_feat = n_feat + Kn_train)
+
 
 
 ### 3) Plot -----
 
 extr_all_df <- bind_rows(extr_EFPF_PoissonBB_df, 
                          extr_EFPF_NegBinBB_df,
-                         extr_EFPF_GammaIBP_df) #%>% filter(Model == "NegBinomial BB x10")
-#%>% filter(Model %in% c("Poisson BB", paste0("NegBinomial BB x", vars_fct_NegBinBB)))
+                         extr_EFPF_GammaIBP_df) #%>% filter(Model == c("NegBinomial BB x10", "GammaIBP, Variance: 100"))
 
 extr_all_df$Model <- factor(extr_all_df$Model, 
                             levels = c("Poisson BB", 
                                        paste0("NegBinomial BB x", vars_fct_NegBinBB),
-                                       paste0("GammaIBP, var = ", vars_GammaIBP)))
+                                       paste0("GammaIBP, Variance: ", vars_GammaIBP)))
 
 
 
@@ -1897,5 +1835,5 @@ plot_bands <- ggplot() +
   scale_color_tableau()
 
 plot_bands
-ggsave(filename = "R_script_paper/Paper_plots/heldout_extr_BCI_eb_EFPF.pdf", width = 8.5, height = 5, dpi = 300, units = "in", device='pdf')
+ggsave(filename = "R_script_paper/Paper_plots/heldout_extr_BCI_eb_EFPF.pdf", width = 8.7, height = 5, dpi = 300, units = "in", device='pdf')
 
